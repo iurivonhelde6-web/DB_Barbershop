@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { getApps as getAdminApps, initializeApp as initializeAdminApp, cert, getApp as getAdminApp } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
@@ -33,37 +33,25 @@ app.use((_req, res, next) => {
 });
 
 // ─── Firebase Client SDK (para uso no backend de rotas legadas) ───────────────
-const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
-let firebaseConfigData: any = {};
-if (fs.existsSync(configPath)) {
-  try {
-    firebaseConfigData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-  } catch (e) {
-    console.error('Erro ao ler firebase-applet-config.json no backend:', e);
-  }
-}
+// ─── Firebase Client SDK (Backend Reflector) ──────────────────────────────────
+const firebaseConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'dazzling-mercury-f6shk',
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID,
+};
 
-const firebaseApp = getApps().length > 0 ? getApp() : initializeApp({
-  apiKey: firebaseConfigData.apiKey,
-  authDomain: firebaseConfigData.authDomain,
-  projectId: firebaseConfigData.projectId,
-  storageBucket: firebaseConfigData.storageBucket,
-  messagingSenderId: firebaseConfigData.messagingSenderId,
-  appId: firebaseConfigData.appId,
-});
+const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
-const db = getFirestore(firebaseApp, firebaseConfigData.firestoreDatabaseId || '(default)');
-
-// ─── Firebase Admin SDK ───────────────────────────────────────────────────────
-// Em Cloud Run/GCP usa Application Default Credentials.
-// Localmente, define FIREBASE_SERVICE_ACCOUNT_JSON ou GOOGLE_APPLICATION_CREDENTIALS.
+// ─── Firebase Admin SDK (Apenas Autenticação) ─────────────────────────
 const adminApp = getAdminApps().length > 0
   ? getAdminApp()
-  : (process.env.FIREBASE_SERVICE_ACCOUNT_JSON
-      ? initializeAdminApp({ credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)) })
-      : initializeAdminApp());
+  : initializeAdminApp({ projectId: firebaseConfig.projectId });
+
 const adminAuth = getAdminAuth(adminApp);
-const adminDb = getAdminFirestore(adminApp);
 
 // ─── IMPORTANTE: Stripe webhook precisa de raw body — registrar ANTES do json parser ──
 // O express.raw é aplicado inline na rota do webhook dentro de registerStripeRoutes.
@@ -149,12 +137,12 @@ const requireAdminRole = async (req: express.Request, res: express.Response, nex
     let databaseRole = 'client';
 
     if (!isAdmin) {
-      const userSnap = await adminDb.collection('users').doc(userId).get();
-      if (userSnap.exists) {
-        databaseRole = userSnap.data()?.role || 'client';
-        isAdmin = databaseRole === 'admin';
-      }
-    }
+  const userSnap = await getDoc(doc(db, 'users', userId));
+  if (userSnap.exists()) {
+    databaseRole = userSnap.data()?.role || 'client';
+    isAdmin = databaseRole === 'admin';
+  }
+}
 
     if (!isAdmin) {
       return res.status(403).json({
@@ -277,19 +265,20 @@ async function exportFirestoreDataToJSON(): Promise<{
     const usersList: any[] = [];
 
     // Usa Admin SDK para backup (bypassa regras Firestore, mais confiável no backend)
+    // Busca os dados usando o Client SDK (db)
     try {
-      const subSnap = await adminDb.collection('subscribers').get();
-      subSnap.forEach((d) => subscribersList.push({ id: d.id, ...d.data() }));
+      const subSnap = await getDocs(collection(db, 'subscribers'));
+      subSnap.forEach((d: any) => subscribersList.push({ id: d.id, ...d.data() }));
     } catch (e: any) { console.warn('Aviso ao consultar subscribers para backup:', e?.message); }
 
     try {
-      const aptSnap = await adminDb.collection('appointments').get();
-      aptSnap.forEach((d) => appointmentsList.push({ id: d.id, ...d.data() }));
+      const aptSnap = await getDocs(collection(db, 'appointments'));
+      aptSnap.forEach((d: any) => appointmentsList.push({ id: d.id, ...d.data() }));
     } catch (e: any) { console.warn('Aviso ao consultar appointments para backup:', e?.message); }
 
     try {
-      const usrSnap = await adminDb.collection('users').get();
-      usrSnap.forEach((d) => usersList.push({ id: d.id, ...d.data() }));
+      const usrSnap = await getDocs(collection(db, 'users'));
+      usrSnap.forEach((d: any) => usersList.push({ id: d.id, ...d.data() }));
     } catch (e: any) { console.warn('Aviso ao consultar users para backup:', e?.message); }
 
     const now = new Date();
