@@ -11,7 +11,6 @@ coverage/
 backups/
 
 # Firebase config — contém API keys; não deve ir para o repositório
-firebase-applet-config.json
 
 # Service account keys
 *.serviceaccount.json
