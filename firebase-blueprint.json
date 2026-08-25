@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "users": {
+      "title": "Users Profile and Role",
+      "description": "User profiles storing role (admin vs client) and basic account info",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "client"] },
+        "cardCode": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "subscribers": {
+      "title": "Subscriber Cards",
+      "description": "Digital control cards for membership subscribers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "cardCode": { "type": "string" },
+        "clientName": { "type": "string" },
+        "cpf": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "userUid": { "type": "string" },
+        "planName": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "totalSessions": { "type": "number" },
+        "usedSessions": { "type": "number" },
+        "expirationDate": { "type": "string" },
+        "startDate": { "type": "string" },
+        "status": { "type": "string" },
+        "qrCodeValue": { "type": "string" },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["cardCode", "clientName", "totalSessions", "usedSessions"]
+    },
+    "appointments": {
+      "title": "Barbershop Appointments",
+      "description": "Agendamentos de cortes e barboterapia",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientPhone": { "type": "string" },
+        "userUid": { "type": "string" },
+        "barberId": { "type": "string" },
+        "barberName": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["clientName", "barberName", "serviceName", "date", "time"]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Ded Black Barbershop",
+  "description": "Plataforma oficial da Barbearia Ded Black - Gestão de Planos de Assinatura, Calculadora Financeira, Validação de Cartão e Termos Contratuais.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,18 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.env.local
+.env.*.local
+backups/
+
+# Firebase config — contém API keys; não deve ir para o repositório
+firebase-applet-config.json
+
+# Service account keys
+*.serviceaccount.json
+service-account*.json
