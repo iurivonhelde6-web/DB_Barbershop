@@ -828,6 +828,7 @@ export const PLANS_LIST: PlanOption[] = [
     totalHouseMargin: 116,     // 40%
     badgeTag: '⚫ O Mais Completo (Liberdade Total)',
     recommendedFor: 'Cliente exigente que quer liberdade sem ficar preso a um único serviço.',
+    comingSoon: true,
   },
 ];
 

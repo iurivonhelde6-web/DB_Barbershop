@@ -41,7 +41,8 @@ export interface PlanOption {
   familyMembers?: number;
   badgeTag?: string;
   recommendedFor?: string;
-}
+  comingSoon?: boolean;
+};
 
 export interface SubscriberCard {
   id: string;

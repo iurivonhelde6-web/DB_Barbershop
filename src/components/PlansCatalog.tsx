@@ -595,13 +595,23 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
 
                 {/* Card Action Button */}
                 <div className="mt-6 pt-4 border-t border-white/10">
-                  <button
-                    onClick={() => handleOpenSubscribeModal(plan)}
-                    className="w-full px-6 py-3.5 bg-white text-stone-900 font-extrabold uppercase text-xs tracking-widest hover:bg-stone-100 active:scale-[0.99] transition-all rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-black/20"
-                  >
-                    <CreditCard className="w-4 h-4 text-stone-900" />
-                    Assinar Agora
-                  </button>
+                  {plan.comingSoon ? (
+                    <button
+                      disabled
+                      className="w-full px-6 py-3.5 bg-stone-800 text-stone-500 font-extrabold uppercase text-xs tracking-widest rounded-2xl flex items-center justify-center gap-2 cursor-not-allowed opacity-80 border border-stone-700"
+                    >
+                      <Lock className="w-4 h-4 text-stone-500" />
+                      Em Breve
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleOpenSubscribeModal(plan)}
+                      className="w-full px-6 py-3.5 bg-[#556b2f] hover:bg-[#6b863a] text-black font-extrabold uppercase text-xs tracking-widest active:scale-[0.99] transition-all rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-black/20"
+                    >
+                      <CreditCard className="w-4 h-4 text-stone-900" />
+                      Assinar Agora
+                    </button>
+                  )}
                 </div>
               </div>
             );
