@@ -144,6 +144,15 @@ const TIER_STYLES: Record<string, TierStyle> = {
 
 const DEFAULT_TIER_STYLE = TIER_STYLES.family;
 
+// Ordem de exibição dos planos no catálogo: Basic -> Plus -> Select -> Family -> Flex Premium
+const TIER_ORDER: Record<string, number> = {
+  basic: 0,
+  plus: 1,
+  select: 2,
+  family: 3,
+  flex_premium: 4,
+};
+
 export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onOpenCheckin, onOpenBooking }) => {
   const [selectedServiceId, setSelectedServiceId] = useState<string>('all');
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('all');
@@ -601,7 +610,9 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
 
         {/* Grid Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPlans.map((plan) => {
+          {[...filteredPlans]
+            .sort((a, b) => (TIER_ORDER[a.tier] ?? 99) - (TIER_ORDER[b.tier] ?? 99))
+            .map((plan) => {
             const isFlex = plan.tier === 'flex_premium';
             const isSelect = plan.tier === 'select';
             const isFamily = plan.tier === 'family';
