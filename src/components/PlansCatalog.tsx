@@ -27,6 +27,123 @@ interface PlansCatalogProps {
   onOpenBooking?: () => void;
 }
 
+// Cores de card por tier, extraídas do mockup enviado (BASIC/PLUS/SELECT/FAMILY/FLEX PREMIUM).
+// BASIC e PLUS têm fundo claro, então recebem uma paleta de texto escuro pra manter contraste.
+// SELECT, FAMILY e FLEX PREMIUM mantêm a paleta de texto clara original.
+type TierStyle = {
+  cardBg: string;
+  cardHoverBg: string;
+  cardBorder: string;
+  cardBorderHover: string;
+  headingText: string;
+  serviceText: string;
+  priceText: string;
+  mutedText: string;
+  pricePerAtdText: string;
+  bulletText: string;
+  checkIcon: string;
+  iconAccent: string;
+  divider: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+};
+
+const TIER_STYLES: Record<string, TierStyle> = {
+  basic: {
+    cardBg: 'bg-[#D8D5C2]/95',
+    cardHoverBg: 'hover:bg-[#E5E5CA]/95',
+    cardBorder: 'border-[#556b2f]/40',
+    cardBorderHover: 'hover:border-[#556b2f]',
+    headingText: 'text-[#1f1f18]',
+    serviceText: 'text-[#3f4d2c]',
+    priceText: 'text-[#1f1f18]',
+    mutedText: 'text-[#5c5a4a]',
+    pricePerAtdText: 'text-[#3f4d2c]',
+    bulletText: 'text-[#242419]',
+    checkIcon: 'text-[#4a5f33]',
+    iconAccent: 'text-[#4a5f33]',
+    divider: 'border-black/10',
+    badgeBg: 'bg-black/10',
+    badgeText: 'text-[#1f1f18]',
+    badgeBorder: 'border-black/20',
+  },
+  plus: {
+    cardBg: 'bg-[#94A288]/95',
+    cardHoverBg: 'hover:bg-[#A1B290]/95',
+    cardBorder: 'border-[#556b2f]/40',
+    cardBorderHover: 'hover:border-[#556b2f]',
+    headingText: 'text-[#12190d]',
+    serviceText: 'text-[#1e2a14]',
+    priceText: 'text-[#12190d]',
+    mutedText: 'text-[#28331e]',
+    pricePerAtdText: 'text-[#1e2a14]',
+    bulletText: 'text-[#141c0e]',
+    checkIcon: 'text-[#1e2a14]',
+    iconAccent: 'text-[#1e2a14]',
+    divider: 'border-black/15',
+    badgeBg: 'bg-black/15',
+    badgeText: 'text-[#12190d]',
+    badgeBorder: 'border-black/25',
+  },
+  select: {
+    cardBg: 'bg-[#2D4F3F]/95',
+    cardHoverBg: 'hover:bg-[#3A5F47]/95',
+    cardBorder: 'border-amber-500/50',
+    cardBorderHover: 'hover:border-amber-300',
+    headingText: 'text-white',
+    serviceText: 'text-lime-300',
+    priceText: 'text-white',
+    mutedText: 'text-stone-300',
+    pricePerAtdText: 'text-lime-300',
+    bulletText: 'text-stone-100',
+    checkIcon: 'text-lime-400',
+    iconAccent: 'text-lime-300',
+    divider: 'border-white/10',
+    badgeBg: 'bg-amber-500',
+    badgeText: 'text-black',
+    badgeBorder: 'border-amber-300',
+  },
+  family: {
+    cardBg: 'bg-[#14322A]/95',
+    cardHoverBg: 'hover:bg-[#214232]/95',
+    cardBorder: 'border-white/30',
+    cardBorderHover: 'hover:border-white/60',
+    headingText: 'text-white',
+    serviceText: 'text-lime-300',
+    priceText: 'text-white',
+    mutedText: 'text-stone-300',
+    pricePerAtdText: 'text-lime-300',
+    bulletText: 'text-stone-100',
+    checkIcon: 'text-lime-400',
+    iconAccent: 'text-white',
+    divider: 'border-white/10',
+    badgeBg: 'bg-white',
+    badgeText: 'text-black',
+    badgeBorder: 'border-white',
+  },
+  flex_premium: {
+    cardBg: 'bg-[#071515]/95',
+    cardHoverBg: 'hover:bg-[#14251D]/95',
+    cardBorder: 'border-[#556b2f]',
+    cardBorderHover: 'hover:border-white/50',
+    headingText: 'text-white',
+    serviceText: 'text-lime-300',
+    priceText: 'text-white',
+    mutedText: 'text-stone-300',
+    pricePerAtdText: 'text-lime-300',
+    bulletText: 'text-stone-100',
+    checkIcon: 'text-lime-400',
+    iconAccent: 'text-amber-300',
+    divider: 'border-white/10',
+    badgeBg: 'bg-amber-400',
+    badgeText: 'text-black',
+    badgeBorder: 'border-amber-300',
+  },
+};
+
+const DEFAULT_TIER_STYLE = TIER_STYLES.family;
+
 export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onOpenCheckin, onOpenBooking }) => {
   const [selectedServiceId, setSelectedServiceId] = useState<string>('all');
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('all');
@@ -488,19 +605,12 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
             const isFlex = plan.tier === 'flex_premium';
             const isSelect = plan.tier === 'select';
             const isFamily = plan.tier === 'family';
+            const style = TIER_STYLES[plan.tier] ?? DEFAULT_TIER_STYLE;
 
             return (
               <div
                 key={plan.id}
-                className={`rounded-3xl p-6 sm:p-7 transition-all duration-300 transform hover:-translate-y-2 hover:scale-[1.02] flex flex-col justify-between relative border cursor-pointer group shadow-xl hover:shadow-2xl hover:shadow-[#556b2f]/40 backdrop-blur-sm hover:backdrop-blur-md ${
-                  isFlex
-                    ? 'bg-[#2b3818]/95 border-[#556b2f] hover:bg-[#384820]/80 hover:border-white/50 shadow-2xl ring-1 ring-[#556b2f]/50'
-                    : isSelect
-                    ? 'bg-[#2b3818]/95 border-amber-500/50 hover:bg-[#384820]/80 hover:border-amber-300'
-                    : isFamily
-                    ? 'bg-[#2b3818]/95 border-white/30 hover:bg-[#384820]/80 hover:border-white/60'
-                    : 'bg-[#2b3818]/95 border-[#556b2f]/40 hover:bg-[#384820]/80 hover:border-white/50'
-                }`}
+                className={`rounded-3xl p-6 sm:p-7 transition-all duration-300 transform hover:-translate-y-2 hover:scale-[1.02] flex flex-col justify-between relative border cursor-pointer group shadow-xl hover:shadow-2xl hover:shadow-[#556b2f]/40 backdrop-blur-sm hover:backdrop-blur-md ${style.cardBg} ${style.cardBorder} ${style.cardHoverBg} ${style.cardBorderHover}${isFlex ? ' shadow-2xl ring-1 ring-[#556b2f]/50' : ''}`}
               >
                 {/* Highlight Badge */}
                 {plan.badgeTag && (
@@ -513,7 +623,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                           ? 'bg-amber-500 text-black border-amber-300'
                           : isFamily
                           ? 'bg-white text-black border-white'
-                          : 'bg-white/20 text-white border-white/30'
+                          : `${style.badgeBg} ${style.badgeText} ${style.badgeBorder}`
                       }`}
                     >
                       {plan.badgeTag}
@@ -524,10 +634,10 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h4 className="text-2xl font-serif font-extrabold text-white uppercase tracking-widest drop-shadow-sm">
+                      <h4 className={`text-2xl font-serif font-extrabold uppercase tracking-widest drop-shadow-sm ${style.headingText}`}>
                         {plan.tierLabel}
                       </h4>
-                      <p className="text-xs text-lime-300 font-bold uppercase tracking-wider mt-0.5">
+                      <p className={`text-xs font-bold uppercase tracking-wider mt-0.5 ${style.serviceText}`}>
                         {plan.serviceName}
                       </p>
                     </div>
@@ -537,34 +647,34 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                     ) : isFamily ? (
                       <Users className="w-6 h-6 text-white" />
                     ) : (
-                      <Scissors className="w-5 h-5 text-lime-300" />
+                      <Scissors className={`w-5 h-5 ${style.iconAccent}`} />
                     )}
                   </div>
 
                   {/* Price Block */}
-                  <div className="mt-4 border-t border-white/10 pt-4">
-                    <p className="text-[10px] text-stone-300 uppercase tracking-widest font-semibold">A partir de</p>
+                  <div className={`mt-4 border-t pt-4 ${style.divider}`}>
+                    <p className={`text-[10px] uppercase tracking-widest font-semibold ${style.mutedText}`}>A partir de</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-serif font-extrabold text-white">
+                      <span className={`text-3xl font-serif font-extrabold ${style.priceText}`}>
                         R$ {plan.totalPrice.toFixed(2)}
                       </span>
-                      <span className="text-xs text-stone-300 italic font-serif">/mês</span>
+                      <span className={`text-xs italic font-serif ${style.mutedText}`}>/mês</span>
                     </div>
 
                     <div className="flex items-center gap-3 mt-2 text-xs font-medium">
                       <span className="bg-black/40 text-stone-100 px-3 py-1 rounded-full text-[10px] font-mono border border-white/15">
                         {plan.numAtendimentos} ATD
                       </span>
-                      <span className="text-lime-300 font-extrabold text-[11px]">
+                      <span className={`font-extrabold text-[11px] ${style.pricePerAtdText}`}>
                         R$ {plan.pricePerAtd.toFixed(2)} / corte
                       </span>
                     </div>
                   </div>
 
                   {/* Features List */}
-                  <ul className="mt-5 space-y-2.5 text-xs text-stone-100 font-medium">
+                  <ul className={`mt-5 space-y-2.5 text-xs font-medium ${style.bulletText}`}>
                     <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-lime-400 shrink-0" />
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${style.checkIcon}`} />
                       <span>{plan.numAtendimentos} atendimentos no ciclo de 30 dias</span>
                     </li>
 
@@ -576,12 +686,12 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                     )}
 
                     <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-lime-400 shrink-0" />
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${style.checkIcon}`} />
                       <span>Cartão de Controle Físico &amp; Digital para validação</span>
                     </li>
 
                     <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-lime-400 shrink-0" />
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${style.checkIcon}`} />
                       <span>Sem fidelidade obrigatória (30 dias por ciclo)</span>
                     </li>
 
@@ -594,7 +704,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                 </div>
 
                 {/* Card Action Button */}
-                <div className="mt-6 pt-4 border-t border-white/10">
+                <div className={`mt-6 pt-4 border-t ${style.divider}`}>
                   {plan.comingSoon ? (
                     <button
                       disabled
