@@ -131,7 +131,7 @@ const requireAdminRole = async (req: express.Request, res: express.Response, nex
     const decoded = (req as any).firebaseUser || await adminAuth.verifyIdToken(authHeader.slice('Bearer '.length).trim());
     const userId = decoded.uid;
     const email = String(decoded.email || '').toLowerCase();
-    const MASTER_ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || 'iurivonheldetatuador@gmail.com').toLowerCase();
+    const MASTER_ADMIN_EMAIL = String(process .env.VITE_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'blackmmania@gmail.com').toLowerCase();
 
     let isAdmin = email === MASTER_ADMIN_EMAIL;
     let databaseRole = 'client';
