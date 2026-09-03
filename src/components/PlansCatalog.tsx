@@ -53,8 +53,8 @@ const TIER_STYLES: Record<string, TierStyle> = {
   basic: {
     cardBg: 'bg-[#D8D5C2]/95',
     cardHoverBg: 'hover:bg-[#E5E5CA]/95',
-    cardBorder: 'border-[#556b2f]/40',
-    cardBorderHover: 'hover:border-[#556b2f]',
+    cardBorder: 'border-[#94a288]/40',
+    cardBorderHover: 'hover:border-[#94a288]',
     headingText: 'text-[#1f1f18]',
     serviceText: 'text-[#3f4d2c]',
     priceText: 'text-[#1f1f18]',
@@ -71,8 +71,8 @@ const TIER_STYLES: Record<string, TierStyle> = {
   plus: {
     cardBg: 'bg-[#94A288]/95',
     cardHoverBg: 'hover:bg-[#A1B290]/95',
-    cardBorder: 'border-[#556b2f]/40',
-    cardBorderHover: 'hover:border-[#556b2f]',
+    cardBorder: 'border-[#94a288]/40',
+    cardBorderHover: 'hover:border-[#94a288]',
     headingText: 'text-[#12190d]',
     serviceText: 'text-[#1e2a14]',
     priceText: 'text-[#12190d]',
@@ -125,7 +125,7 @@ const TIER_STYLES: Record<string, TierStyle> = {
   flex_premium: {
     cardBg: 'bg-[#071515]/95',
     cardHoverBg: 'hover:bg-[#14251D]/95',
-    cardBorder: 'border-[#556b2f]',
+    cardBorder: 'border-[#94a288]',
     cardBorderHover: 'hover:border-white/50',
     headingText: 'text-white',
     serviceText: 'text-lime-300',
@@ -261,15 +261,15 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
   return (
     <div className="bg-[#0c0c0c] pb-16 min-h-screen text-[#e0e0e0]">
       {/* Hero Header */}
-      <section className="bg-[#0f0f0f] py-12 border-b border-[#556b2f]/30 relative overflow-hidden">
+      <section className="bg-[#0f0f0f] py-12 border-b border-[#94a288]/30 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#556b2f]/20 text-[#556b2f] text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border border-[#556b2f]/40">
-              <Award className="w-3.5 h-3.5 text-[#556b2f]" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#94a288]/20 text-[#94a288] text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border border-[#94a288]/40">
+              <Award className="w-3.5 h-3.5 text-[#94a288]" />
               Clube de Assinaturas Ded Black
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-white leading-tight">
-              Planos de <span className="text-[#556b2f]">Membro</span>
+              Planos de <span className="text-[#94a288]">Membro</span>
             </h2>
             <p className="mt-4 text-stone-300 text-xs sm:text-sm leading-relaxed opacity-80 font-sans">
               Escolha o plano ideal para a sua rotina. Economize até 40% em relação aos serviços avulsos, garanta prioridade e controle total pelo seu Cartão de Membro.
@@ -277,10 +277,10 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
           </div>
 
           {/* Service Cards Filter */}
-          <div className="mt-8 pt-6 border-t border-[#556b2f]/20 space-y-3">
+          <div className="mt-8 pt-6 border-t border-[#94a288]/20 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase tracking-[0.25em] text-[#556b2f] font-bold flex items-center gap-1.5">
-                <Scissors className="w-3.5 h-3.5 text-[#556b2f]" />
+              <label className="text-[10px] uppercase tracking-[0.25em] text-[#94a288] font-bold flex items-center gap-1.5">
+                <Scissors className="w-3.5 h-3.5 text-[#94a288]" />
                 Filtrar por Serviço Desejado:
               </label>
               <span className="text-[10px] text-stone-500 font-mono sm:hidden">
@@ -293,7 +293,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
               <select
                 value={selectedServiceId}
                 onChange={(e) => setSelectedServiceId(e.target.value)}
-                className="w-full bg-[#151515] text-white text-xs font-bold rounded-lg px-3.5 py-3 border border-[#556b2f]/50 focus:outline-none focus:border-[#556b2f] shadow-lg"
+                className="w-full bg-[#151515] text-white text-xs font-bold rounded-lg px-3.5 py-3 border border-[#94a288]/50 focus:outline-none focus:border-[#94a288] shadow-lg"
               >
                 <option value="all">✂️ Todos os Serviços</option>
                 {SERVICES_LIST.map((srv) => (
@@ -311,8 +311,8 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                 onClick={() => setSelectedServiceId('all')}
                 className={`px-3.5 py-2 rounded text-[10px] font-bold uppercase tracking-wider transition border ${
                   selectedServiceId === 'all'
-                    ? 'bg-[#556b2f] text-black border-[#556b2f] shadow-md font-black'
-                    : 'bg-[#151515] text-stone-300 border-[#556b2f]/30 hover:text-white hover:bg-[#202020]'
+                    ? 'bg-[#94a288] text-black border-[#94a288] shadow-md font-black'
+                    : 'bg-[#151515] text-stone-300 border-[#94a288]/30 hover:text-white hover:bg-[#202020]'
                 }`}
               >
                 ✂️ Todos os Serviços
@@ -324,13 +324,13 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                   onClick={() => setSelectedServiceId(srv.id)}
                   className={`px-3.5 py-2 rounded text-[10px] font-bold uppercase tracking-wider transition border flex items-center gap-1.5 ${
                     selectedServiceId === srv.id
-                      ? 'bg-[#556b2f] text-black border-[#556b2f] shadow-md font-black'
-                      : 'bg-[#151515] text-stone-300 border-[#556b2f]/30 hover:text-white hover:bg-[#202020]'
+                      ? 'bg-[#94a288] text-black border-[#94a288] shadow-md font-black'
+                      : 'bg-[#151515] text-stone-300 border-[#94a288]/30 hover:text-white hover:bg-[#202020]'
                   }`}
                 >
                   <span>{srv.name}</span>
                   <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono ${
-                    selectedServiceId === srv.id ? 'bg-black/20 text-black font-extrabold' : 'bg-[#556b2f]/20 text-[#556b2f] font-bold'
+                    selectedServiceId === srv.id ? 'bg-black/20 text-black font-extrabold' : 'bg-[#94a288]/20 text-[#94a288] font-bold'
                   }`}>
                     R$ {srv.avulsoPrice.toFixed(2)}
                   </span>
@@ -386,10 +386,10 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
 
       {/* Interactive Client ROI Calculator */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-[#111111] rounded-lg p-6 sm:p-8 border border-[#556b2f]/30 shadow-xl relative overflow-hidden">
+        <div className="bg-[#111111] rounded-lg p-6 sm:p-8 border border-[#94a288]/30 shadow-xl relative overflow-hidden">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="max-w-xl">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#556b2f] uppercase tracking-[0.25em] mb-2">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#94a288] uppercase tracking-[0.25em] mb-2">
                 <TrendingDown className="w-4 h-4" />
                 Simulador de Economia para Clientes
               </span>
@@ -409,7 +409,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                   <select
                     value={simServiceId}
                     onChange={(e) => setSimServiceId(e.target.value)}
-                    className="w-full bg-[#0a0a0a] text-stone-100 text-xs font-semibold rounded px-3 py-2.5 border border-[#556b2f]/30 focus:outline-none focus:border-[#556b2f]"
+                    className="w-full bg-[#0a0a0a] text-stone-100 text-xs font-semibold rounded px-3 py-2.5 border border-[#94a288]/30 focus:outline-none focus:border-[#94a288]"
                   >
                     {SERVICES_LIST.map((srv) => (
                       <option key={srv.id} value={srv.id}>
@@ -421,7 +421,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
 
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-wider text-stone-300 block mb-1.5">
-                    Visitas por mês: <span className="text-[#556b2f] font-bold">{simVisitsCount} atendimentos</span>
+                    Visitas por mês: <span className="text-[#94a288] font-bold">{simVisitsCount} atendimentos</span>
                   </label>
                   <input
                     type="range"
@@ -429,7 +429,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                     max={10}
                     value={simVisitsCount}
                     onChange={(e) => setSimVisitsCount(Number(e.target.value))}
-                    className="w-full accent-[#556b2f] cursor-pointer"
+                    className="w-full accent-[#94a288] cursor-pointer"
                   />
                   <div className="flex justify-between text-[10px] text-stone-400 mt-1 uppercase tracking-wider">
                     <span>2 (Quinzenal)</span>
@@ -441,24 +441,24 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
             </div>
 
             {/* Results Display Box */}
-            <div className="w-full lg:w-auto bg-[#0a0a0a] rounded-lg p-5 border border-[#556b2f]/40 flex flex-col sm:flex-row lg:flex-col items-center justify-between gap-4 min-w-[280px]">
+            <div className="w-full lg:w-auto bg-[#0a0a0a] rounded-lg p-5 border border-[#94a288]/40 flex flex-col sm:flex-row lg:flex-col items-center justify-between gap-4 min-w-[280px]">
               <div className="text-center sm:text-left lg:text-center w-full">
                 <span className="text-[10px] uppercase tracking-wider text-stone-400 block font-bold">Custo Avulso vs. Plano Ded Black</span>
                 <div className="flex items-baseline justify-center sm:justify-start lg:justify-center gap-2 mt-1">
                   <span className="line-through text-stone-500 text-xs">R$ {totalAvulsoCost.toFixed(2)}</span>
-                  <span className="text-2xl font-serif text-[#556b2f] font-bold">
+                  <span className="text-2xl font-serif text-[#94a288] font-bold">
                     R$ {planMonthlyPrice.toFixed(2)}
                   </span>
                   <span className="text-xs text-stone-400 italic">/mês</span>
                 </div>
               </div>
 
-              <div className="bg-[#556b2f]/10 px-4 py-2.5 rounded text-center w-full border border-[#556b2f]/30">
-                <span className="text-[10px] uppercase tracking-widest font-bold text-[#556b2f] block">Sua Economia Estimada</span>
+              <div className="bg-[#94a288]/10 px-4 py-2.5 rounded text-center w-full border border-[#94a288]/30">
+                <span className="text-[10px] uppercase tracking-widest font-bold text-[#94a288] block">Sua Economia Estimada</span>
                 <span className="text-lg font-serif italic font-bold text-white">
                   R$ {monthlySavings.toFixed(2)} <span className="text-xs font-normal text-stone-300">/mês</span>
                 </span>
-                <p className="text-[10px] text-[#556b2f] font-bold mt-0.5 uppercase tracking-wider">
+                <p className="text-[10px] text-[#94a288] font-bold mt-0.5 uppercase tracking-wider">
                   Economia anual de ~R$ {annualSavings.toFixed(2)}!
                 </p>
               </div>
@@ -469,24 +469,24 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
 
       {/* Standalone Services Price Table */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-[#111111] rounded-lg p-6 sm:p-8 border border-[#556b2f]/30 shadow-xl relative overflow-hidden">
+        <div className="bg-[#111111] rounded-lg p-6 sm:p-8 border border-[#94a288]/30 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#556b2f] uppercase tracking-[0.25em] mb-1">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#94a288] uppercase tracking-[0.25em] mb-1">
                 <Scissors className="w-3.5 h-3.5" />
                 Tabela Oficial de Preços Avulsos
               </span>
               <h3 className="text-xl sm:text-2xl font-serif italic text-white">
-                Serviços <span className="text-[#556b2f]">Avulsos</span> (Atendimentos Avulsos)
+                Serviços <span className="text-[#94a288]">Avulsos</span> (Atendimentos Avulsos)
               </h3>
               <p className="text-xs text-stone-400 mt-1">
                 Valores para atendimentos individuais sem adesão aos planos de membros recorrentes.
               </p>
             </div>
 
-            <div className="bg-[#556b2f]/10 border border-[#556b2f]/30 px-3.5 py-2 rounded text-right">
+            <div className="bg-[#94a288]/10 border border-[#94a288]/30 px-3.5 py-2 rounded text-right">
               <span className="text-[10px] uppercase tracking-wider text-stone-400 block font-bold">Dica Ded Black</span>
-              <span className="text-xs text-[#556b2f] font-bold">Membros economizam até 40% por visita!</span>
+              <span className="text-xs text-[#94a288] font-bold">Membros economizam até 40% por visita!</span>
             </div>
           </div>
 
@@ -503,8 +503,8 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                     isSoTesoura
                       ? 'bg-gradient-to-br from-[#1a1c14] to-[#121212] border-amber-500/50 shadow-lg hover:border-amber-400'
                       : isSelected
-                      ? 'bg-[#1a1a1a] border-[#556b2f] shadow-lg ring-1 ring-[#556b2f]'
-                      : 'bg-[#0a0a0a] border-white/10 hover:border-[#556b2f]/40 hover:bg-[#141414]'
+                      ? 'bg-[#1a1a1a] border-[#94a288] shadow-lg ring-1 ring-[#94a288]'
+                      : 'bg-[#0a0a0a] border-white/10 hover:border-[#94a288]/40 hover:bg-[#141414]'
                   }`}
                 >
                   {isSoTesoura && (
@@ -516,7 +516,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                   <div>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Scissors className="w-4 h-4 text-[#556b2f] shrink-0" />
+                        <Scissors className="w-4 h-4 text-[#94a288] shrink-0" />
                         {srv.name}
                       </h4>
                     </div>
@@ -528,7 +528,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                   <div className="pt-3 border-t border-white/5 flex items-baseline justify-between">
                     <span className="text-[10px] uppercase tracking-wider text-stone-400 font-bold">Valor Avulso:</span>
                     <div className="text-right">
-                      <span className={`text-xl font-serif font-bold ${isSoTesoura ? 'text-amber-400' : 'text-[#556b2f]'}`}>
+                      <span className={`text-xl font-serif font-bold ${isSoTesoura ? 'text-amber-400' : 'text-[#94a288]'}`}>
                         R$ {srv.avulsoPrice.toFixed(2)}
                       </span>
                       <span className="text-[10px] text-stone-500 block font-mono">/ atendimento</span>
@@ -546,7 +546,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="text-xl sm:text-2xl font-serif italic text-white">
-              Catálogo de <span className="text-[#556b2f]">Planos</span>
+              Catálogo de <span className="text-[#94a288]">Planos</span>
             </h3>
             <p className="text-xs text-stone-400 mt-0.5 uppercase tracking-wider">
               Exibindo {filteredPlans.length} opções disponíveis
@@ -554,12 +554,12 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
           </div>
 
           {/* Tier Selector Filter */}
-          <div className="flex items-center gap-1 bg-[#151515] p-1.5 rounded-xl border border-[#556b2f]/30 text-xs overflow-x-auto no-scrollbar max-w-full">
+          <div className="flex items-center gap-1 bg-[#151515] p-1.5 rounded-xl border border-[#94a288]/30 text-xs overflow-x-auto no-scrollbar max-w-full">
             <button
               onClick={() => setSelectedTierFilter('all')}
               className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition whitespace-nowrap ${
                 selectedTierFilter === 'all'
-                  ? 'bg-[#556b2f] text-black shadow'
+                  ? 'bg-[#94a288] text-black shadow'
                   : 'text-stone-400 hover:text-white'
               }`}
             >
@@ -569,7 +569,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
               onClick={() => setSelectedTierFilter('basic')}
               className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition whitespace-nowrap ${
                 selectedTierFilter === 'basic'
-                  ? 'bg-[#556b2f] text-black shadow'
+                  ? 'bg-[#94a288] text-black shadow'
                   : 'text-stone-400 hover:text-white'
               }`}
             >
@@ -621,7 +621,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
             return (
               <div
                 key={plan.id}
-                className={`rounded-3xl p-6 sm:p-7 transition-all duration-300 transform hover:-translate-y-2 hover:scale-[1.02] flex flex-col justify-between relative border cursor-pointer group shadow-xl hover:shadow-2xl hover:shadow-[#556b2f]/40 backdrop-blur-sm hover:backdrop-blur-md ${style.cardBg} ${style.cardBorder} ${style.cardHoverBg} ${style.cardBorderHover}${isFlex ? ' shadow-2xl ring-1 ring-[#556b2f]/50' : ''}`}
+                className={`rounded-3xl p-6 sm:p-7 transition-all duration-300 transform hover:-translate-y-2 hover:scale-[1.02] flex flex-col justify-between relative border cursor-pointer group shadow-xl hover:shadow-2xl hover:shadow-[#94a288]/40 backdrop-blur-sm hover:backdrop-blur-md ${style.cardBg} ${style.cardBorder} ${style.cardHoverBg} ${style.cardBorderHover}${isFlex ? ' shadow-2xl ring-1 ring-[#94a288]/50' : ''}`}
               >
                 {/* Highlight Badge */}
                 {plan.badgeTag && (
@@ -727,7 +727,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                   ) : (
                     <button
                       onClick={() => handleOpenSubscribeModal(plan)}
-                      className="w-full px-6 py-3.5 bg-[#556b2f] hover:bg-[#6b863a] text-black font-extrabold uppercase text-xs tracking-widest active:scale-[0.99] transition-all rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-black/20"
+                      className="w-full px-6 py-3.5 bg-[#94a288] hover:bg-[#6b863a] text-black font-extrabold uppercase text-xs tracking-widest active:scale-[0.99] transition-all rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-black/20"
                     >
                       <CreditCard className="w-4 h-4 text-stone-900" />
                       Assinar Agora
@@ -743,7 +743,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
       {/* Modal Quero Assinar */}
       {isSubscribeModalOpen && selectedPlanForSub && (
         <div className="fixed inset-0 z-50 bg-[#0c0c0c]/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#151515] border border-[#556b2f]/40 rounded-lg max-w-lg w-full p-6 shadow-2xl relative">
+          <div className="bg-[#151515] border border-[#94a288]/40 rounded-lg max-w-lg w-full p-6 shadow-2xl relative">
             <button
               onClick={() => setIsSubscribeModalOpen(false)}
               className="absolute top-4 right-4 text-stone-400 hover:text-white p-1 rounded bg-[#0a0a0a]"
@@ -753,7 +753,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
 
             {!createdSubSuccess ? (
               <div>
-                <div className="flex items-center gap-2 text-[#556b2f] text-[10px] font-bold uppercase tracking-widest mb-1">
+                <div className="flex items-center gap-2 text-[#94a288] text-[10px] font-bold uppercase tracking-widest mb-1">
                   <ShieldCheck className="w-4 h-4" />
                   Ativação de Assinatura Ded Black
                 </div>
@@ -775,7 +775,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                       placeholder="Ex: Carlos Eduardo Silva"
                       value={clientNameInput}
                       onChange={(e) => setClientNameInput(e.target.value)}
-                      className="w-full bg-[#0a0a0a] text-stone-100 text-xs rounded px-3.5 py-2.5 border border-[#556b2f]/30 focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#0a0a0a] text-stone-100 text-xs rounded px-3.5 py-2.5 border border-[#94a288]/30 focus:outline-none focus:border-[#94a288]"
                     />
                   </div>
 
@@ -789,7 +789,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                         placeholder="000.000.000-00"
                         value={clientCpfInput}
                         onChange={(e) => setClientCpfInput(e.target.value)}
-                        className="w-full bg-[#0a0a0a] text-stone-100 text-xs rounded px-3.5 py-2.5 border border-[#556b2f]/30 focus:outline-none focus:border-[#556b2f]"
+                        className="w-full bg-[#0a0a0a] text-stone-100 text-xs rounded px-3.5 py-2.5 border border-[#94a288]/30 focus:outline-none focus:border-[#94a288]"
                       />
                     </div>
 
@@ -802,13 +802,13 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                         placeholder="(21) 99999-8888"
                         value={clientPhoneInput}
                         onChange={(e) => setClientPhoneInput(e.target.value)}
-                        className="w-full bg-[#0a0a0a] text-stone-100 text-xs rounded px-3.5 py-2.5 border border-[#556b2f]/30 focus:outline-none focus:border-[#556b2f]"
+                        className="w-full bg-[#0a0a0a] text-stone-100 text-xs rounded px-3.5 py-2.5 border border-[#94a288]/30 focus:outline-none focus:border-[#94a288]"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-[#556b2f]/10 p-3 rounded border border-[#556b2f]/30 text-xs text-stone-300 flex items-start gap-2">
-                    <Info className="w-4 h-4 text-[#556b2f] shrink-0 mt-0.5" />
+                  <div className="bg-[#94a288]/10 p-3 rounded border border-[#94a288]/30 text-xs text-stone-300 flex items-start gap-2">
+                    <Info className="w-4 h-4 text-[#94a288] shrink-0 mt-0.5" />
                     <span>
                       Após o pagamento do valor exato de <strong>R$ {selectedPlanForSub.totalPrice.toFixed(2)}</strong>, o <strong>Cartão de Membro</strong> é liberado e ativado instantaneamente.
                     </span>
@@ -824,7 +824,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                     </button>
                     <button
                       type="submit"
-                      className="px-5 py-2.5 rounded bg-[#556b2f] hover:bg-[#6b863a] text-black font-bold uppercase text-[10px] tracking-widest flex items-center gap-1.5"
+                      className="px-5 py-2.5 rounded bg-[#94a288] hover:bg-[#6b863a] text-black font-bold uppercase text-[10px] tracking-widest flex items-center gap-1.5"
                     >
                       <Lock className="w-3.5 h-3.5 text-black" />
                       Ir para Pagamento (R$ {selectedPlanForSub.totalPrice.toFixed(2)})
@@ -834,7 +834,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
               </div>
             ) : (
               <div className="text-center py-4 space-y-4">
-                <div className="w-12 h-12 bg-[#556b2f]/20 text-[#556b2f] rounded-full flex items-center justify-center mx-auto border border-[#556b2f]/40">
+                <div className="w-12 h-12 bg-[#94a288]/20 text-[#94a288] rounded-full flex items-center justify-center mx-auto border border-[#94a288]/40">
                   <CheckCircle2 className="w-7 h-7" />
                 </div>
                 <h3 className="text-2xl font-serif italic text-white">
@@ -845,8 +845,8 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                 </p>
 
                 {/* Card Preview Mini */}
-                <div className="bg-[#0a0a0a] p-4 rounded border border-[#556b2f]/40 text-left text-xs space-y-1.5 font-mono">
-                  <div className="text-[#556b2f] font-bold">CÓDIGO CARTÃO: {createdSubSuccess.cardCode}</div>
+                <div className="bg-[#0a0a0a] p-4 rounded border border-[#94a288]/40 text-left text-xs space-y-1.5 font-mono">
+                  <div className="text-[#94a288] font-bold">CÓDIGO CARTÃO: {createdSubSuccess.cardCode}</div>
                   <div>PLANO: {createdSubSuccess.planName}</div>
                   <div>SERVIÇO: {createdSubSuccess.serviceName}</div>
                   <div>SESSÕES DISPONÍVEIS: {createdSubSuccess.totalSessions} atendimentos</div>
@@ -859,7 +859,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                       setIsSubscribeModalOpen(false);
                       onOpenCheckin();
                     }}
-                    className="w-full sm:w-auto px-5 py-2.5 rounded bg-[#556b2f] hover:bg-[#6b863a] text-black font-bold uppercase text-[10px] tracking-widest shadow-md"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded bg-[#94a288] hover:bg-[#6b863a] text-black font-bold uppercase text-[10px] tracking-widest shadow-md"
                   >
                     Ver Cartão de Controle em Detalhes
                   </button>

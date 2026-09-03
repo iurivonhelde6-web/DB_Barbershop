@@ -199,9 +199,9 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#121212] border border-[#556b2f]/40 w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden relative text-stone-100 max-h-[92vh] flex flex-col">
+      <div className="bg-[#121212] border border-[#94a288]/40 w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden relative text-stone-100 max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="bg-[#0a0a0a] px-6 py-4 border-b border-[#556b2f]/30 flex items-center justify-between shrink-0">
+        <div className="bg-[#0a0a0a] px-6 py-4 border-b border-[#94a288]/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <DbLogo className="w-10 h-10" />
             <div>
@@ -230,12 +230,12 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
           {/* SUCCESS VIEW */}
           {createdSub ? (
             <div className="space-y-6 text-center py-4">
-              <div className="w-16 h-16 rounded-full bg-[#556b2f]/20 border-2 border-[#556b2f] flex items-center justify-center text-[#556b2f] mx-auto animate-bounce">
+              <div className="w-16 h-16 rounded-full bg-[#94a288]/20 border-2 border-[#94a288] flex items-center justify-center text-[#94a288] mx-auto animate-bounce">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
 
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#556b2f] block">
+                <span className="text-xs font-bold uppercase tracking-widest text-[#94a288] block">
                   🎉 Cadastro Concluído com Sucesso!
                 </span>
                 <h4 className="text-2xl font-serif italic text-white mt-1">
@@ -247,7 +247,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
               </div>
 
               {/* Digital Card Preview */}
-              <div className="bg-[#181818] border border-[#556b2f]/50 rounded-xl p-6 text-left max-w-md mx-auto shadow-2xl space-y-4">
+              <div className="bg-[#181818] border border-[#94a288]/50 rounded-xl p-6 text-left max-w-md mx-auto shadow-2xl space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 block">
@@ -257,7 +257,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       {createdSub.clientName}
                     </h5>
                   </div>
-                  <span className="font-mono font-bold text-sm bg-[#556b2f] text-black px-3 py-1 rounded">
+                  <span className="font-mono font-bold text-sm bg-[#94a288] text-black px-3 py-1 rounded">
                     {createdSub.cardCode}
                   </span>
                 </div>
@@ -277,7 +277,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                   </div>
                   <div>
                     <span className="text-[10px] text-stone-400 uppercase tracking-wider block">Plano Ativo</span>
-                    <span className="text-[#556b2f] font-bold">{createdSub.planName}</span>
+                    <span className="text-[#94a288] font-bold">{createdSub.planName}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-stone-400 uppercase tracking-wider block">Barbeiro Pref.</span>
@@ -292,7 +292,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                     handleResetForm();
                     onClose();
                   }}
-                  className="px-6 py-2.5 rounded-lg bg-[#556b2f] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-lg w-full sm:w-auto"
+                  className="px-6 py-2.5 rounded-lg bg-[#94a288] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-lg w-full sm:w-auto"
                 >
                   Concluir e Ir para o Painel
                 </button>
@@ -310,7 +310,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
 
               {/* Section 1: Personal Info */}
               <div className="space-y-3">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[#556b2f] flex items-center gap-1.5 border-b border-white/10 pb-1">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[#94a288] flex items-center gap-1.5 border-b border-white/10 pb-1">
                   <User className="w-3.5 h-3.5" />
                   1. Dados Pessoais Obrigatórios
                 </span>
@@ -325,7 +325,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       placeholder="Ex: Carlos Eduardo da Silva"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                       required
                     />
                   </div>
@@ -341,7 +341,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       max="110"
                       value={age}
                       onChange={(e) => setAge(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                       required
                     />
                   </div>
@@ -355,7 +355,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       placeholder="000.000.000-00"
                       value={cpf}
                       onChange={(e) => handleCpfChange(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f] font-mono"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288] font-mono"
                       required
                     />
                   </div>
@@ -369,7 +369,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       placeholder="(21) 99887-6655"
                       value={phone}
                       onChange={(e) => handlePhoneChange(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f] font-mono"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288] font-mono"
                     />
                   </div>
                 </div>
@@ -377,7 +377,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
 
               {/* Section 2: Address */}
               <div className="space-y-3 pt-2">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[#556b2f] flex items-center gap-1.5 border-b border-white/10 pb-1">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[#94a288] flex items-center gap-1.5 border-b border-white/10 pb-1">
                   <MapPin className="w-3.5 h-3.5" />
                   2. Endereço Completo
                 </span>
@@ -392,7 +392,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       placeholder="Ex: Av. Atlântica, Rua das Flores"
                       value={street}
                       onChange={(e) => setStreet(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                       required
                     />
                   </div>
@@ -406,7 +406,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       placeholder="Ex: 500 ou Apt 102"
                       value={number}
                       onChange={(e) => setNumber(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                       required
                     />
                   </div>
@@ -420,7 +420,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       placeholder="Ex: Copacabana, Tijuca, Centro"
                       value={neighborhood}
                       onChange={(e) => setNeighborhood(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                       required
                     />
                   </div>
@@ -433,7 +433,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                     />
                   </div>
 
@@ -446,7 +446,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                       placeholder="20000-000"
                       value={cep}
                       onChange={(e) => handleCepChange(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f] font-mono"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288] font-mono"
                     />
                   </div>
                 </div>
@@ -454,7 +454,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
 
               {/* Section 3: Subscription & Preference */}
               <div className="space-y-3 pt-2">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[#556b2f] flex items-center gap-1.5 border-b border-white/10 pb-1">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[#94a288] flex items-center gap-1.5 border-b border-white/10 pb-1">
                   <Scissors className="w-3.5 h-3.5" />
                   3. Seleção Inicial de Plano &amp; Barbeiro
                 </span>
@@ -467,7 +467,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                     <select
                       value={selectedPlanId}
                       onChange={(e) => setSelectedPlanId(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                     >
                       {PLANS_LIST.map((plan) => (
                         <option key={plan.id} value={plan.id}>
@@ -484,7 +484,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                     <select
                       value={selectedBarberId}
                       onChange={(e) => setSelectedBarberId(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                     >
                       {BARBERS_LIST.map((barber) => (
                         <option key={barber.id} value={barber.id}>
@@ -500,7 +500,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
               <div className="pt-3">
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-lg bg-[#556b2f] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-xl flex items-center justify-center gap-2 group"
+                  className="w-full py-3.5 rounded-lg bg-[#94a288] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-xl flex items-center justify-center gap-2 group"
                 >
                   <Lock className="w-4 h-4 text-black group-hover:scale-110 transition-transform" />
                   <span>Avançar para Pagamento do Plano (R$ {selectedPlan.totalPrice.toFixed(2)})</span>

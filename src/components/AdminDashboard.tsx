@@ -1170,7 +1170,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <tr key={sub.id} className="hover:bg-white/[0.02] transition">
                           <td className="py-3 px-4 font-bold text-white whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#181818] text-[#556b2f] border border-[#556b2f]/30">
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#181818] text-[#94a288] border border-[#94a288]/30">
                                 {sub.cardCode}
                               </span>
                               <span>{sub.clientName}</span>
@@ -1198,7 +1198,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <SubscriberStatusBadge subscriber={sub} showDaysDetail size="md" />
                           </td>
                           <td className="py-3 px-4 text-right font-mono font-bold whitespace-nowrap">
-                            <span className={remaining > 0 ? 'text-[#556b2f]' : 'text-rose-400'}>
+                            <span className={remaining > 0 ? 'text-[#94a288]' : 'text-rose-400'}>
                               {sub.usedSessions} / {sub.totalSessions} ATD
                             </span>
                           </td>
@@ -1434,7 +1434,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Barbers Team Capacity Grid */}
           <div className="bg-[#121212] rounded-2xl border border-white/10 p-6 shadow-xl space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-wider text-stone-300 flex items-center gap-2">
-              <Scissors className="w-4 h-4 text-[#556b2f]" />
+              <Scissors className="w-4 h-4 text-[#94a288]" />
               <span>Escala e Desempenho dos Barbeiros</span>
             </h3>
 
@@ -1472,10 +1472,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </>
       ) : activeTab === 'backups' ? (
         /* Backup & Data Export View */
-        <div className="bg-[#121212] rounded-2xl border border-[#556b2f]/30 p-6 shadow-2xl space-y-6">
+        <div className="bg-[#121212] rounded-2xl border border-[#94a288]/30 p-6 shadow-2xl space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-[#556b2f]/20 border border-[#556b2f]/40 text-[#556b2f]">
+              <div className="p-3 rounded-2xl bg-[#94a288]/20 border border-[#94a288]/40 text-[#94a288]">
                 <Database className="w-6 h-6" />
               </div>
               <div>
@@ -1495,7 +1495,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <button
                 onClick={triggerManualBackup}
                 disabled={backupLoading}
-                className="px-4 py-2.5 rounded-xl bg-[#556b2f] hover:bg-[#68823a] text-black font-extrabold text-xs uppercase tracking-wider shadow-lg transition flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2.5 rounded-xl bg-[#94a288] hover:bg-[#68823a] text-black font-extrabold text-xs uppercase tracking-wider shadow-lg transition flex items-center gap-2 disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${backupLoading ? 'animate-spin' : ''}`} />
                 <span>{backupLoading ? 'Gerando Backup...' : 'Gerar Backup Agora'}</span>
@@ -1533,7 +1533,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="bg-[#181818] p-5 rounded-2xl border border-white/5 space-y-1">
               <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center justify-between">
                 <span>Último Backup do Backend</span>
-                <Clock className="w-3.5 h-3.5 text-[#556b2f]" />
+                <Clock className="w-3.5 h-3.5 text-[#94a288]" />
               </div>
               <div className="text-sm font-extrabold text-white font-mono pt-1">
                 {backupStatus?.generatedAtFormatted || (backupStatus?.exists ? 'Salvo recentemente' : 'Aguardando primeiro ciclo')}
@@ -1573,7 +1573,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Backup File Explorer Table */}
           <div className="space-y-3 pt-2">
             <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-              <FileJson className="w-4 h-4 text-[#556b2f]" />
+              <FileJson className="w-4 h-4 text-[#94a288]" />
               <span>Arquivos de Cópia em JSON Disponíveis no Servidor</span>
             </h4>
 
@@ -1588,7 +1588,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <button
                   onClick={() => downloadBackupJson('latest-backup.json')}
-                  className="px-3 py-1.5 rounded-lg bg-[#556b2f]/20 hover:bg-[#556b2f]/40 text-[#556b2f] border border-[#556b2f]/40 font-bold text-xs transition flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-[#94a288]/20 hover:bg-[#94a288]/40 text-[#94a288] border border-[#94a288]/40 font-bold text-xs transition flex items-center gap-1.5"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Baixar JSON</span>

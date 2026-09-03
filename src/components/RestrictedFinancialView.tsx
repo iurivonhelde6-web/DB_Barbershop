@@ -32,7 +32,7 @@ export const RestrictedFinancialView: React.FC<RestrictedFinancialViewProps> = (
             Painel Financeiro &amp; Indicadores
           </h2>
           <p className="text-xs text-stone-400 leading-relaxed pt-1">
-            Olá, <strong className="text-white">{currentUser?.name || 'Cliente'}</strong>! O painel de faturamento mensal, margens por atendimento, comissões de barbeiros e projeção de receita são restritos à administração da <strong className="text-[#556b2f]">Ded Black Barbershop</strong>.
+            Olá, <strong className="text-white">{currentUser?.name || 'Cliente'}</strong>! O painel de faturamento mensal, margens por atendimento, comissões de barbeiros e projeção de receita são restritos à administração da <strong className="text-[#94a288]">Ded Black Barbershop</strong>.
           </p>
         </div>
 
@@ -61,7 +61,7 @@ export const RestrictedFinancialView: React.FC<RestrictedFinancialViewProps> = (
             onClick={onGoToPlans}
             className="w-full py-2.5 rounded-lg bg-[#1a1a1a] hover:bg-[#252525] border border-white/10 text-stone-300 font-bold uppercase text-xs tracking-wider transition flex items-center justify-center gap-2"
           >
-            <Layers className="w-4 h-4 text-[#556b2f]" />
+            <Layers className="w-4 h-4 text-[#94a288]" />
             Ver Catálogo de Assinaturas
           </button>
         </div>

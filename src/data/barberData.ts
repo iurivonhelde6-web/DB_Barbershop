@@ -1,7 +1,7 @@
 import { ServiceItem, PlanOption, ContractRule, SubscriberCard, Barber, Appointment } from '../types';
 
-export const ADMIN_WHATSAPP = '5521970027971';
-export const ADMIN_WHATSAPP_DISPLAY = '+55 21 97002-7971';
+export const ADMIN_WHATSAPP = '5521980843448';
+export const ADMIN_WHATSAPP_DISPLAY = '+55 21 98084-3448';
 
 export const BARBERS_LIST: Barber[] = [
   {
@@ -929,9 +929,73 @@ export const CONTRACT_RULES: ContractRule[] = [
   {
     id: 14,
     number: '14.0',
+    title: 'Upgrade de Profissional — André de Souza (DED BLACK)',
+    content: 'A assinatura D•B CLUB garante ao membro os serviços contratados com a equipe D•B, não estando vinculada a um profissional específico. Caso o membro opte pelo atendimento com André de Souza (DED BLACK), poderá utilizar o atendimento disponível em seu plano como crédito e complementar a diferença conforme o valor vigente desse atendimento. O upgrade está sujeito à disponibilidade de agenda, confirmação prévia e ao consumo normal do crédito utilizado no plano.',
+    badge: 'IMPORTANTE',
+  },
+  {
+    id: 15,
+    number: '15.0',
     title: 'Disposições Finais e Vínculo Contratual',
     content: 'Este contrato representa o acordo oficial entre as partes e deverá ser cumprido integralmente.',
     badge: 'REGRA',
+  },
+];
+
+// Upgrade de Profissional — André de Souza (DED BLACK)
+// Valor complementar cobrado quando o membro usa o crédito do plano
+// para um atendimento com André, por tier de assinatura.
+export interface AndreUpgradePricing {
+  serviceId: string;
+  serviceName: string;
+  basic: number;
+  plus: number;
+  select: number;
+  family: number;
+}
+
+export const ANDRE_UPGRADE_BARBER_ID = 'barber-06'; // André (Ded Black)
+
+export const ANDRE_UPGRADE_TABLE: AndreUpgradePricing[] = [
+  {
+    serviceId: 'disfarce-maquina',
+    serviceName: 'Disfarce Só Máquina',
+    basic: 15,
+    plus: 20,
+    select: 20,
+    family: 20,
+  },
+  {
+    serviceId: 'disfarce-tesoura-maquina',
+    serviceName: 'Disfarce Máquina e Tesoura ✂️',
+    basic: 20,
+    plus: 25,
+    select: 25,
+    family: 25,
+  },
+  {
+    serviceId: 'so-tesoura',
+    serviceName: 'Corte Tesoura ✂️',
+    basic: 20,
+    plus: 20,
+    select: 20,
+    family: 20,
+  },
+  {
+    serviceId: 'barba-simples',
+    serviceName: 'Barba Simples',
+    basic: 20,
+    plus: 20,
+    select: 20,
+    family: 20,
+  },
+  {
+    serviceId: 'barba-modelada',
+    serviceName: 'Barba Modelada',
+    basic: 15,
+    plus: 20,
+    select: 20,
+    family: 20,
   },
 ];
 

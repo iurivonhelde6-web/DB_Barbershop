@@ -303,10 +303,10 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
   return (
     <div className="bg-[#0c0c0c] min-h-screen text-[#e0e0e0] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-16">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#556b2f]/30 pb-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#94a288]/30 pb-6">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#556b2f]/20 text-[#556b2f] text-[10px] font-bold uppercase tracking-[0.3em] mb-2 border border-[#556b2f]/40">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#556b2f]" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#94a288]/20 text-[#94a288] text-[10px] font-bold uppercase tracking-[0.3em] mb-2 border border-[#94a288]/40">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#94a288]" />
             Validação Obrigatória - Cláusulas 6 e 13
           </span>
           <h2 className="text-3xl font-serif italic text-white">
@@ -319,7 +319,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
 
         <button
           onClick={onAddNewSubscriberClick}
-          className="flex items-center gap-2 px-4 py-2.5 rounded bg-[#556b2f] hover:bg-[#6b863a] text-black text-[10px] font-bold uppercase tracking-widest transition shadow-lg"
+          className="flex items-center gap-2 px-4 py-2.5 rounded bg-[#94a288] hover:bg-[#6b863a] text-black text-[10px] font-bold uppercase tracking-widest transition shadow-lg"
         >
           <PlusCircle className="w-4 h-4 text-black" />
           Cadastrar Novo Assinante
@@ -328,10 +328,10 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
 
       {/* Admin Revenue & Carteirinhas Metric Header */}
       {isAdmin && (
-        <div className="bg-[#151515] border border-[#556b2f]/30 rounded-xl p-5 space-y-4 shadow-xl">
+        <div className="bg-[#151515] border border-[#94a288]/30 rounded-xl p-5 space-y-4 shadow-xl">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
             <div className="flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-[#556b2f]" />
+              <Receipt className="w-5 h-5 text-[#94a288]" />
               <h3 className="text-sm font-bold uppercase tracking-wider text-white">
                 Painel do Administrador &bull; Arrecadação de Carteirinhas
               </h3>
@@ -342,11 +342,11 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-[#0a0a0a] border border-[#556b2f]/40 p-4 rounded-lg">
+            <div className="bg-[#0a0a0a] border border-[#94a288]/40 p-4 rounded-lg">
               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 block mb-1">
                 Total Arrecadado em Carteirinhas
               </span>
-              <div className="text-2xl font-mono font-bold text-[#556b2f]">
+              <div className="text-2xl font-mono font-bold text-[#94a288]">
                 R$ {totalPaidRevenue.toFixed(2)}
               </div>
               <span className="text-[10px] text-stone-500 block mt-1">
@@ -386,7 +386,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Search & Subscriber List */}
-        <div className="lg:col-span-5 bg-[#151515] rounded border border-[#556b2f]/20 p-5 space-y-4">
+        <div className="lg:col-span-5 bg-[#151515] rounded border border-[#94a288]/20 p-5 space-y-4">
           <div className="relative">
             <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
             <input
@@ -394,7 +394,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
               placeholder="Buscar por Nome, CPF ou Código DB-XXXX..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#0a0a0a] text-stone-100 text-xs rounded pl-10 pr-4 py-3 border border-[#556b2f]/30 focus:outline-none focus:border-[#556b2f]"
+              className="w-full bg-[#0a0a0a] text-stone-100 text-xs rounded pl-10 pr-4 py-3 border border-[#94a288]/30 focus:outline-none focus:border-[#94a288]"
             />
           </div>
 
@@ -404,7 +404,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
               onClick={() => setPaymentFilter('ALL')}
               className={`flex-1 py-1.5 rounded transition ${
                 paymentFilter === 'ALL'
-                  ? 'bg-[#556b2f] text-black font-extrabold'
+                  ? 'bg-[#94a288] text-black font-extrabold'
                   : 'text-stone-400 hover:text-white'
               }`}
             >
@@ -414,7 +414,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
               onClick={() => setPaymentFilter('PAID')}
               className={`flex-1 py-1.5 rounded transition ${
                 paymentFilter === 'PAID'
-                  ? 'bg-[#556b2f] text-black font-extrabold'
+                  ? 'bg-[#94a288] text-black font-extrabold'
                   : 'text-stone-400 hover:text-white'
               }`}
             >
@@ -434,7 +434,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
 
           <div className="flex items-center justify-between text-xs text-stone-400 px-1 font-semibold">
             <span className="uppercase tracking-wider text-[10px]">Membros Cadastrados ({filteredSubscribers.length})</span>
-            <span className="text-[10px] text-[#556b2f] uppercase tracking-wider">Clique para selecionar</span>
+            <span className="text-[10px] text-[#94a288] uppercase tracking-wider">Clique para selecionar</span>
           </div>
 
           <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
@@ -457,14 +457,14 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                   }}
                   className={`w-full text-left p-3.5 rounded transition border flex items-center justify-between gap-3 cursor-pointer ${
                     isSelected
-                      ? 'bg-[#556b2f]/20 border-[#556b2f] shadow-md'
-                      : 'bg-[#0a0a0a] border-white/5 hover:border-[#556b2f]/30'
+                      ? 'bg-[#94a288]/20 border-[#94a288] shadow-md'
+                      : 'bg-[#0a0a0a] border-white/5 hover:border-[#94a288]/30'
                   }`}
                 >
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-white text-sm">{sub.clientName}</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#151515] text-[#556b2f] border border-[#556b2f]/30">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#151515] text-[#94a288] border border-[#94a288]/30">
                         {sub.cardCode}
                       </span>
                       {/* Dynamic Subscriber Status Badge (Ativo / Pendente / Expirado) */}
@@ -493,7 +493,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                       <span
                         className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                           subRemaining > 0
-                            ? 'bg-[#556b2f]/20 text-[#556b2f]'
+                            ? 'bg-[#94a288]/20 text-[#94a288]'
                             : 'bg-red-500/20 text-red-300'
                         }`}
                       >
@@ -526,8 +526,8 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
 
         {/* Right Column: Selected Subscriber Pass Card & Controls */}
         {!selectedSub ? (
-          <div className="lg:col-span-7 bg-[#151515] rounded border border-[#556b2f]/20 p-8 text-center space-y-4 flex flex-col items-center justify-center min-h-[380px]">
-            <div className="w-16 h-16 rounded-full bg-[#556b2f]/10 border border-[#556b2f]/30 flex items-center justify-center text-[#556b2f]">
+          <div className="lg:col-span-7 bg-[#151515] rounded border border-[#94a288]/20 p-8 text-center space-y-4 flex flex-col items-center justify-center min-h-[380px]">
+            <div className="w-16 h-16 rounded-full bg-[#94a288]/10 border border-[#94a288]/30 flex items-center justify-center text-[#94a288]">
               <PlusCircle className="w-8 h-8" />
             </div>
             <div className="space-y-1">
@@ -540,7 +540,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
             </div>
             <button
               onClick={onAddNewSubscriberClick}
-              className="px-5 py-2.5 rounded bg-[#556b2f] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-lg flex items-center gap-2"
+              className="px-5 py-2.5 rounded bg-[#94a288] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-lg flex items-center gap-2"
             >
               <PlusCircle className="w-4 h-4 text-black" />
               <span>Cadastrar Novo Assinante</span>
@@ -550,8 +550,8 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
           <div className="lg:col-span-7 space-y-6">
             {/* Success Toast */}
             {checkinSuccessMsg && (
-              <div className="bg-[#556b2f]/20 border border-[#556b2f] p-4 rounded text-xs text-stone-100 font-bold flex items-center gap-2 animate-fade-in shadow-lg">
-                <CheckCircle2 className="w-5 h-5 text-[#556b2f] shrink-0" />
+              <div className="bg-[#94a288]/20 border border-[#94a288] p-4 rounded text-xs text-stone-100 font-bold flex items-center gap-2 animate-fade-in shadow-lg">
+                <CheckCircle2 className="w-5 h-5 text-[#94a288] shrink-0" />
                 <span>{checkinSuccessMsg}</span>
               </div>
             )}
@@ -565,7 +565,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
             )}
 
             {/* Main Digital Pass Card Component */}
-            <div className="bg-[#111111] border border-[#556b2f]/40 rounded p-6 shadow-2xl relative overflow-hidden">
+            <div className="bg-[#111111] border border-[#94a288]/40 rounded p-6 shadow-2xl relative overflow-hidden">
               {/* Card Top */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
                 <div className="flex items-center gap-3">
@@ -574,7 +574,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                     <h3 className="text-lg font-serif italic text-white tracking-wide">
                       CARTÃO DE CONTROLE D•B
                     </h3>
-                    <p className="text-xs text-[#556b2f] font-mono font-bold">
+                    <p className="text-xs text-[#94a288] font-mono font-bold">
                       CÓDIGO: {selectedSub.cardCode}
                     </p>
                   </div>
@@ -615,31 +615,31 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                     {isAdmin && (
                       <button
                         onClick={handleAdminManualPaymentConfirm}
-                        className="w-full sm:w-auto px-4 py-3 rounded-lg bg-[#556b2f]/30 hover:bg-[#556b2f]/50 text-[#556b2f] border border-[#556b2f] font-bold uppercase text-xs tracking-wider transition flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto px-4 py-3 rounded-lg bg-[#94a288]/30 hover:bg-[#94a288]/50 text-[#94a288] border border-[#94a288] font-bold uppercase text-xs tracking-wider transition flex items-center justify-center gap-2"
                         title="Registra a quitação presencial em dinheiro ou maquininha no balcão"
                       >
-                        <ShieldCheck className="w-4 h-4 text-[#556b2f]" />
+                        <ShieldCheck className="w-4 h-4 text-[#94a288]" />
                         <span>Confirmar Pagamento no Balcão (Admin)</span>
                       </button>
                     )}
                   </div>
                 </div>
               ) : selectedSub.paymentStatus === 'PAID' ? (
-                <div className="my-4 bg-[#556b2f]/10 border-2 border-[#556b2f]/40 rounded-xl p-4 space-y-2">
+                <div className="my-4 bg-[#94a288]/10 border-2 border-[#94a288]/40 rounded-xl p-4 space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
-                      <CheckCircle2 className="w-5 h-5 text-[#556b2f] shrink-0" />
+                      <CheckCircle2 className="w-5 h-5 text-[#94a288] shrink-0" />
                       <span className="text-xs font-bold text-white uppercase tracking-wider">
                         Comprovante do Administrador &bull; Valor Pago Confirmado
                       </span>
                     </div>
-                    <span className="text-[10px] font-bold uppercase text-[#556b2f] bg-[#556b2f]/20 px-2.5 py-1 rounded-full border border-[#556b2f]/40">
+                    <span className="text-[10px] font-bold uppercase text-[#94a288] bg-[#94a288]/20 px-2.5 py-1 rounded-full border border-[#94a288]/40">
                       Carteirinha Liberada
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs font-mono">
-                    <div className="bg-[#0a0a0a] p-2.5 rounded border border-[#556b2f]/30">
+                    <div className="bg-[#0a0a0a] p-2.5 rounded border border-[#94a288]/30">
                       <span className="text-[9px] text-stone-400 uppercase tracking-widest block font-sans">Valor Pago do Plano</span>
                       <strong className="text-emerald-400 text-sm font-bold">R$ {(selectedSub.paidAmount || getSubPlanAmount(selectedSub)).toFixed(2)}</strong>
                     </div>
@@ -671,7 +671,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
 
                 <div>
                   <span className="text-stone-400 block font-medium uppercase text-[10px] tracking-wider">Plano Contratado</span>
-                  <strong className="text-[#556b2f] font-bold">{selectedSub.planName}</strong>
+                  <strong className="text-[#94a288] font-bold">{selectedSub.planName}</strong>
                 </div>
 
                 <div>
@@ -696,14 +696,14 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                   <span className="text-stone-300">
                     Sessões Utilizadas: {selectedSub.usedSessions} / {selectedSub.totalSessions}
                   </span>
-                  <span className="text-[#556b2f] font-bold">
+                  <span className="text-[#94a288] font-bold">
                     {remainingSessions} Atendimentos Restantes
                   </span>
                 </div>
 
                 <div className="w-full h-3 bg-[#151515] rounded-full overflow-hidden border border-white/10">
                   <div
-                    className="h-full bg-[#556b2f] transition-all duration-300"
+                    className="h-full bg-[#94a288] transition-all duration-300"
                     style={{
                       width: `${Math.min(100, (selectedSub.usedSessions / selectedSub.totalSessions) * 100)}%`,
                     }}
@@ -714,8 +714,8 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
               {/* QR Code and Actions */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/5">
                 <div className="flex items-center gap-3 bg-[#0a0a0a] p-2.5 rounded border border-white/5">
-                  <div className="w-12 h-12 bg-[#151515] p-1 rounded border border-[#556b2f]/30 flex items-center justify-center text-[#556b2f]">
-                    <QrCode className="w-9 h-9 text-[#556b2f]" />
+                  <div className="w-12 h-12 bg-[#151515] p-1 rounded border border-[#94a288]/30 flex items-center justify-center text-[#94a288]">
+                    <QrCode className="w-9 h-9 text-[#94a288]" />
                   </div>
                   <div className="text-[10px] text-stone-400">
                     <span className="font-bold text-stone-200 uppercase tracking-wider block">QR CODE OFICIAL D•B</span>
@@ -746,7 +746,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                   <button
                     onClick={handleRegisterAttendance}
                     disabled={remainingSessions <= 0 || isExpired}
-                    className="flex-1 sm:flex-none px-4 py-2.5 rounded bg-[#556b2f] hover:bg-[#6b863a] disabled:opacity-50 text-black text-[10px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg"
+                    className="flex-1 sm:flex-none px-4 py-2.5 rounded bg-[#94a288] hover:bg-[#6b863a] disabled:opacity-50 text-black text-[10px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg"
                   >
                     <CheckCircle2 className="w-4 h-4 text-black" />
                     Registrar Atendimento (-1 ATD)
@@ -755,16 +755,16 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
               </div>
 
               {/* Seção: Histórico de Pagamentos e Faturas do Perfil */}
-              <div className="bg-[#0f0f0f] border border-[#556b2f]/30 rounded-xl p-5 my-6 space-y-4 shadow-xl">
+              <div className="bg-[#0f0f0f] border border-[#94a288]/30 rounded-xl p-5 my-6 space-y-4 shadow-xl">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded bg-[#556b2f]/20 border border-[#556b2f]/40 text-[#556b2f]">
-                      <Receipt className="w-5 h-5 text-[#556b2f]" />
+                    <div className="p-2 rounded bg-[#94a288]/20 border border-[#94a288]/40 text-[#94a288]">
+                      <Receipt className="w-5 h-5 text-[#94a288]" />
                     </div>
                     <div>
                       <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
                         <span>Histórico de Pagamentos &amp; Faturas</span>
-                        <span className="text-[10px] font-mono bg-[#556b2f]/20 text-[#556b2f] border border-[#556b2f]/40 px-2.5 py-0.5 rounded-full font-bold">
+                        <span className="text-[10px] font-mono bg-[#94a288]/20 text-[#94a288] border border-[#94a288]/40 px-2.5 py-0.5 rounded-full font-bold">
                           {getSubscriberPaymentHistory(selectedSub).length} {getSubscriberPaymentHistory(selectedSub).length === 1 ? 'Fatura' : 'Faturas'}
                         </span>
                       </h3>
@@ -790,7 +790,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                         key={invoice.id}
                         className={`p-4 rounded-xl border transition-all ${
                           isPaid
-                            ? 'bg-[#0a0a0a] border-[#556b2f]/30 hover:border-[#556b2f]/60'
+                            ? 'bg-[#0a0a0a] border-[#94a288]/30 hover:border-[#94a288]/60'
                             : 'bg-amber-950/20 border-amber-500/40 hover:border-amber-500/70'
                         }`}
                       >
@@ -863,7 +863,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                         {/* Note / Remarks */}
                         {invoice.notes && (
                           <div className="mt-3 pt-2.5 border-t border-white/5 text-[11px] text-stone-400 flex items-start gap-1.5 italic">
-                            <Info className="w-3.5 h-3.5 text-[#556b2f] shrink-0 mt-0.5" />
+                            <Info className="w-3.5 h-3.5 text-[#94a288] shrink-0 mt-0.5" />
                             <span>{invoice.notes}</span>
                           </div>
                         )}
@@ -934,7 +934,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
       {/* Printable Digital Card Modal */}
       {isPrintModalOpen && selectedSub && (
         <div className="fixed inset-0 z-50 bg-[#0c0c0c]/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#151515] border border-[#556b2f]/40 rounded max-w-lg w-full p-6 shadow-2xl space-y-6">
+          <div className="bg-[#151515] border border-[#94a288]/40 rounded max-w-lg w-full p-6 shadow-2xl space-y-6">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="text-lg font-serif italic text-white">
                 Cartão Físico / Digital Ded Black
@@ -948,13 +948,13 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
             </div>
 
             {/* Printable Pass Graphic */}
-            <div className="bg-[#0a0a0a] p-6 rounded border border-[#556b2f]/50 space-y-4 text-stone-100 font-sans shadow-2xl relative">
+            <div className="bg-[#0a0a0a] p-6 rounded border border-[#94a288]/50 space-y-4 text-stone-100 font-sans shadow-2xl relative">
               <div className="flex justify-between items-center border-b border-white/5 pb-3">
                 <div className="flex items-center gap-2">
-                  <Scissors className="w-5 h-5 text-[#556b2f]" />
+                  <Scissors className="w-5 h-5 text-[#94a288]" />
                   <span className="font-bold text-sm tracking-widest font-serif text-white uppercase">DED BLACK BARBERSHOP</span>
                 </div>
-                <span className="text-[10px] font-mono text-[#556b2f] bg-[#151515] px-2 py-0.5 rounded border border-[#556b2f]/40">
+                <span className="text-[10px] font-mono text-[#94a288] bg-[#151515] px-2 py-0.5 rounded border border-[#94a288]/40">
                   {selectedSub.cardCode}
                 </span>
               </div>
@@ -968,7 +968,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
               <div className="grid grid-cols-2 gap-2 text-xs bg-[#151515] p-3 rounded border border-white/5">
                 <div>
                   <span className="text-[10px] text-stone-400 uppercase tracking-widest block">Plano</span>
-                  <span className="font-bold text-[#556b2f]">{selectedSub.planName}</span>
+                  <span className="font-bold text-[#94a288]">{selectedSub.planName}</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-stone-400 uppercase tracking-widest block">Validade</span>
@@ -987,7 +987,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                       key={idx}
                       className={`h-8 rounded flex items-center justify-center font-bold text-xs border ${
                         idx < selectedSub.usedSessions
-                          ? 'bg-[#556b2f]/30 text-[#556b2f] border-[#556b2f]/50'
+                          ? 'bg-[#94a288]/30 text-[#94a288] border-[#94a288]/50'
                           : 'bg-[#151515] text-stone-600 border-white/5'
                       }`}
                     >
@@ -999,14 +999,14 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
 
               <div className="flex items-center justify-between pt-2 text-[10px] text-stone-400 border-t border-white/5">
                 <span className="uppercase tracking-wider">D•B Barbershop - Assinatura do Titular</span>
-                <QrCode className="w-6 h-6 text-[#556b2f]" />
+                <QrCode className="w-6 h-6 text-[#94a288]" />
               </div>
             </div>
 
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => window.print()}
-                className="px-5 py-2.5 rounded bg-[#556b2f] hover:bg-[#6b863a] text-black text-[10px] font-bold uppercase tracking-widest shadow-md flex items-center gap-2"
+                className="px-5 py-2.5 rounded bg-[#94a288] hover:bg-[#6b863a] text-black text-[10px] font-bold uppercase tracking-widest shadow-md flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
                 Imprimir / Salvar PDF
@@ -1035,7 +1035,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
             <div className="space-y-3 text-xs text-stone-300">
               <p>Tem certeza de que deseja EXCLUIR permanentemente o cadastro do membro abaixo?</p>
               <div className="bg-[#0a0a0a] p-3 rounded border border-white/10 space-y-1 font-mono text-white">
-                <p className="font-bold text-sm text-[#556b2f]">{subToDelete.clientName}</p>
+                <p className="font-bold text-sm text-[#94a288]">{subToDelete.clientName}</p>
                 <p className="text-[11px] text-stone-400">
                   Cartão: <span className="text-white font-bold">{subToDelete.cardCode}</span> | CPF: {subToDelete.cpf}
                 </p>
@@ -1089,7 +1089,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
       {/* Invoice Receipt / Comprovante Modal */}
       {selectedInvoiceForModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-[#121212] border-2 border-[#556b2f]/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-stone-100 relative my-8">
+          <div className="bg-[#121212] border-2 border-[#94a288]/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-stone-100 relative my-8">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center gap-2.5">
@@ -1115,7 +1115,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
             {/* Status Banner */}
             <div className={`p-4 rounded-xl border flex items-start gap-3 ${
               selectedInvoiceForModal.status === 'PAID'
-                ? 'bg-[#556b2f]/10 border-[#556b2f]/50 text-emerald-300'
+                ? 'bg-[#94a288]/10 border-[#94a288]/50 text-emerald-300'
                 : 'bg-amber-950/40 border-amber-500/50 text-amber-200'
             }`}>
               <CheckCircle2 className={`w-6 h-6 shrink-0 mt-0.5 ${
@@ -1154,7 +1154,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
 
               <div className="flex justify-between border-b border-white/5 pb-2">
                 <span className="text-stone-400 font-sans uppercase text-[10px]">Plano / Assinatura:</span>
-                <strong className="text-[#556b2f] font-bold text-right">{selectedInvoiceForModal.planName}</strong>
+                <strong className="text-[#94a288] font-bold text-right">{selectedInvoiceForModal.planName}</strong>
               </div>
 
               <div className="flex justify-between border-b border-white/5 pb-2">

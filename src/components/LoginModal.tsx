@@ -102,9 +102,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#121212] border border-[#556b2f]/40 w-full max-w-lg rounded-xl shadow-2xl overflow-hidden relative text-stone-100">
+      <div className="bg-[#121212] border border-[#94a288]/40 w-full max-w-lg rounded-xl shadow-2xl overflow-hidden relative text-stone-100">
         {/* Header */}
-        <div className="bg-[#0a0a0a] px-6 py-5 border-b border-[#556b2f]/20 flex items-center justify-between">
+        <div className="bg-[#0a0a0a] px-6 py-5 border-b border-[#94a288]/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <DbLogo className="w-10 h-10" />
             <div>
@@ -133,7 +133,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
                   currentUser.role === 'admin'
                     ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
-                    : 'bg-[#556b2f]/20 text-[#556b2f] border border-[#556b2f]/40'
+                    : 'bg-[#94a288]/20 text-[#94a288] border border-[#94a288]/40'
                 }`}
               >
                 {currentUser.role === 'admin' ? '👑' : '👤'}
@@ -145,7 +145,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     className={`text-[9px] uppercase px-2 py-0.5 rounded font-bold ${
                       currentUser.role === 'admin'
                         ? 'bg-yellow-500 text-black'
-                        : 'bg-[#556b2f] text-black'
+                        : 'bg-[#94a288] text-black'
                     }`}
                   >
                     {currentUser.role === 'admin' ? 'Administrador' : 'Cliente'}
@@ -177,7 +177,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             }}
             className={`flex items-center justify-center gap-2 py-2.5 rounded text-xs font-bold uppercase tracking-wider transition ${
               selectedRoleTab === 'client'
-                ? 'bg-[#556b2f] text-black shadow-md'
+                ? 'bg-[#94a288] text-black shadow-md'
                 : 'text-stone-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -214,7 +214,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           {selectedRoleTab === 'client' && (
             <div className="space-y-4">
               <div className="p-3 bg-[#0a0a0a] rounded border border-white/5 text-xs text-stone-300 space-y-1">
-                <span className="text-[#556b2f] font-bold block uppercase tracking-wider text-[10px]">
+                <span className="text-[#94a288] font-bold block uppercase tracking-wider text-[10px]">
                   📌 Autenticação de Clientes:
                 </span>
                 <p className="text-stone-400">
@@ -279,7 +279,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     onClose();
                     onOpenRegister();
                   }}
-                  className="w-full py-2 rounded bg-[#181818] hover:bg-[#222222] text-[#556b2f] border border-[#556b2f]/40 font-bold uppercase text-[11px] tracking-wider transition flex items-center justify-center gap-2"
+                  className="w-full py-2 rounded bg-[#181818] hover:bg-[#222222] text-[#94a288] border border-[#94a288]/40 font-bold uppercase text-[11px] tracking-wider transition flex items-center justify-center gap-2"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   Novo por aqui? Fazer cadastro completo

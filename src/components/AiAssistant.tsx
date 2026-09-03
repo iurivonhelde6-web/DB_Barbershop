@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChatMessage } from '../types';
-import { Bot, Send, Sparkles, User, RefreshCw, Scissors, Compass, ShieldAlert } from 'lucide-react';
+import { Bot, Send, Sparkles, User, RefreshCw, Scissors, Compass } from 'lucide-react';
 import { sanitizeText } from '../utils/sanitize';
 import { getAuthHeaders } from '../lib/firebase';
 
@@ -9,7 +9,7 @@ export const AiAssistant: React.FC = () => {
     {
       id: 'msg-1',
       sender: 'assistant',
-      text: 'Olá! Sou o Consultor Especialista em Visagismo, Barba e Planos da Barbearia Ded Black (D•B Barbershop). Como posso ajudar você hoje com recomendações de planos, dicas de estilo de barba para o seu tipo de rosto ou produtos da nossa marca?',
+      text: 'Olá! Seja muito bem-vindo à Barbearia Ded Black (D•B Barbershop). Sou seu assistente virtual! Como posso te ajudar hoje? Fique à vontade para perguntar sobre nossos serviços, dicas de visagismo e barba, agendamentos ou produtos da nossa marca.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -25,12 +25,13 @@ export const AiAssistant: React.FC = () => {
     { id: 'diamante', label: 'Rosto Diamante', desc: 'Maçãs do rosto bem destacadas, queixo e testa afunilados' },
   ];
 
+  // Sugestões focadas na interação com o cliente
   const quickPrompts = [
     '💈 Dicas de barba para o meu tipo de rosto',
-    'Qual o plano mais recomendado para quem corta a cada 10 dias e faz barba?',
-    'Como funciona a comissão do barbeiro e o lucro da casa no Disfarce Tesoura?',
-    'Quem tem plano de Corte Simples pode trocar por Disfarce Tesoura?',
-    'Por que o FLEX PREMIUM é a melhor escolha para clientes exigentes?',
+    'Quais são os principais cortes e serviços da barbearia?',
+    'Como posso escolher o melhor produto para o meu tipo de barba/cabelo?',
+    'Como funcionam os planos de assinatura da casa?',
+    'Qual o horário de funcionamento e como agendar um horário?',
   ];
 
   const handleSelectFaceShape = (shapeLabel: string) => {
@@ -106,7 +107,8 @@ export const AiAssistant: React.FC = () => {
         {
           id: `ast-err-${Date.now()}`,
           sender: 'assistant',
-          text: sanitizeText('O plano FLEX PREMIUM é o mais completo! Para trocas de serviço ou regras de tolerância, consulte nosso guia rápido na aba Regras.'),
+          // Corrigido: Removida a menção forçada ao Flex Premium no erro
+          text: sanitizeText('Desculpe, tive um problema de conexão temporário. Por favor, tente enviar sua pergunta novamente!'),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -118,24 +120,24 @@ export const AiAssistant: React.FC = () => {
   return (
     <div className="bg-[#0c0c0c] min-h-screen text-[#e0e0e0] max-w-4xl mx-auto px-4 py-8 space-y-6 pb-16">
       {/* Header */}
-      <div className="border-b border-[#556b2f]/30 pb-5">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#556b2f]/20 text-[#556b2f] text-[10px] font-bold uppercase tracking-[0.3em] mb-2 border border-[#556b2f]/40">
-          <Bot className="w-3.5 h-3.5 text-[#556b2f]" />
-          Inteligência Artificial Ded Black
+      <div className="border-b border-[#94a288]/30 pb-5">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#94a288]/20 text-[#94a288] text-[10px] font-bold uppercase tracking-[0.3em] mb-2 border border-[#94a288]/40">
+          <Bot className="w-3.5 h-3.5 text-[#94a288]" />
+          Atendimento Inteligente Ded Black
         </span>
         <h2 className="text-3xl font-serif italic text-white">
-          Consultor de Planos &amp; Dicas de Barba (Gemini)
+          Consultor Virtual Ded Black
         </h2>
         <p className="text-xs sm:text-sm text-stone-400 mt-1 opacity-80">
-          Análise de visagismo de barba por tipo de rosto, recomendação de produtos oficiais da marca Ded Black e orientação sobre planos de assinatura.
+          Tire suas dúvidas sobre serviços, agendamentos, planos e receba dicas personalizadas de visagismo e cuidados com a barba.
         </p>
       </div>
 
       {/* Beard & Face Shape Visagism Section */}
-      <div className="bg-[#151515] p-5 rounded-lg border border-[#556b2f]/40 shadow-xl space-y-3">
+      <div className="bg-[#151515] p-5 rounded-lg border border-[#94a288]/40 shadow-xl space-y-3">
         <div className="flex items-center justify-between border-b border-white/5 pb-3">
-          <span className="text-xs font-bold text-[#556b2f] uppercase tracking-wider flex items-center gap-2">
-            <Scissors className="w-4 h-4 text-[#556b2f]" />
+          <span className="text-xs font-bold text-[#94a288] uppercase tracking-wider flex items-center gap-2">
+            <Scissors className="w-4 h-4 text-[#94a288]" />
             💈 Dicas de Barba: Análise por Tipo de Rosto
           </span>
           <span className="text-[10px] bg-[#0a0a0a] text-stone-400 px-2.5 py-1 rounded border border-white/5 font-mono">
@@ -153,11 +155,11 @@ export const AiAssistant: React.FC = () => {
               onClick={() => handleSelectFaceShape(shape.label)}
               className={`p-2.5 rounded border text-left transition flex flex-col justify-between ${
                 selectedFaceShape === shape.label
-                  ? 'bg-[#556b2f]/20 border-[#556b2f] text-white shadow-lg'
-                  : 'bg-[#0a0a0a] border-white/10 hover:border-[#556b2f]/50 text-stone-300 hover:text-white'
+                  ? 'bg-[#94a288]/20 border-[#94a288] text-white shadow-lg'
+                  : 'bg-[#0a0a0a] border-white/10 hover:border-[#94a288]/50 text-stone-300 hover:text-white'
               }`}
             >
-              <div className="text-xs font-bold text-[#556b2f] flex items-center gap-1 mb-1">
+              <div className="text-xs font-bold text-[#94a288] flex items-center gap-1 mb-1">
                 <Compass className="w-3.5 h-3.5 shrink-0" />
                 <span>{shape.label}</span>
               </div>
@@ -179,7 +181,7 @@ export const AiAssistant: React.FC = () => {
             <button
               key={idx}
               onClick={() => handleSendMessage(q)}
-              className="text-left text-xs bg-[#151515] hover:bg-[#556b2f]/20 text-stone-300 hover:text-white px-3.5 py-2 rounded border border-white/5 hover:border-[#556b2f]/40 transition"
+              className="text-left text-xs bg-[#151515] hover:bg-[#94a288]/20 text-stone-300 hover:text-white px-3.5 py-2 rounded border border-white/5 hover:border-[#94a288]/40 transition"
             >
               💡 {q}
             </button>
@@ -188,7 +190,7 @@ export const AiAssistant: React.FC = () => {
       </div>
 
       {/* Chat Container */}
-      <div className="bg-[#151515] rounded border border-[#556b2f]/20 shadow-2xl flex flex-col h-[520px] overflow-hidden">
+      <div className="bg-[#151515] rounded border border-[#94a288]/20 shadow-2xl flex flex-col h-[520px] overflow-hidden">
         {/* Chat Messages Stream */}
         <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
           {messages.map((msg) => {
@@ -200,7 +202,7 @@ export const AiAssistant: React.FC = () => {
                 className={`flex items-start gap-3 ${isAst ? 'justify-start' : 'justify-end'}`}
               >
                 {isAst && (
-                  <div className="w-8 h-8 rounded bg-[#0a0a0a] text-[#556b2f] border border-[#556b2f]/40 flex items-center justify-center shrink-0 mt-1">
+                  <div className="w-8 h-8 rounded bg-[#0a0a0a] text-[#94a288] border border-[#94a288]/40 flex items-center justify-center shrink-0 mt-1">
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
@@ -209,7 +211,7 @@ export const AiAssistant: React.FC = () => {
                   className={`max-w-[85%] rounded p-4 text-xs sm:text-sm leading-relaxed whitespace-pre-line shadow-md ${
                     isAst
                       ? 'bg-[#0a0a0a] text-stone-200 border border-white/5'
-                      : 'bg-[#556b2f] text-black font-semibold'
+                      : 'bg-[#94a288] text-black font-semibold'
                   }`}
                 >
                   <p>{sanitizeText(msg.text)}</p>
@@ -232,8 +234,8 @@ export const AiAssistant: React.FC = () => {
           })}
 
           {isLoading && (
-            <div className="flex items-center gap-2 text-[#556b2f] text-xs font-semibold p-2 uppercase tracking-wider">
-              <RefreshCw className="w-4 h-4 animate-spin text-[#556b2f]" />
+            <div className="flex items-center gap-2 text-[#94a288] text-xs font-semibold p-2 uppercase tracking-wider">
+              <RefreshCw className="w-4 h-4 animate-spin text-[#94a288]" />
               <span>Consultor Ded Black analisando e gerando recomendações...</span>
             </div>
           )}
@@ -249,15 +251,15 @@ export const AiAssistant: React.FC = () => {
         >
           <input
             type="text"
-            placeholder="Digite sua dúvida ou informe seu tipo de rosto..."
+            placeholder="Digite sua dúvida ou converse com a IA..."
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
-            className="flex-1 bg-[#151515] text-stone-100 text-xs sm:text-sm rounded px-4 py-3 border border-[#556b2f]/30 focus:outline-none focus:border-[#556b2f]"
+            className="flex-1 bg-[#151515] text-stone-100 text-xs sm:text-sm rounded px-4 py-3 border border-[#94a288]/30 focus:outline-none focus:border-[#94a288]"
           />
           <button
             type="submit"
             disabled={!inputPrompt.trim() || isLoading}
-            className="px-5 py-3 rounded bg-[#556b2f] hover:bg-[#6b863a] disabled:opacity-50 text-black text-[10px] font-bold uppercase tracking-widest transition flex items-center gap-2 shadow-lg"
+            className="px-5 py-3 rounded bg-[#94a288] hover:bg-[#6b863a] disabled:opacity-50 text-black text-[10px] font-bold uppercase tracking-widest transition flex items-center gap-2 shadow-lg"
           >
             <Send className="w-4 h-4 text-black" />
             <span className="hidden sm:inline">Enviar</span>

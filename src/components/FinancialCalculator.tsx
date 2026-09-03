@@ -74,7 +74,7 @@ export const FinancialCalculator: React.FC = () => {
 
   // Revenue composition pie chart data
   const revenueCompositionData = [
-    { name: 'Receita Recorrente (Assinaturas)', value: monthlySubscriptionRevenue, color: '#556b2f' },
+    { name: 'Receita Recorrente (Assinaturas)', value: monthlySubscriptionRevenue, color: '#94a288' },
     { name: 'Receita Avulsa (Atendimentos)', value: monthlyAvulsoRevenue, color: '#eab308' },
   ];
 
@@ -124,7 +124,7 @@ export const FinancialCalculator: React.FC = () => {
 
   // Capacity breakdown chart data
   const capacityBreakdownData = [
-    { name: 'Atendimentos de Assinantes', quantidade: activeSubscribersCount * 4, color: '#556b2f' },
+    { name: 'Atendimentos de Assinantes', quantidade: activeSubscribersCount * 4, color: '#94a288' },
     { name: 'Atendimentos Avulsos', quantidade: avulsoCutsPerMonth, color: '#eab308' },
     { name: 'Capacidade Livre', quantidade: Math.max(0, maxBarberCapacity - totalCutsExecuted), color: '#262626' },
   ];
@@ -151,7 +151,7 @@ export const FinancialCalculator: React.FC = () => {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-[#0a0a0a] border border-[#556b2f]/40 p-3 rounded shadow-2xl text-xs space-y-1 z-50">
+        <div className="bg-[#0a0a0a] border border-[#94a288]/40 p-3 rounded shadow-2xl text-xs space-y-1 z-50">
           <p className="font-bold text-white uppercase tracking-wider border-b border-white/10 pb-1 font-mono">
             {label}
           </p>
@@ -373,17 +373,17 @@ export const FinancialCalculator: React.FC = () => {
     <div className="bg-[#0c0c0c] min-h-screen text-[#e0e0e0] px-4 sm:px-6 lg:px-8 py-8 space-y-10 pb-16">
       {/* Toast Notification for PDF Export */}
       {pdfToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#181818] border border-[#556b2f] text-[#556b2f] px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 font-bold text-xs animate-in slide-in-from-bottom">
-          <CheckCircle className="w-5 h-5 text-[#556b2f]" />
+        <div className="fixed bottom-6 right-6 z-50 bg-[#181818] border border-[#94a288] text-[#94a288] px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 font-bold text-xs animate-in slide-in-from-bottom">
+          <CheckCircle className="w-5 h-5 text-[#94a288]" />
           <span>{pdfToast}</span>
         </div>
       )}
 
       {/* Page Title Header */}
-      <div className="border-b border-[#556b2f]/30 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-[#94a288]/30 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#556b2f]/20 text-[#556b2f] text-[10px] font-bold uppercase tracking-[0.3em] mb-2 border border-[#556b2f]/40">
-            <PieIcon className="w-3.5 h-3.5 text-[#556b2f]" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#94a288]/20 text-[#94a288] text-[10px] font-bold uppercase tracking-[0.3em] mb-2 border border-[#94a288]/40">
+            <PieIcon className="w-3.5 h-3.5 text-[#94a288]" />
             Gestão Financeira &amp; Margem D•B
           </span>
           <h2 className="text-3xl font-serif italic text-white">
@@ -398,7 +398,7 @@ export const FinancialCalculator: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3 shrink-0">
           <button
             onClick={handleExportPDF}
-            className="px-4 py-2.5 rounded-lg bg-[#556b2f] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-lg flex items-center gap-2 group"
+            className="px-4 py-2.5 rounded-lg bg-[#94a288] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-lg flex items-center gap-2 group"
           >
             <Download className="w-4 h-4 text-black group-hover:scale-110 transition-transform" />
             <span>Exportar Relatório PDF</span>
@@ -409,8 +409,8 @@ export const FinancialCalculator: React.FC = () => {
       {/* KPI DASHBOARD HEADER CARDS */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-[#556b2f] flex items-center gap-2">
-            <Activity className="w-4 h-4 text-[#556b2f]" />
+          <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-[#94a288] flex items-center gap-2">
+            <Activity className="w-4 h-4 text-[#94a288]" />
             Indicadores Chave de Desempenho (KPIs)
           </h3>
           <span className="text-[10px] text-stone-500 font-mono">Atualizado em Tempo Real</span>
@@ -418,12 +418,12 @@ export const FinancialCalculator: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* KPI 1: Faturamento Mensal Total */}
-          <div className="bg-[#151515] p-6 rounded border border-[#556b2f]/30 shadow-xl relative overflow-hidden group hover:border-[#556b2f]/60 transition">
+          <div className="bg-[#151515] p-6 rounded border border-[#94a288]/30 shadow-xl relative overflow-hidden group hover:border-[#94a288]/60 transition">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
                 Faturamento Mensal Total
               </span>
-              <div className="p-2 rounded bg-[#556b2f]/20 text-[#556b2f] border border-[#556b2f]/30">
+              <div className="p-2 rounded bg-[#94a288]/20 text-[#94a288] border border-[#94a288]/30">
                 <DollarSign className="w-5 h-5" />
               </div>
             </div>
@@ -434,22 +434,22 @@ export const FinancialCalculator: React.FC = () => {
 
             <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
               <span className="text-stone-400 text-[11px]">Recorrência vs Avulso:</span>
-              <span className="text-[#556b2f] font-bold font-mono flex items-center gap-1">
-                <ArrowUpRight className="w-3.5 h-3.5 text-[#556b2f]" />
+              <span className="text-[#94a288] font-bold font-mono flex items-center gap-1">
+                <ArrowUpRight className="w-3.5 h-3.5 text-[#94a288]" />
                 {recurrencePercentage}% Recorrente
               </span>
             </div>
 
             <div className="mt-2 w-full h-1.5 bg-[#0a0a0a] rounded-full overflow-hidden border border-white/5">
               <div
-                className="h-full bg-[#556b2f] transition-all duration-500"
+                className="h-full bg-[#94a288] transition-all duration-500"
                 style={{ width: `${Math.min(100, recurrencePercentage)}%` }}
               />
             </div>
           </div>
 
           {/* KPI 2: Taxa de Ocupação dos Planos */}
-          <div className="bg-[#151515] p-6 rounded border border-[#556b2f]/30 shadow-xl relative overflow-hidden group hover:border-[#556b2f]/60 transition">
+          <div className="bg-[#151515] p-6 rounded border border-[#94a288]/30 shadow-xl relative overflow-hidden group hover:border-[#94a288]/60 transition">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
                 Taxa de Ocupação dos Planos
@@ -473,7 +473,7 @@ export const FinancialCalculator: React.FC = () => {
               <span
                 className={`font-bold font-mono text-[11px] ${
                   occupancyRate >= 80
-                    ? 'text-[#556b2f]'
+                    ? 'text-[#94a288]'
                     : occupancyRate >= 50
                     ? 'text-yellow-400'
                     : 'text-stone-400'
@@ -492,7 +492,7 @@ export const FinancialCalculator: React.FC = () => {
           </div>
 
           {/* KPI 3: Projeção de Receita Recorrente (MRR) */}
-          <div className="bg-[#151515] p-6 rounded border border-[#556b2f]/30 shadow-xl relative overflow-hidden group hover:border-[#556b2f]/60 transition sm:col-span-2 lg:col-span-1">
+          <div className="bg-[#151515] p-6 rounded border border-[#94a288]/30 shadow-xl relative overflow-hidden group hover:border-[#94a288]/60 transition sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
                 Projeção Receita Recorrente (MRR)
@@ -525,11 +525,11 @@ export const FinancialCalculator: React.FC = () => {
 
       {/* RECHARTS METRICS DASHBOARD SECTION */}
       <section className="space-y-6">
-        <div className="bg-[#111111] p-6 rounded-xl border border-[#556b2f]/40 shadow-2xl space-y-6">
+        <div className="bg-[#111111] p-6 rounded-xl border border-[#94a288]/40 shadow-2xl space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
             <div>
-              <span className="text-[10px] font-bold text-[#556b2f] uppercase tracking-[0.25em] flex items-center gap-1.5 mb-1">
-                <BarChart3 className="w-4 h-4 text-[#556b2f]" />
+              <span className="text-[10px] font-bold text-[#94a288] uppercase tracking-[0.25em] flex items-center gap-1.5 mb-1">
+                <BarChart3 className="w-4 h-4 text-[#94a288]" />
                 Dashboard Analítico de Desempenho (Recharts)
               </span>
               <h3 className="text-2xl font-serif italic text-white">
@@ -541,7 +541,7 @@ export const FinancialCalculator: React.FC = () => {
             </div>
 
             {/* Timeframe Selector Buttons */}
-            <div className="flex items-center gap-2 bg-[#0a0a0a] p-1.5 rounded-lg border border-[#556b2f]/30 shrink-0">
+            <div className="flex items-center gap-2 bg-[#0a0a0a] p-1.5 rounded-lg border border-[#94a288]/30 shrink-0">
               <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider px-2">
                 Período:
               </span>
@@ -549,7 +549,7 @@ export const FinancialCalculator: React.FC = () => {
                 onClick={() => setDashboardTimeframe('6m')}
                 className={`px-3 py-1.5 rounded text-xs font-bold transition ${
                   dashboardTimeframe === '6m'
-                    ? 'bg-[#556b2f] text-black shadow'
+                    ? 'bg-[#94a288] text-black shadow'
                     : 'text-stone-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -559,7 +559,7 @@ export const FinancialCalculator: React.FC = () => {
                 onClick={() => setDashboardTimeframe('12m')}
                 className={`px-3 py-1.5 rounded text-xs font-bold transition ${
                   dashboardTimeframe === '12m'
-                    ? 'bg-[#556b2f] text-black shadow'
+                    ? 'bg-[#94a288] text-black shadow'
                     : 'text-stone-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -570,11 +570,11 @@ export const FinancialCalculator: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* CHART 1: Receita Mensal (BarChart / ComposedChart) */}
-            <div className="bg-[#151515] p-5 rounded-lg border border-[#556b2f]/30 shadow-xl flex flex-col justify-between">
+            <div className="bg-[#151515] p-5 rounded-lg border border-[#94a288]/30 shadow-xl flex flex-col justify-between">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/5 pb-3 mb-3">
                 <div>
                   <h4 className="text-base font-serif italic text-white flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-[#556b2f]" />
+                    <DollarSign className="w-4 h-4 text-[#94a288]" />
                     Evolução da Receita Mensal
                   </h4>
                   <p className="text-[11px] text-stone-400">
@@ -582,8 +582,8 @@ export const FinancialCalculator: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-3 text-[10px] font-mono shrink-0">
-                  <span className="flex items-center gap-1 text-[#556b2f]">
-                    <span className="w-2.5 h-2.5 rounded bg-[#556b2f]" /> Recorrente
+                  <span className="flex items-center gap-1 text-[#94a288]">
+                    <span className="w-2.5 h-2.5 rounded bg-[#94a288]" /> Recorrente
                   </span>
                   <span className="flex items-center gap-1 text-yellow-500">
                     <span className="w-2.5 h-2.5 rounded bg-yellow-500" /> Avulsa
@@ -605,7 +605,7 @@ export const FinancialCalculator: React.FC = () => {
                       tickFormatter={(val) => `R$${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
                     />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="Receita Recorrente" fill="#556b2f" radius={[4, 4, 0, 0]} stackId="a" barSize={20} />
+                    <Bar dataKey="Receita Recorrente" fill="#94a288" radius={[4, 4, 0, 0]} stackId="a" barSize={20} />
                     <Bar dataKey="Receita Avulsa" fill="#eab308" radius={[4, 4, 0, 0]} stackId="a" barSize={20} />
                     <Line
                       type="monotone"
@@ -627,7 +627,7 @@ export const FinancialCalculator: React.FC = () => {
             </div>
 
             {/* CHART 2: Crescimento de Assinantes Ativos (AreaChart + Line) */}
-            <div className="bg-[#151515] p-5 rounded-lg border border-[#556b2f]/30 shadow-xl flex flex-col justify-between">
+            <div className="bg-[#151515] p-5 rounded-lg border border-[#94a288]/30 shadow-xl flex flex-col justify-between">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/5 pb-3 mb-3">
                 <div>
                   <h4 className="text-base font-serif italic text-white flex items-center gap-2">
@@ -639,8 +639,8 @@ export const FinancialCalculator: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-3 text-[10px] font-mono shrink-0">
-                  <span className="flex items-center gap-1 text-[#556b2f]">
-                    <span className="w-2.5 h-2.5 rounded bg-[#556b2f]" /> Assinantes Ativos
+                  <span className="flex items-center gap-1 text-[#94a288]">
+                    <span className="w-2.5 h-2.5 rounded bg-[#94a288]" /> Assinantes Ativos
                   </span>
                   <span className="flex items-center gap-1 text-purple-400">
                     <span className="w-2.5 h-2.5 rounded-full bg-purple-400" /> Novas Adesões
@@ -653,8 +653,8 @@ export const FinancialCalculator: React.FC = () => {
                   <AreaChart data={activeSubscribersChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorSubscribers" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#556b2f" stopOpacity={0.5} />
-                        <stop offset="95%" stopColor="#556b2f" stopOpacity={0.05} />
+                        <stop offset="5%" stopColor="#94a288" stopOpacity={0.5} />
+                        <stop offset="95%" stopColor="#94a288" stopOpacity={0.05} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
@@ -664,7 +664,7 @@ export const FinancialCalculator: React.FC = () => {
                     <Area
                       type="monotone"
                       dataKey="Assinantes Ativos"
-                      stroke="#556b2f"
+                      stroke="#94a288"
                       strokeWidth={3}
                       fillOpacity={1}
                       fill="url(#colorSubscribers)"
@@ -694,10 +694,10 @@ export const FinancialCalculator: React.FC = () => {
       {/* RECHARTS PROJECTION & COMPOSITION SECTION */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* CHART 1: Area Chart - Projeção de Recorrência e MRR (8 cols) */}
-        <div className="lg:col-span-8 bg-[#151515] p-6 rounded border border-[#556b2f]/30 shadow-xl flex flex-col justify-between">
+        <div className="lg:col-span-8 bg-[#151515] p-6 rounded border border-[#94a288]/30 shadow-xl flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-4 mb-4">
             <div>
-              <span className="text-[10px] font-bold text-[#556b2f] uppercase tracking-widest flex items-center gap-1.5">
+              <span className="text-[10px] font-bold text-[#94a288] uppercase tracking-widest flex items-center gap-1.5">
                 <TrendingUp className="w-4 h-4" /> Projeção de Escala 6 Meses
               </span>
               <h4 className="text-lg font-serif italic text-white mt-0.5">
@@ -705,8 +705,8 @@ export const FinancialCalculator: React.FC = () => {
               </h4>
             </div>
             <div className="flex items-center gap-3 text-[10px] font-mono">
-              <span className="flex items-center gap-1 text-[#556b2f]">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#556b2f]" /> MRR (Recorrência)
+              <span className="flex items-center gap-1 text-[#94a288]">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#94a288]" /> MRR (Recorrência)
               </span>
               <span className="flex items-center gap-1 text-yellow-500">
                 <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" /> Faturamento Total
@@ -719,8 +719,8 @@ export const FinancialCalculator: React.FC = () => {
               <AreaChart data={mrrProjectionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorMRR" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#556b2f" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#556b2f" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#94a288" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#94a288" stopOpacity={0.0} />
                   </linearGradient>
                   <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
@@ -746,7 +746,7 @@ export const FinancialCalculator: React.FC = () => {
                 <Area
                   type="monotone"
                   dataKey="Receita Recorrente (MRR)"
-                  stroke="#556b2f"
+                  stroke="#94a288"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#colorMRR)"
@@ -757,14 +757,14 @@ export const FinancialCalculator: React.FC = () => {
 
           <p className="text-[11px] text-stone-400 mt-3 pt-3 border-t border-white/5 opacity-80 flex items-center justify-between">
             <span>Simula crescimento de 8% ao mês na base de assinantes contratados.</span>
-            <strong className="text-[#556b2f]">Meta Mês 6: {mrrProjectionData[5].Assinantes} Assinantes</strong>
+            <strong className="text-[#94a288]">Meta Mês 6: {mrrProjectionData[5].Assinantes} Assinantes</strong>
           </p>
         </div>
 
         {/* CHART 2: Donut PieChart - Composição do Faturamento (4 cols) */}
-        <div className="lg:col-span-4 bg-[#151515] p-6 rounded border border-[#556b2f]/30 shadow-xl flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-[#151515] p-6 rounded border border-[#94a288]/30 shadow-xl flex flex-col justify-between">
           <div className="border-b border-white/5 pb-4 mb-2">
-            <span className="text-[10px] font-bold text-[#556b2f] uppercase tracking-widest flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-[#94a288] uppercase tracking-widest flex items-center gap-1.5">
               <BarChart3 className="w-4 h-4" /> Composição de Receita
             </span>
             <h4 className="text-lg font-serif italic text-white mt-0.5">
@@ -801,7 +801,7 @@ export const FinancialCalculator: React.FC = () => {
           <div className="space-y-2 pt-3 border-t border-white/5 text-xs">
             <div className="flex items-center justify-between p-2 rounded bg-[#0a0a0a] border border-white/5">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded bg-[#556b2f]" />
+                <span className="w-3 h-3 rounded bg-[#94a288]" />
                 <span className="text-stone-300">Planos Recorrentes</span>
               </div>
               <span className="font-bold text-white font-mono">
@@ -823,10 +823,10 @@ export const FinancialCalculator: React.FC = () => {
       </section>
 
       {/* CHART 3: BarChart - Capacidade da Equipe & Atendimentos */}
-      <section className="bg-[#151515] p-6 rounded border border-[#556b2f]/30 shadow-xl">
+      <section className="bg-[#151515] p-6 rounded border border-[#94a288]/30 shadow-xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-4 mb-4">
           <div>
-            <span className="text-[10px] font-bold text-[#556b2f] uppercase tracking-widest flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-[#94a288] uppercase tracking-widest flex items-center gap-1.5">
               <Layers className="w-4 h-4" /> Distribuição da Capacidade Produtiva
             </span>
             <h4 className="text-lg font-serif italic text-white mt-0.5">
@@ -856,18 +856,18 @@ export const FinancialCalculator: React.FC = () => {
       </section>
       {/* 4 Pillars Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#151515] p-5 rounded border border-[#556b2f]/20 flex items-start gap-3">
-          <div className="p-2.5 rounded bg-[#556b2f]/20 text-[#556b2f] border border-[#556b2f]/30">
+        <div className="bg-[#151515] p-5 rounded border border-[#94a288]/20 flex items-start gap-3">
+          <div className="p-2.5 rounded bg-[#94a288]/20 text-[#94a288] border border-[#94a288]/30">
             <Percent className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-[10px] font-bold uppercase text-[#556b2f] tracking-widest">1. Taxa de Ocupação</h4>
+            <h4 className="text-[10px] font-bold uppercase text-[#94a288] tracking-widest">1. Taxa de Ocupação</h4>
             <p className="text-sm font-bold text-white mt-0.5 font-serif">Preenchimento de Cadeira</p>
             <p className="text-[11px] text-stone-400 mt-1 opacity-80">Elimina horários ociosos durante a semana.</p>
           </div>
         </div>
 
-        <div className="bg-[#151515] p-5 rounded border border-[#556b2f]/20 flex items-start gap-3">
+        <div className="bg-[#151515] p-5 rounded border border-[#94a288]/20 flex items-start gap-3">
           <div className="p-2.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/40">
             <Users className="w-5 h-5" />
           </div>
@@ -878,7 +878,7 @@ export const FinancialCalculator: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-[#151515] p-5 rounded border border-[#556b2f]/20 flex items-start gap-3">
+        <div className="bg-[#151515] p-5 rounded border border-[#94a288]/20 flex items-start gap-3">
           <div className="p-2.5 rounded bg-yellow-900/30 text-yellow-400 border border-yellow-800/40">
             <DollarSign className="w-5 h-5" />
           </div>
@@ -889,7 +889,7 @@ export const FinancialCalculator: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-[#151515] p-5 rounded border border-[#556b2f]/20 flex items-start gap-3">
+        <div className="bg-[#151515] p-5 rounded border border-[#94a288]/20 flex items-start gap-3">
           <div className="p-2.5 rounded bg-purple-900/30 text-purple-400 border border-purple-800/40">
             <CalendarCheck className="w-5 h-5" />
           </div>
@@ -902,10 +902,10 @@ export const FinancialCalculator: React.FC = () => {
       </div>
 
       {/* Interactive Business Projection Simulator */}
-      <section className="bg-[#111111] p-6 sm:p-8 rounded border border-[#556b2f]/30 shadow-xl">
+      <section className="bg-[#111111] p-6 sm:p-8 rounded border border-[#94a288]/30 shadow-xl">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 border-b border-white/5 pb-6 mb-6">
           <div>
-            <span className="text-[10px] font-bold text-[#556b2f] uppercase tracking-[0.25em] flex items-center gap-1">
+            <span className="text-[10px] font-bold text-[#94a288] uppercase tracking-[0.25em] flex items-center gap-1">
               <TrendingUp className="w-4 h-4" />
               Simulador de Faturamento Mensal D•B
             </span>
@@ -917,9 +917,9 @@ export const FinancialCalculator: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-[#0a0a0a] px-4 py-2 rounded border border-[#556b2f]/30 text-xs">
+          <div className="flex items-center gap-2 bg-[#0a0a0a] px-4 py-2 rounded border border-[#94a288]/30 text-xs">
             <span className="text-stone-400 uppercase tracking-widest text-[10px]">Capacidade da Equipe:</span>
-            <strong className="text-[#556b2f] font-bold">{numBarbers} Barbeiros</strong>
+            <strong className="text-[#94a288] font-bold">{numBarbers} Barbeiros</strong>
           </div>
         </div>
 
@@ -927,7 +927,7 @@ export const FinancialCalculator: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-[#0a0a0a] p-4 rounded border border-white/5">
             <label className="text-[11px] font-bold uppercase tracking-wider text-stone-300 block mb-2">
-              Assinantes Ativos: <span className="text-[#556b2f] font-bold">{activeSubscribersCount}</span>
+              Assinantes Ativos: <span className="text-[#94a288] font-bold">{activeSubscribersCount}</span>
             </label>
             <input
               type="range"
@@ -935,7 +935,7 @@ export const FinancialCalculator: React.FC = () => {
               max={150}
               value={activeSubscribersCount}
               onChange={(e) => setActiveSubscribersCount(Number(e.target.value))}
-              className="w-full accent-[#556b2f] cursor-pointer"
+              className="w-full accent-[#94a288] cursor-pointer"
             />
             <span className="text-[10px] text-stone-400 mt-1 block uppercase tracking-wider">
               Ticket Médio do Plano: R$ {avgPlanPrice}
@@ -944,7 +944,7 @@ export const FinancialCalculator: React.FC = () => {
 
           <div className="bg-[#0a0a0a] p-4 rounded border border-white/5">
             <label className="text-[11px] font-bold uppercase tracking-wider text-stone-300 block mb-2">
-              Cortes Avulsos / Mês: <span className="text-[#556b2f] font-bold">{avulsoCutsPerMonth}</span>
+              Cortes Avulsos / Mês: <span className="text-[#94a288] font-bold">{avulsoCutsPerMonth}</span>
             </label>
             <input
               type="range"
@@ -952,7 +952,7 @@ export const FinancialCalculator: React.FC = () => {
               max={200}
               value={avulsoCutsPerMonth}
               onChange={(e) => setAvulsoCutsPerMonth(Number(e.target.value))}
-              className="w-full accent-[#556b2f] cursor-pointer"
+              className="w-full accent-[#94a288] cursor-pointer"
             />
             <span className="text-[10px] text-stone-400 mt-1 block uppercase tracking-wider">
               Ticket Médio Avulso: R$ {avgAvulsoPrice}
@@ -961,7 +961,7 @@ export const FinancialCalculator: React.FC = () => {
 
           <div className="bg-[#0a0a0a] p-4 rounded border border-white/5">
             <label className="text-[11px] font-bold uppercase tracking-wider text-stone-300 block mb-2">
-              Equipe de Barbeiros: <span className="text-[#556b2f] font-bold">{numBarbers}</span>
+              Equipe de Barbeiros: <span className="text-[#94a288] font-bold">{numBarbers}</span>
             </label>
             <input
               type="range"
@@ -969,7 +969,7 @@ export const FinancialCalculator: React.FC = () => {
               max={8}
               value={numBarbers}
               onChange={(e) => setNumBarbers(Number(e.target.value))}
-              className="w-full accent-[#556b2f] cursor-pointer"
+              className="w-full accent-[#94a288] cursor-pointer"
             />
             <span className="text-[10px] text-stone-400 mt-1 block uppercase tracking-wider">
               Capacidade Max: {maxBarberCapacity} cortes
@@ -981,11 +981,11 @@ export const FinancialCalculator: React.FC = () => {
             <div className="my-2">
               <div className="flex justify-between text-xs font-bold mb-1">
                 <span className="text-stone-300">{totalCutsExecuted} Atendimentos</span>
-                <span className="text-[#556b2f]">{occupancyRate}%</span>
+                <span className="text-[#94a288]">{occupancyRate}%</span>
               </div>
               <div className="w-full h-2.5 bg-[#151515] rounded-full overflow-hidden border border-white/10">
                 <div
-                  className="h-full bg-[#556b2f] transition-all duration-500"
+                  className="h-full bg-[#94a288] transition-all duration-500"
                   style={{ width: `${occupancyRate}%` }}
                 />
               </div>
@@ -1003,7 +1003,7 @@ export const FinancialCalculator: React.FC = () => {
             <span className="text-2xl sm:text-3xl font-serif text-white mt-1 block font-bold">
               R$ {totalGrossRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </span>
-            <span className="text-[10px] text-[#556b2f] mt-1 block uppercase tracking-widest font-bold">
+            <span className="text-[10px] text-[#94a288] mt-1 block uppercase tracking-widest font-bold">
               R$ {monthlySubscriptionRevenue.toFixed(2)} em assinaturas recorrentes
             </span>
           </div>
@@ -1018,12 +1018,12 @@ export const FinancialCalculator: React.FC = () => {
             </span>
           </div>
 
-          <div className="bg-[#556b2f]/10 p-5 rounded border border-[#556b2f]/30 text-center">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#556b2f] block">Lucro Líquido Barbearia (~45%)</span>
+          <div className="bg-[#94a288]/10 p-5 rounded border border-[#94a288]/30 text-center">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#94a288] block">Lucro Líquido Barbearia (~45%)</span>
             <span className="text-2xl sm:text-3xl font-serif italic font-bold text-white mt-1 block">
               R$ {estimatedHouseNetProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </span>
-            <span className="text-[10px] text-[#556b2f] mt-1 block uppercase tracking-widest font-bold">
+            <span className="text-[10px] text-[#94a288] mt-1 block uppercase tracking-widest font-bold">
               Margem limpa para a casa
             </span>
           </div>
@@ -1031,7 +1031,7 @@ export const FinancialCalculator: React.FC = () => {
       </section>
 
       {/* Detailed Service Split Table */}
-      <section className="bg-[#151515] rounded border border-[#556b2f]/20 p-6 shadow-xl">
+      <section className="bg-[#151515] rounded border border-[#94a288]/20 p-6 shadow-xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="text-xl font-serif italic text-white">
@@ -1045,7 +1045,7 @@ export const FinancialCalculator: React.FC = () => {
           <select
             value={selectedServiceFilter}
             onChange={(e) => setSelectedServiceFilter(e.target.value)}
-            className="bg-[#0a0a0a] text-stone-200 text-xs font-bold rounded px-3 py-2 border border-[#556b2f]/30 focus:outline-none focus:border-[#556b2f]"
+            className="bg-[#0a0a0a] text-stone-200 text-xs font-bold rounded px-3 py-2 border border-[#94a288]/30 focus:outline-none focus:border-[#94a288]"
           >
             <option value="all">Filtrar por Serviço: Todos</option>
             {SERVICES_LIST.map((srv) => (
@@ -1068,7 +1068,7 @@ export const FinancialCalculator: React.FC = () => {
                 <th className="p-3.5 text-right">Preço / ATD</th>
                 <th className="p-3.5 text-center">Divisão (%)</th>
                 <th className="p-3.5 text-right text-yellow-500">Comissão Barbeiro</th>
-                <th className="p-3.5 text-right text-[#556b2f]">Lucro Barbearia</th>
+                <th className="p-3.5 text-right text-[#94a288]">Lucro Barbearia</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-stone-200 font-medium">
@@ -1087,7 +1087,7 @@ export const FinancialCalculator: React.FC = () => {
                     </td>
 
                     <td className="p-3.5">
-                      <span className="text-[#556b2f] font-bold uppercase tracking-wider">{plan.serviceName}</span>
+                      <span className="text-[#94a288] font-bold uppercase tracking-wider">{plan.serviceName}</span>
                       <span className="text-[10px] text-stone-400 block">Avulso: R$ {avulso.toFixed(2)}</span>
                     </td>
 
@@ -1106,14 +1106,14 @@ export const FinancialCalculator: React.FC = () => {
                     <td className="p-3.5 text-center font-mono text-[11px]">
                       <span className="text-yellow-400 font-bold">{barberPct}</span>
                       <span className="text-stone-500 mx-1">/</span>
-                      <span className="text-[#556b2f] font-bold">{housePct}</span>
+                      <span className="text-[#94a288] font-bold">{housePct}</span>
                     </td>
 
                     <td className="p-3.5 text-right font-bold text-yellow-400 bg-yellow-950/10 font-mono">
                       R$ {plan.totalBarberCommission.toFixed(2)}
                     </td>
 
-                    <td className="p-3.5 text-right font-serif font-bold text-[#556b2f] bg-[#556b2f]/10 font-mono">
+                    <td className="p-3.5 text-right font-serif font-bold text-[#94a288] bg-[#94a288]/10 font-mono">
                       R$ {plan.totalHouseMargin.toFixed(2)}
                     </td>
                   </tr>
@@ -1125,9 +1125,9 @@ export const FinancialCalculator: React.FC = () => {
       </section>
 
       {/* Rules Breakdown Note */}
-      <div className="bg-[#151515] p-5 rounded border border-[#556b2f]/20 text-xs text-stone-300 space-y-2">
+      <div className="bg-[#151515] p-5 rounded border border-[#94a288]/20 text-xs text-stone-300 space-y-2">
         <div className="flex items-center gap-2 font-bold text-white text-sm uppercase tracking-wider">
-          <HelpCircle className="w-4 h-4 text-[#556b2f]" />
+          <HelpCircle className="w-4 h-4 text-[#94a288]" />
           Avisos Importantes de Fechamento Financeiro:
         </div>
         <ul className="list-disc list-inside space-y-1 text-stone-400 leading-relaxed">

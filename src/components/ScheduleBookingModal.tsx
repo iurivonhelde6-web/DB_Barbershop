@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { Barber, Appointment, UserAccount } from '../types';
-import { BARBERS_LIST, SERVICES_LIST, INITIAL_APPOINTMENTS, ADMIN_WHATSAPP, ADMIN_WHATSAPP_DISPLAY } from '../data/barberData';
+import {
+  BARBERS_LIST,
+  SERVICES_LIST,
+  INITIAL_APPOINTMENTS,
+  ADMIN_WHATSAPP,
+  ADMIN_WHATSAPP_DISPLAY,
+  ANDRE_UPGRADE_BARBER_ID,
+  ANDRE_UPGRADE_TABLE,
+} from '../data/barberData';
+import type { AndreUpgradePricing } from '../data/barberData';
 import {
   Calendar,
   Clock,
@@ -48,6 +57,28 @@ const AVAILABLE_TIMES = [
   '19:30'
 ];
 
+// Tiers cobertos pela tabela de upgrade do André (FLEX PREMIUM não entra
+// porque já dá liberdade total de escolha de serviço/profissional).
+type AndreTier = 'basic' | 'plus' | 'select' | 'family';
+
+const ANDRE_TIER_LABELS: Record<AndreTier, string> = {
+  basic: 'Basic',
+  plus: 'Plus',
+  select: 'Select',
+  family: 'Family',
+};
+
+// Melhor esforço para pré-selecionar o tier a partir do plano do
+// cliente logado (currentUser.planName é texto livre, ex: "BASIC 4 (4 ATD)").
+// O barbeiro/atendente sempre pode corrigir manualmente no seletor.
+const inferAndreTier = (planName?: string): AndreTier => {
+  const normalized = (planName || '').toLowerCase();
+  if (normalized.includes('family')) return 'family';
+  if (normalized.includes('select')) return 'select';
+  if (normalized.includes('plus')) return 'plus';
+  return 'basic';
+};
+
 export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
   isOpen,
   onClose,
@@ -70,6 +101,11 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
   const [clientPhone, setClientPhone] = useState<string>('(21) 99887-6655');
   const [cardCode, setCardCode] = useState<string>(currentUser?.cardCode || 'DB-8842');
 
+  // Upgrade de Profissional — André de Souza (DED BLACK)
+  const [selectedAndreTier, setSelectedAndreTier] = useState<AndreTier>(
+    inferAndreTier(currentUser?.planName)
+  );
+
   const [toastNotification, setToastNotification] = useState<{
     id: string;
     title: string;
@@ -81,6 +117,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
     clientName: string;
     clientPhone: string;
     cardCode?: string;
+    notes?: string;
   } | null>(null);
 
   const [copiedMessage, setCopiedMessage] = useState<boolean>(false);
@@ -91,6 +128,19 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
   if (!isOpen) return null;
 
   const selectedBarber = BARBERS_LIST.find((b) => b.id === selectedBarberId) || BARBERS_LIST[0];
+  const selectedServiceObj = SERVICES_LIST.find((s) => s.name === selectedServiceName);
+
+  // Upgrade de Profissional — só entra em cena se o barbeiro escolhido for o André
+  const isAndreSelected = selectedBarberId === ANDRE_UPGRADE_BARBER_ID;
+  const andreUpgradeEntry = selectedServiceObj
+    ? ANDRE_UPGRADE_TABLE.find((entry: AndreUpgradePricing) => entry.serviceId === selectedServiceObj.id)
+    : undefined;
+  const andreUpgradeAmount =
+    isAndreSelected && andreUpgradeEntry ? andreUpgradeEntry[selectedAndreTier] : undefined;
+  const andreUpgradeNote =
+    andreUpgradeAmount !== undefined
+      ? `Upgrade André de Souza: +R$ ${andreUpgradeAmount.toFixed(2)} (plano ${ANDRE_TIER_LABELS[selectedAndreTier]})`
+      : undefined;
 
   // Play audio chime when booking confirms
   const playConfirmationChime = () => {
@@ -134,11 +184,13 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
       cardCode: cardCode.trim() || undefined,
       barberId: selectedBarber.id,
       barberName: selectedBarber.name,
+      serviceId: selectedServiceObj?.id,
       serviceName: selectedServiceName,
       date: selectedDate,
       time: selectedTime,
       createdAt: new Date().toISOString(),
       status: 'CONFIRMED',
+      notes: andreUpgradeNote,
     };
 
     onAddAppointment(newApt);
@@ -156,10 +208,14 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
       clientName: clientName.trim(),
       clientPhone: clientPhone.trim(),
       cardCode: cardCode.trim() || undefined,
+      notes: andreUpgradeNote,
     };
 
     setToastNotification(toastData);
-    setSuccessFeedback(`Horário agendado com sucesso! Barbeiro: ${selectedBarber.name} às ${selectedTime} (${selectedDate}).`);
+    setSuccessFeedback(
+      `Horário agendado com sucesso! Barbeiro: ${selectedBarber.name} às ${selectedTime} (${selectedDate}).` +
+        (andreUpgradeNote ? ` ${andreUpgradeNote}.` : '')
+    );
 
     // Auto switch tab to appointment list
     setTimeout(() => {
@@ -175,6 +231,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
     serviceName: string;
     clientPhone?: string;
     cardCode?: string;
+    notes?: string;
   }) => {
     return `💈 *BARBEARIA DED BLACK - CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\n` +
       `👤 *Cliente:* ${apt.clientName}\n` +
@@ -183,6 +240,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
       `📅 *Data:* ${apt.date}\n` +
       `💈 *Serviço:* ${apt.serviceName}\n` +
       (apt.cardCode ? `💳 *Cartão D•B:* ${apt.cardCode}\n` : '') +
+      (apt.notes ? `💰 *Observação:* ${apt.notes}\n` : '') +
       `\n📍 *Endereço:* Barbearia Ded Black - Unidade Principal\n` +
       `⚠️ *Tolerância:* 10 minutos improrrogáveis.`;
   };
@@ -226,17 +284,17 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
       {/* CONFIRMATION MESSAGE POPUP / TOAST NOTIFICATION */}
       {(toastNotification || selectedAppointmentForMsg) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200">
-          <div className="bg-[#151515] border-2 border-[#556b2f] rounded-2xl max-w-lg w-full p-6 shadow-2xl text-stone-100 relative overflow-hidden backdrop-blur-md space-y-4">
-            <div className="flex items-center justify-between border-b border-[#556b2f]/30 pb-3">
+          <div className="bg-[#151515] border-2 border-[#94a288] rounded-2xl max-w-lg w-full p-6 shadow-2xl text-stone-100 relative overflow-hidden backdrop-blur-md space-y-4">
+            <div className="flex items-center justify-between border-b border-[#94a288]/30 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-full bg-[#556b2f] text-black flex items-center justify-center font-bold">
+                <div className="w-9 h-9 rounded-full bg-[#94a288] text-black flex items-center justify-center font-bold">
                   <Bell className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="text-sm font-bold uppercase tracking-wider text-white">
                     📩 Mensagem de Agendamento Recebida!
                   </h4>
-                  <p className="text-[10px] text-[#556b2f] font-mono">
+                  <p className="text-[10px] text-[#94a288] font-mono">
                     Confirmação do Horário &amp; Barbeiro Escolhido
                   </p>
                 </div>
@@ -254,7 +312,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
             </div>
 
             {/* PRE-FORMATTED MESSAGE DISPLAY BOX */}
-            <div className="bg-[#0a0a0a] border border-[#556b2f]/40 rounded-xl p-4 font-mono text-xs space-y-2 text-stone-200 leading-relaxed shadow-inner">
+            <div className="bg-[#0a0a0a] border border-[#94a288]/40 rounded-xl p-4 font-mono text-xs space-y-2 text-stone-200 leading-relaxed shadow-inner">
               <div className="text-amber-400 font-bold text-center border-b border-white/10 pb-2 mb-2">
                 💈 BARBEARIA DED BLACK - AGENDAMENTO CONFIRMADO 💈
               </div>
@@ -267,9 +325,9 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                       <span className="text-stone-400">👤 Cliente:</span>
                       <strong className="text-white">{info.clientName}</strong>
                     </p>
-                    <p className="flex items-center justify-between bg-[#556b2f]/20 p-2 rounded border border-[#556b2f]/40">
+                    <p className="flex items-center justify-between bg-[#94a288]/20 p-2 rounded border border-[#94a288]/40">
                       <span className="text-stone-300 font-bold">✂️ Barbeiro Escolhido:</span>
-                      <strong className="text-[#556b2f] font-serif text-sm">{info.barberName}</strong>
+                      <strong className="text-[#94a288] font-serif text-sm">{info.barberName}</strong>
                     </p>
                     <p className="flex items-center justify-between bg-amber-950/30 p-2 rounded border border-amber-500/30">
                       <span className="text-stone-300 font-bold">⏰ Horário Reservado:</span>
@@ -283,6 +341,12 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                       <p className="flex items-center justify-between">
                         <span className="text-stone-400">💳 Cartão D•B:</span>
                         <strong className="text-emerald-400">{info.cardCode}</strong>
+                      </p>
+                    )}
+                    {info.notes && (
+                      <p className="flex items-center justify-between bg-amber-950/30 p-2 rounded border border-amber-500/30 gap-3">
+                        <span className="text-stone-300 font-bold shrink-0">💰 Upgrade:</span>
+                        <strong className="text-amber-300 text-[11px] text-right">{info.notes}</strong>
                       </p>
                     )}
                     <div className="border-t border-white/10 pt-2 mt-2 text-[10px] text-stone-400 italic">
@@ -315,7 +379,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
 
                     <button
                       onClick={() => handleCopyMessage(msgText)}
-                      className="py-2.5 px-3 rounded-lg bg-[#556b2f] hover:bg-[#69843a] text-black font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition"
+                      className="py-2.5 px-3 rounded-lg bg-[#94a288] hover:bg-[#69843a] text-black font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition"
                     >
                       {copiedMessage ? (
                         <>
@@ -347,17 +411,17 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
         </div>
       )}
 
-      <div className="bg-[#121212] border border-[#556b2f]/40 w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden relative text-stone-100 max-h-[90vh] flex flex-col">
+      <div className="bg-[#121212] border border-[#94a288]/40 w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden relative text-stone-100 max-h-[90vh] flex flex-col">
         {/* Modal Header */}
-        <div className="bg-[#0a0a0a] px-6 py-4 border-b border-[#556b2f]/30 flex items-center justify-between">
+        <div className="bg-[#0a0a0a] px-6 py-4 border-b border-[#94a288]/30 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#556b2f]/20 border border-[#556b2f]/50 flex items-center justify-center text-[#556b2f]">
+            <div className="w-10 h-10 rounded-full bg-[#94a288]/20 border border-[#94a288]/50 flex items-center justify-center text-[#94a288]">
               <Calendar className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-lg font-serif font-bold text-white italic flex items-center gap-2">
                 Agendamento de Horários D•B
-                <span className="text-[10px] bg-[#556b2f] text-black font-sans font-bold px-2 py-0.5 rounded uppercase">
+                <span className="text-[10px] bg-[#94a288] text-black font-sans font-bold px-2 py-0.5 rounded uppercase">
                   Regras Ativas
                 </span>
               </h3>
@@ -381,7 +445,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
             onClick={() => setActiveTab('book')}
             className={`py-2 px-4 rounded text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 ${
               activeTab === 'book'
-                ? 'bg-[#556b2f] text-black shadow-md'
+                ? 'bg-[#94a288] text-black shadow-md'
                 : 'text-stone-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -393,7 +457,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
             onClick={() => setActiveTab('list')}
             className={`py-2 px-4 rounded text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 ${
               activeTab === 'list'
-                ? 'bg-[#556b2f] text-black shadow-md'
+                ? 'bg-[#94a288] text-black shadow-md'
                 : 'text-stone-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -453,7 +517,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                         onClick={() => setSelectedBarberId(barber.id)}
                         className={`p-3 rounded-lg border text-left transition flex items-center gap-3 ${
                           isSelected
-                            ? 'bg-[#556b2f]/20 border-[#556b2f] text-white shadow-md'
+                            ? 'bg-[#94a288]/20 border-[#94a288] text-white shadow-md'
                             : 'bg-[#0a0a0a] border-white/5 hover:border-white/20 text-stone-300'
                         }`}
                       >
@@ -470,7 +534,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                           )}
                         </div>
                         {isSelected && (
-                          <div className="w-5 h-5 rounded-full bg-[#556b2f] text-black flex items-center justify-center shrink-0">
+                          <div className="w-5 h-5 rounded-full bg-[#94a288] text-black flex items-center justify-center shrink-0">
                             <Check className="w-3 h-3 stroke-[3]" />
                           </div>
                         )}
@@ -489,7 +553,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                   <select
                     value={selectedServiceName}
                     onChange={(e) => setSelectedServiceName(e.target.value)}
-                    className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                    className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                   >
                     {SERVICES_LIST.map((s) => (
                       <option key={s.id} value={s.name}>
@@ -508,10 +572,61 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                    className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                   />
                 </div>
               </div>
+
+              {/* UPGRADE DE PROFISSIONAL — ANDRÉ DE SOUZA (DED BLACK) */}
+              {isAndreSelected && (
+                <div className="bg-[#181818] border border-[#94a288]/40 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#94a288]">
+                    <Sparkles className="w-4 h-4" />
+                    Upgrade de Profissional — André de Souza (DED BLACK)
+                  </div>
+                  <p className="text-[11px] text-stone-400 leading-relaxed">
+                    O plano garante o serviço contratado com a equipe D•B, não vinculado a um profissional
+                    específico. Ao optar pelo André, o atendimento do plano é usado como crédito e a diferença
+                    abaixo é cobrada à parte, conforme a Regra 14.0. Sujeito à disponibilidade de agenda e
+                    confirmação prévia.
+                  </p>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1.5">
+                      Plano do cliente (define o valor do complemento)
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(Object.keys(ANDRE_TIER_LABELS) as AndreTier[]).map((tier) => (
+                        <button
+                          key={tier}
+                          type="button"
+                          onClick={() => setSelectedAndreTier(tier)}
+                          className={`py-1.5 rounded text-[10px] font-bold uppercase transition border ${
+                            selectedAndreTier === tier
+                              ? 'bg-[#94a288] border-[#94a288] text-black'
+                              : 'bg-[#0a0a0a] border-white/10 text-stone-300 hover:border-white/30'
+                          }`}
+                        >
+                          {ANDRE_TIER_LABELS[tier]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {andreUpgradeEntry ? (
+                    <div className="flex items-center justify-between bg-amber-950/30 border border-amber-500/30 rounded p-2.5">
+                      <span className="text-[11px] text-stone-300">Complemento a cobrar do cliente</span>
+                      <span className="text-sm font-bold text-amber-300 font-mono">
+                        + R$ {andreUpgradeAmount?.toFixed(2)}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-stone-500 italic">
+                      Não há upgrade cadastrado para o serviço selecionado com o André — atendimento sem custo adicional.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* 3. Time Slots */}
               <div>
@@ -535,8 +650,8 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                           taken
                             ? 'bg-red-950/20 border-red-900/40 text-red-500/50 cursor-not-allowed line-through'
                             : isSelected
-                            ? 'bg-[#556b2f] border-[#556b2f] text-black shadow-md'
-                            : 'bg-[#0a0a0a] border-white/5 hover:border-[#556b2f]/50 text-stone-300'
+                            ? 'bg-[#94a288] border-[#94a288] text-black shadow-md'
+                            : 'bg-[#0a0a0a] border-white/5 hover:border-[#94a288]/50 text-stone-300'
                         }`}
                       >
                         {time}
@@ -564,7 +679,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
                       placeholder="Ex: Lucas Andrade"
-                      className="w-full bg-[#141414] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#141414] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                     />
                   </div>
 
@@ -577,7 +692,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                       value={clientPhone}
                       onChange={(e) => setClientPhone(e.target.value)}
                       placeholder="(21) 99887-6655"
-                      className="w-full bg-[#141414] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#141414] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                     />
                   </div>
 
@@ -590,7 +705,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                       value={cardCode}
                       onChange={(e) => setCardCode(e.target.value)}
                       placeholder="Ex: DB-8842"
-                      className="w-full bg-[#141414] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#556b2f]"
+                      className="w-full bg-[#141414] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
                     />
                   </div>
                 </div>
@@ -599,10 +714,11 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-lg bg-[#556b2f] hover:bg-[#69843a] text-black font-bold uppercase text-xs tracking-wider transition shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-lg bg-[#94a288] hover:bg-[#69843a] text-black font-bold uppercase text-xs tracking-wider transition shadow-xl flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Confirmar Agendamento com {selectedBarber.name} ({selectedDate} - {selectedTime})
+                {andreUpgradeAmount !== undefined && ` + R$ ${andreUpgradeAmount.toFixed(2)}`}
               </button>
             </form>
           )}
@@ -668,13 +784,13 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                     .map((apt) => (
                       <div
                         key={apt.id}
-                        className="bg-[#0a0a0a] border border-white/10 hover:border-[#556b2f]/50 p-4 rounded-lg transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                        className="bg-[#0a0a0a] border border-white/10 hover:border-[#94a288]/50 p-4 rounded-lg transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-white text-sm">{apt.clientName}</span>
                             {apt.cardCode && (
-                              <span className="text-[10px] bg-[#556b2f]/20 text-[#556b2f] border border-[#556b2f]/40 px-2 py-0.5 rounded font-mono font-bold">
+                              <span className="text-[10px] bg-[#94a288]/20 text-[#94a288] border border-[#94a288]/40 px-2 py-0.5 rounded font-mono font-bold">
                                 {apt.cardCode}
                               </span>
                             )}
@@ -690,12 +806,15 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                               <Clock className="w-3.5 h-3.5" /> {apt.time}
                             </span>
                           </p>
+                          {apt.notes && (
+                            <p className="text-[10px] text-amber-300 font-mono pt-0.5">💰 {apt.notes}</p>
+                          )}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-white/5">
                           <button
                             onClick={() => setSelectedAppointmentForMsg(apt)}
-                            className="px-3 py-2 rounded bg-[#556b2f]/20 hover:bg-[#556b2f]/40 text-[#556b2f] border border-[#556b2f]/40 text-xs font-bold transition flex items-center gap-1.5"
+                            className="px-3 py-2 rounded bg-[#94a288]/20 hover:bg-[#94a288]/40 text-[#94a288] border border-[#94a288]/40 text-xs font-bold transition flex items-center gap-1.5"
                             title="Ver mensagem detalhada do agendamento"
                           >
                             <Bell className="w-3.5 h-3.5" />
