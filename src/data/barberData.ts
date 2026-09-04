@@ -819,7 +819,7 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'flex-multi',
     serviceName: 'Multi-Serviços Livres (Corte, Disfarce, Barba, Tesoura)',
     numAtendimentos: 8,
-    totalPrice: 290,
+    totalPrice: 320,
     pricePerAtd: 36.25,
     costPerAtd: 36.25,
     barberSplitPerAtd: 21.75,
