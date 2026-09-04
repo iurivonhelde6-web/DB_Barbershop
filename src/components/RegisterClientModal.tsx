@@ -1,24 +1,14 @@
 import React, { useState } from 'react';
 import { UserAccount, SubscriberCard } from '../types';
-import { PLANS_LIST, BARBERS_LIST } from '../data/barberData';
-import { PaymentModal } from './PaymentModal';
 import { DbLogo } from './DbLogo';
 import { playPaymentAlert } from '../utils/soundAlert';
 import {
   UserPlus,
   X,
   User,
-  Calendar,
-  FileText,
   MapPin,
-  Phone,
-  Scissors,
   CheckCircle2,
-  CreditCard,
-  Sparkles,
-  ShieldCheck,
-  AlertCircle,
-  Lock
+  AlertCircle
 } from 'lucide-react';
 
 interface RegisterClientModalProps {
@@ -46,19 +36,11 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
   const [city, setCity] = useState('Rio de Janeiro / RJ');
   const [cep, setCep] = useState('');
 
-  // Initial plan selection
-  const [selectedPlanId, setSelectedPlanId] = useState<string>(PLANS_LIST[0].id);
-  const [selectedBarberId, setSelectedBarberId] = useState<string>(BARBERS_LIST[0].id);
-
   // States for UX
   const [errorMsg, setErrorMsg] = useState('');
   const [createdSub, setCreatedSub] = useState<SubscriberCard | null>(null);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   if (!isOpen) return null;
-
-  const selectedPlan = PLANS_LIST.find((p) => p.id === selectedPlanId) || PLANS_LIST[0];
-  const selectedBarber = BARBERS_LIST.find((b) => b.id === selectedBarberId) || BARBERS_LIST[0];
 
   // Mask CPF format
   const handleCpfChange = (val: string) => {
@@ -134,23 +116,13 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
     }
 
     setErrorMsg('');
-    setIsPaymentModalOpen(true);
-  };
 
-  const handleRegisterPaymentSuccess = (paymentData: {
-    paidAmount: number;
-    paymentMethod: 'PIX' | 'CREDIT_CARD';
-    transactionId: string;
-    paymentDate: string;
-  }) => {
+    // Criação direta da conta/cartão sem cobrança inicial
     const generatedCardCode = `DB-${Math.floor(1000 + Math.random() * 9000)}`;
     const fullAddress = `${street.trim()}, nº ${number.trim()} - ${neighborhood.trim()} - ${city}${cep ? ` (CEP: ${cep})` : ''}`;
 
     const today = new Date();
     const startDateStr = today.toISOString().split('T')[0];
-    const expDate = new Date(today);
-    expDate.setDate(expDate.getDate() + 30);
-    const expDateStr = expDate.toISOString().split('T')[0];
 
     const newSubscriberCard: SubscriberCard = {
       id: `sub-reg-${Date.now()}`,
@@ -160,22 +132,22 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
       age: parseInt(age),
       address: fullAddress,
       phone: phone || '(21) 99887-6655',
-      planName: `${selectedPlan.tierLabel} (${selectedPlan.serviceName})`,
-      serviceName: selectedPlan.serviceName,
-      totalSessions: selectedPlan.numAtendimentos,
+      planName: 'Sem Plano Ativo',
+      serviceName: 'Nenhum',
+      totalSessions: 0,
       usedSessions: 0,
       startDate: startDateStr,
-      expirationDate: expDateStr,
+      expirationDate: startDateStr,
       status: 'ACTIVE',
-      barberPreferred: selectedBarber.name,
+      barberPreferred: 'A escolher',
       qrCodeValue: `https://dedblackbarbershop.com.br/validar/${generatedCardCode}`,
-      notes: `Cadastrado e quitado via Pagamento Integrado. Transação: ${paymentData.transactionId}`,
+      notes: 'Cadastro realizado no app (sem contratação inicial de plano).',
       paymentStatus: 'PAID',
-      paidAmount: paymentData.paidAmount,
-      expectedAmount: selectedPlan.totalPrice,
-      paymentMethod: paymentData.paymentMethod,
-      paymentDate: paymentData.paymentDate,
-      transactionId: paymentData.transactionId,
+      paidAmount: 0,
+      expectedAmount: 0,
+      paymentMethod: 'CREDIT_CARD',
+      paymentDate: startDateStr,
+      transactionId: `REG-${Date.now()}`,
     };
 
     onAddSubscriber(newSubscriberCard);
@@ -209,7 +181,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                 Cadastro de Novo Cliente D•B
               </h3>
               <p className="text-[11px] text-stone-400">
-                Preencha os dados pessoais e de localização para gerar seu Cartão Digital
+                Preencha os dados pessoais para criar sua conta no sistema
               </p>
             </div>
           </div>
@@ -242,7 +214,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                   Bem-vindo(a), {createdSub.clientName}!
                 </h4>
                 <p className="text-xs text-stone-300 mt-1 max-w-md mx-auto">
-                  Seu cadastro foi realizado no sistema da Ded Black Barbershop e o seu Cartão Digital de Controle já está ativo.
+                  Seu cadastro foi realizado na Ded Black Barbershop. Você já pode acessar seu painel e escolher um plano quando desejar.
                 </p>
               </div>
 
@@ -275,13 +247,9 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                     <span className="text-[10px] text-stone-400 uppercase tracking-wider block">Endereço</span>
                     <span className="text-stone-300 text-[11px] leading-tight block">{createdSub.address}</span>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-stone-400 uppercase tracking-wider block">Plano Ativo</span>
-                    <span className="text-[#94a288] font-bold">{createdSub.planName}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-stone-400 uppercase tracking-wider block">Barbeiro Pref.</span>
-                    <span className="text-amber-400">{createdSub.barberPreferred}</span>
+                  <div className="col-span-2">
+                    <span className="text-[10px] text-stone-400 uppercase tracking-wider block">Status do Plano</span>
+                    <span className="text-amber-400 font-bold">Nenhum plano assinado no momento</span>
                   </div>
                 </div>
               </div>
@@ -452,58 +420,14 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                 </div>
               </div>
 
-              {/* Section 3: Subscription & Preference */}
-              <div className="space-y-3 pt-2">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[#94a288] flex items-center gap-1.5 border-b border-white/10 pb-1">
-                  <Scissors className="w-3.5 h-3.5" />
-                  3. Seleção Inicial de Plano &amp; Barbeiro
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1">
-                      Plano Escolhido
-                    </label>
-                    <select
-                      value={selectedPlanId}
-                      onChange={(e) => setSelectedPlanId(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
-                    >
-                      {PLANS_LIST.map((plan) => (
-                        <option key={plan.id} value={plan.id}>
-                          {plan.tierLabel} - {plan.serviceName} (R$ {plan.totalPrice.toFixed(2)}/mês)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1">
-                      Barbeiro Preferencial
-                    </label>
-                    <select
-                      value={selectedBarberId}
-                      onChange={(e) => setSelectedBarberId(e.target.value)}
-                      className="w-full bg-[#0a0a0a] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#94a288]"
-                    >
-                      {BARBERS_LIST.map((barber) => (
-                        <option key={barber.id} value={barber.id}>
-                          {barber.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
               {/* Submit Button */}
               <div className="pt-3">
                 <button
                   type="submit"
                   className="w-full py-3.5 rounded-lg bg-[#94a288] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-xl flex items-center justify-center gap-2 group"
                 >
-                  <Lock className="w-4 h-4 text-black group-hover:scale-110 transition-transform" />
-                  <span>Avançar para Pagamento do Plano (R$ {selectedPlan.totalPrice.toFixed(2)})</span>
+                  <UserPlus className="w-4 h-4 text-black group-hover:scale-110 transition-transform" />
+                  <span>CONCLUIR CADASTRO</span>
                 </button>
               </div>
             </form>
@@ -516,22 +440,6 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
           <span className="font-mono">LGPD Compliance</span>
         </div>
       </div>
-
-      {/* Payment Checkout Modal */}
-      <PaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        planName={selectedPlan.tierLabel}
-        serviceName={selectedPlan.serviceName}
-        planAmount={selectedPlan.totalPrice}
-        clientName={fullName.trim()}
-        clientCpf={cpf.trim()}
-        clientPhone={phone}
-        onPaymentSuccess={(paymentData) => {
-          setIsPaymentModalOpen(false);
-          handleRegisterPaymentSuccess(paymentData);
-        }}
-      />
     </div>
   );
 };

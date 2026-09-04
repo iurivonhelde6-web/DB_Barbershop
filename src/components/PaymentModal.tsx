@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -73,21 +73,6 @@ const StripeCardForm: React.FC<{
   const stripe = useStripe();
   const elements = useElements();
   const [cardHolder, setCardHolder] = useState(clientName || '');
-
-  // Validação: Se a chave pública do Stripe não estiver configurada
-  if (!stripePublicKey) {
-    return (
-      <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs space-y-2">
-        <div className="flex items-center gap-2 font-bold text-amber-400">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>Configuração Pendente do Stripe</span>
-        </div>
-        <p className="text-[11px] leading-relaxed text-amber-300/80">
-          A chave pública <code>VITE_STRIPE_PUBLIC_KEY</code> não foi encontrada no seu arquivo <code>.env</code> ou na Vercel. Adicione a chave para ativar os pagamentos via Cartão de Crédito.
-        </p>
-      </div>
-    );
-  }
 
   const handleProcessStripePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -330,6 +315,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     method: string;
   } | null>(null);
 
+  // Reseta os estados toda vez que o modal abre ou fecha
+  useEffect(() => {
+    if (!isOpen) {
+      setIsProcessing(false);
+      setErrorMessage('');
+      setPaymentCompleteData(null);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const formattedPlanAmount = planAmount.toLocaleString('pt-BR', {
@@ -353,7 +347,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   Ded Black
                 </span>
               </h3>
-              <p className="text-xs text-[#A4A9A5]">Checkout Seguro • {planName}</p>
+              <p className="text-xs text-[#A4A9A5]">Checkout Seguro &bull; {planName}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl text-stone-400 hover:text-white hover:bg-stone-800 transition">
@@ -432,22 +426,34 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             )}
 
-            {/* Formulário de Cartão de Crédito Stripe Direto */}
-            <Elements stripe={stripePromise}>
-              <StripeCardForm
-                planName={planName}
-                planAmount={planAmount}
-                clientName={clientName}
-                clientCpf={clientCpf}
-                clientPhone={clientPhone}
-                subscriberCard={subscriberCard}
-                setIsProcessing={setIsProcessing}
-                setErrorMessage={setErrorMessage}
-                setPaymentCompleteData={setPaymentCompleteData}
-                onPaymentSuccess={onPaymentSuccess}
-                isProcessing={isProcessing}
-              />
-            </Elements>
+            {/* Renderização segura se a chave do Stripe não estiver configurada */}
+            {!stripePublicKey ? (
+              <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-bold text-amber-400">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>Configuração Pendente do Stripe</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-amber-300/80">
+                  A chave pública <code>VITE_STRIPE_PUBLIC_KEY</code> não foi encontrada no seu arquivo <code>.env</code> ou na Vercel. Adicione a chave para ativar os pagamentos via Cartão de Crédito.
+                </p>
+              </div>
+            ) : (
+              <Elements stripe={stripePromise}>
+                <StripeCardForm
+                  planName={planName}
+                  planAmount={planAmount}
+                  clientName={clientName}
+                  clientCpf={clientCpf}
+                  clientPhone={clientPhone}
+                  subscriberCard={subscriberCard}
+                  setIsProcessing={setIsProcessing}
+                  setErrorMessage={setErrorMessage}
+                  setPaymentCompleteData={setPaymentCompleteData}
+                  onPaymentSuccess={onPaymentSuccess}
+                  isProcessing={isProcessing}
+                />
+              </Elements>
+            )}
           </div>
         )}
       </div>

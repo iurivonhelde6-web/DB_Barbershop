@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { getApps as getAdminApps, initializeApp as initializeAdminApp, cert, getApp as getAdminApp } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
@@ -32,12 +32,11 @@ app.use((_req, res, next) => {
   next();
 });
 
-// ─── Firebase Client SDK (para uso no backend de rotas legadas) ───────────────
 // ─── Firebase Client SDK (Backend Reflector) ──────────────────────────────────
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
   authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'dazzling-mercury-f6shk',
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'db-barbeshop-oficial',
   storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID,
@@ -46,19 +45,35 @@ const firebaseConfig = {
 const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
-// ─── Firebase Admin SDK (Apenas Autenticação) ─────────────────────────
+// ─── Firebase Admin SDK ───────────────────────────────────────────────────────
+function getAdminCredential() {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    try {
+      return cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON));
+    } catch (err) {
+      console.error('[Firebase Admin] Erro no parse do JSON:', err);
+    }
+  }
+  return undefined;
+}
+
+const adminCredential = getAdminCredential();
+
 const adminApp = getAdminApps().length > 0
   ? getAdminApp()
-  : initializeAdminApp({ projectId: firebaseConfig.projectId });
+  : initializeAdminApp(
+      adminCredential
+        ? { credential: adminCredential }
+        : { projectId: firebaseConfig.projectId }
+    );
 
 const adminAuth = getAdminAuth(adminApp);
+const adminDb = getAdminFirestore(adminApp);
 
-// ─── IMPORTANTE: Stripe webhook precisa de raw body — registrar ANTES do json parser ──
-// O express.raw é aplicado inline na rota do webhook dentro de registerStripeRoutes.
-// Registramos as rotas Stripe aqui, antes de qualquer body-parser global.
+// ─── Stripe Routes ────────────────────────────────────────────────────────────
 registerStripeRoutes(app, db);
 
-// ─── Body Parsers (aplicados APÓS as rotas que precisam de raw body) ──────────
+// ─── Body Parsers ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
 
 // ─── Rate Limiter in-memory com limpeza periódica ────────────────────────────
@@ -68,11 +83,6 @@ interface RateLimitRecord {
 }
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
-// Limpa entradas expiradas a cada 5 minutos para evitar memory leak.
-// OBS: em serverless (Vercel) cada invocação pode rodar numa instância nova,
-// então esse setInterval só é útil de fato quando o processo fica de pé
-// (rodando local ou fora da Vercel). Isso não quebra nada, só fica menos
-// eficaz — o Map some quando a instância é reciclada de qualquer forma.
 setInterval(() => {
   const now = Date.now();
   for (const [key, record] of rateLimitStore.entries()) {
@@ -85,8 +95,8 @@ setInterval(() => {
 const rateLimiterMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const ip = (req.headers['x-forwarded-for'] as string || req.ip || 'unknown').split(',')[0].trim();
   const now = Date.now();
-  const windowMs = 60 * 1000; // janela de 1 minuto
-  const maxRequests = 15;      // 15 requisições de IA por minuto por IP
+  const windowMs = 60 * 1000;
+  const maxRequests = 15;
 
   const record = rateLimitStore.get(ip);
 
@@ -135,18 +145,18 @@ const requireAdminRole = async (req: express.Request, res: express.Response, nex
     const decoded = (req as any).firebaseUser || await adminAuth.verifyIdToken(authHeader.slice('Bearer '.length).trim());
     const userId = decoded.uid;
     const email = String(decoded.email || '').toLowerCase();
-    const MASTER_ADMIN_EMAIL = String(process .env.VITE_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'blackmmania@gmail.com').toLowerCase();
+    const MASTER_ADMIN_EMAIL = String(process.env.VITE_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'blackmmania@gmail.com').toLowerCase();
 
     let isAdmin = email === MASTER_ADMIN_EMAIL;
     let databaseRole = 'client';
 
     if (!isAdmin) {
-  const userSnap = await getDoc(doc(db, 'users', userId));
-  if (userSnap.exists()) {
-    databaseRole = userSnap.data()?.role || 'client';
-    isAdmin = databaseRole === 'admin';
-  }
-}
+      const userSnap = await getDoc(doc(db, 'users', userId));
+      if (userSnap.exists()) {
+        databaseRole = userSnap.data()?.role || 'client';
+        isAdmin = databaseRole === 'admin';
+      }
+    }
 
     if (!isAdmin) {
       return res.status(403).json({
@@ -174,8 +184,6 @@ function sanitizeServerInput(str: string): string {
 }
 
 // ─── Payment Intent (Stripe direto) ──────────────────────────────────────────
-
-
 app.post('/api/payment/create-intent', authCheckMiddleware, async (req, res) => {
   try {
     const { planName, planAmount, clientName, clientCpf, paymentMethod } = req.body || {};
@@ -230,10 +238,6 @@ app.post('/api/payment/verify-status', async (_req, res) => {
   });
 });
 
-
-
-
-
 // ─── Admin Endpoints ──────────────────────────────────────────────────────────
 app.post('/api/admin/verify-role', requireAdminRole, async (req, res) => {
   const adminContext = (req as any).authenticatedAdmin;
@@ -268,20 +272,19 @@ async function exportFirestoreDataToJSON(): Promise<{
     const appointmentsList: any[] = [];
     const usersList: any[] = [];
 
-    // Usa Admin SDK para backup (bypassa regras Firestore, mais confiável no backend)
-    // Busca os dados usando o Client SDK (db)
+    // Usa Admin SDK para backup (bypassa regras Firestore e garante acesso total)
     try {
-      const subSnap = await getDocs(collection(db, 'subscribers'));
+      const subSnap = await adminDb.collection('subscribers').get();
       subSnap.forEach((d: any) => subscribersList.push({ id: d.id, ...d.data() }));
     } catch (e: any) { console.warn('Aviso ao consultar subscribers para backup:', e?.message); }
 
     try {
-      const aptSnap = await getDocs(collection(db, 'appointments'));
+      const aptSnap = await adminDb.collection('appointments').get();
       aptSnap.forEach((d: any) => appointmentsList.push({ id: d.id, ...d.data() }));
     } catch (e: any) { console.warn('Aviso ao consultar appointments para backup:', e?.message); }
 
     try {
-      const usrSnap = await getDocs(collection(db, 'users'));
+      const usrSnap = await adminDb.collection('users').get();
       usrSnap.forEach((d: any) => usersList.push({ id: d.id, ...d.data() }));
     } catch (e: any) { console.warn('Aviso ao consultar users para backup:', e?.message); }
 
@@ -319,16 +322,10 @@ async function exportFirestoreDataToJSON(): Promise<{
   }
 }
 
-// Backup periódico a cada hora.
-// OBS: mesma ressalva do rate-limiter acima — em serverless isso só roda
-// enquanto a instância da function ficar viva (nem sempre garantido). Pra um
-// backup confiável em produção na Vercel, o ideal é migrar isso pra um
-// Vercel Cron Job chamando /api/admin/backup/export periodicamente.
 setInterval(() => {
   exportFirestoreDataToJSON().catch(err => console.error('Erro no backup periódico:', err));
 }, 60 * 60 * 1000);
 
-// Backup inicial 12s após o boot
 setTimeout(() => {
   exportFirestoreDataToJSON().catch(err => console.error('Erro no backup inicial:', err));
 }, 12000);
@@ -446,13 +443,7 @@ app.post('/api/gemini/assistant', rateLimiterMiddleware, authCheckMiddleware, as
   app(req, res, next);
 });
 
-// ─── Vite / Static (apenas fora da Vercel) ─────────────────────────────────────
-// Na Vercel cada request é uma invocação serverless isolada: não existe processo
-// de longa duração, e os arquivos estáticos (dist) já são servidos pela própria
-// Vercel via vercel.json — então nunca chamamos .listen() nem montamos o Vite
-// middleware/estático quando VERCEL está definido. Local (npm run dev) ou em
-// qualquer outro host que rode Node "de verdade" (Render, Railway, VPS...),
-// o comportamento continua idêntico ao original.
+// ─── Vite / Static (fora da Vercel) ───────────────────────────────────────────
 if (!process.env.VERCEL) {
   (async function start() {
     if (process.env.NODE_ENV !== 'production') {
@@ -476,6 +467,4 @@ if (!process.env.VERCEL) {
   })();
 }
 
-// Exportado como default: é isso que o @vercel/node usa como handler
-// serverless (Express funciona como um (req, res) => void normal).
 export default app;
