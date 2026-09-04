@@ -261,10 +261,10 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
   return (
     <div className="bg-[#0c0c0c] pb-16 min-h-screen text-[#e0e0e0]">
       {/* Hero Header */}
-      <section className="bg-[#355C47] py-12 border-b border-[#94a288]/30 relative overflow-hidden">
+      <section className="bg-[#235347] py-12 border-b border-[#235347]/30 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#94a288]/20 text-[#94a288] text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border border-[#94a288]/40">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#94a288]/20 text-[#94a288] text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border border-[#235347]/60">
               <Award className="w-3.5 h-3.5 text-[#8da479]" />
               Clube de Assinaturas Ded Black
             </span>
@@ -389,7 +389,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
         <div className="bg-[#111111] rounded-lg p-6 sm:p-8 border border-[#94a288]/30 shadow-xl relative overflow-hidden">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="max-w-xl">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#94a288] uppercase tracking-[0.25em] mb-2">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#dbebe2] uppercase tracking-[0.25em] mb-2">
                 <TrendingDown className="w-4 h-4" />
                 Simulador de Economia para Clientes
               </span>
@@ -469,7 +469,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
 
       {/* Standalone Services Price Table */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-[#355C47] rounded-lg p-6 sm:p-8 border border-[#94a288]/30 shadow-xl relative overflow-hidden">
+        <div className="bg-[#235347] rounded-lg p-6 sm:p-8 border border-[#94a288]/30 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10">
             <div>
               <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#94a288] uppercase tracking-[0.25em] mb-1">
@@ -477,7 +477,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                 Tabela Oficial de Preços Avulsos
               </span>
               <h3 className="text-xl sm:text-2xl font-serif italic text-white">
-                Serviços <span className="text-[#28563e]">Avulsos</span> (Atendimentos Avulsos)
+                Serviços <span className="text-[#8fe9d3]">Avulsos</span> (Atendimentos Avulsos)
               </h3>
               <p className="text-xs text-stone-400 mt-1">
                 Valores para atendimentos individuais sem adesão aos planos de membros recorrentes.
@@ -486,7 +486,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
 
             <div className="bg-[#94a288]/10 border border-[#94a288]/30 px-3.5 py-2 rounded text-right">
               <span className="text-[10px] uppercase tracking-wider text-stone-400 block font-bold">Dica Ded Black</span>
-              <span className="text-xs text-[#94a288] font-bold">Membros economizam até 40% por visita!</span>
+              <span className="text-xs text-[#e6e7e5] font-bold">Membros economizam até 40% por visita!</span>
             </div>
           </div>
 
