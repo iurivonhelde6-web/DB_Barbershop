@@ -1031,7 +1031,7 @@ export const FinancialCalculator: React.FC = () => {
       </section>
 
       {/* Detailed Service Split Table */}
-      <section className="bg-[#151515] rounded border border-[#94a288]/20 p-6 shadow-xl">
+      <section className="bg-[#1b5f5d] rounded border border-[#94a288]/20 p-6 shadow-xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="text-xl font-serif italic text-white">
@@ -1068,7 +1068,7 @@ export const FinancialCalculator: React.FC = () => {
                 <th className="p-3.5 text-right">Preço / ATD</th>
                 <th className="p-3.5 text-center">Divisão (%)</th>
                 <th className="p-3.5 text-right text-yellow-500">Comissão Barbeiro</th>
-                <th className="p-3.5 text-right text-[#94a288]">Lucro Barbearia</th>
+                <th className="p-3.5 text-right text-[#86d3a7]">Lucro Barbearia</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-stone-200 font-medium">
@@ -1087,7 +1087,7 @@ export const FinancialCalculator: React.FC = () => {
                     </td>
 
                     <td className="p-3.5">
-                      <span className="text-[#94a288] font-bold uppercase tracking-wider">{plan.serviceName}</span>
+                      <span className="text-[#b7db98] font-bold uppercase tracking-wider">{plan.serviceName}</span>
                       <span className="text-[10px] text-stone-400 block">Avulso: R$ {avulso.toFixed(2)}</span>
                     </td>
 
@@ -1106,14 +1106,14 @@ export const FinancialCalculator: React.FC = () => {
                     <td className="p-3.5 text-center font-mono text-[11px]">
                       <span className="text-yellow-400 font-bold">{barberPct}</span>
                       <span className="text-stone-500 mx-1">/</span>
-                      <span className="text-[#94a288] font-bold">{housePct}</span>
+                      <span className="text-[#a8d383] font-bold">{housePct}</span>
                     </td>
 
                     <td className="p-3.5 text-right font-bold text-yellow-400 bg-yellow-950/10 font-mono">
                       R$ {plan.totalBarberCommission.toFixed(2)}
                     </td>
 
-                    <td className="p-3.5 text-right font-serif font-bold text-[#94a288] bg-[#94a288]/10 font-mono">
+                    <td className="p-3.5 text-right font-serif font-bold text-[#a5d27e] bg-[#94a288]/10 font-mono">
                       R$ {plan.totalHouseMargin.toFixed(2)}
                     </td>
                   </tr>
@@ -1127,7 +1127,7 @@ export const FinancialCalculator: React.FC = () => {
       {/* Rules Breakdown Note */}
       <div className="bg-[#151515] p-5 rounded border border-[#94a288]/20 text-xs text-stone-300 space-y-2">
         <div className="flex items-center gap-2 font-bold text-white text-sm uppercase tracking-wider">
-          <HelpCircle className="w-4 h-4 text-[#94a288]" />
+          <HelpCircle className="w-4 h-4 text-[#9ecb78]" />
           Avisos Importantes de Fechamento Financeiro:
         </div>
         <ul className="list-disc list-inside space-y-1 text-stone-400 leading-relaxed">

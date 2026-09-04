@@ -1136,7 +1136,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
             </div>
 
             {/* Invoice Particulars Grid */}
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-4 space-y-3 font-mono text-xs">
+            <div className="bg-[#1d614e] border border-white/10 rounded-xl p-4 space-y-3 font-mono text-xs">
               <div className="flex justify-between border-b border-white/5 pb-2">
                 <span className="text-stone-400 font-sans uppercase text-[10px]">Código da Fatura:</span>
                 <strong className="text-amber-400 font-bold">{selectedInvoiceForModal.invoiceCode}</strong>

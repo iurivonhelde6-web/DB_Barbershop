@@ -77,26 +77,26 @@ export const AdminNotificationToast: React.FC<AdminNotificationToastProps> = ({
     <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[9999] max-w-md w-[calc(100vw-2rem)] animate-bounce-in shadow-2xl">
       <div className={`rounded-xl border p-4 backdrop-blur-xl ${
         isAppointment 
-          ? 'bg-[#121810]/95 border-[#94a288] text-stone-100 shadow-[#94a288]/20' 
+          ? 'bg-[#121810]/95 border-[#84a766] text-stone-100 shadow-[#94a288]/20' 
           : 'bg-[#1c1808]/95 border-yellow-500 text-stone-100 shadow-yellow-500/20'
       } border-2`}>
         
         {/* Header bar with animated icon and sound pulse */}
         <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3 mb-3">
           <div className="flex items-center gap-2.5">
-            <div className={`p-2 rounded-lg ${isAppointment ? 'bg-[#94a288]/30 text-[#94a288]' : 'bg-yellow-500/30 text-yellow-400'} animate-pulse`}>
+            <div className={`p-2 rounded-lg ${isAppointment ? 'bg-[#94a288]/30 text-[#a7c88a]' : 'bg-yellow-500/30 text-yellow-400'} animate-pulse`}>
               {isAppointment ? <Calendar className="w-5 h-5" /> : <DollarSign className="w-5 h-5" />}
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${
-                  isAppointment ? 'bg-[#94a288] text-black' : 'bg-yellow-500 text-black'
+                  isAppointment ? 'bg-[#abde7e] text-black' : 'bg-yellow-500 text-black'
                 }`}>
                   ALERTA SONORO ENVIADO
                 </span>
                 <span className="flex h-2 w-2 relative">
                   <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isAppointment ? 'bg-[#94a288]' : 'bg-yellow-400'} opacity-75`}></span>
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isAppointment ? 'bg-[#94a288]' : 'bg-yellow-500'}`}></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isAppointment ? 'bg-[#aad981]' : 'bg-yellow-500'}`}></span>
                 </span>
               </div>
               <h4 className="text-sm font-bold text-white mt-1 flex items-center gap-1.5">
@@ -134,7 +134,7 @@ export const AdminNotificationToast: React.FC<AdminNotificationToastProps> = ({
 
           <div className="flex items-center justify-between bg-black/40 p-2 rounded border border-white/5">
             <span className="flex items-center gap-1.5 text-stone-400">
-              {isAppointment ? <Calendar className="w-3.5 h-3.5 text-[#94a288]" /> : <Sparkles className="w-3.5 h-3.5 text-yellow-400" />} 
+              {isAppointment ? <Calendar className="w-3.5 h-3.5 text-[#9ccb73]" /> : <Sparkles className="w-3.5 h-3.5 text-yellow-400" />} 
               {isAppointment ? 'Serviço / Barbeiro:' : 'Plano Assinado:'}
             </span>
             <span className="font-bold text-stone-100">
@@ -176,7 +176,7 @@ export const AdminNotificationToast: React.FC<AdminNotificationToastProps> = ({
             rel="noopener noreferrer"
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded font-bold text-[11px] transition uppercase tracking-wider ${
               isAppointment
-                ? 'bg-[#94a288] hover:bg-[#6b873b] text-black shadow-lg shadow-[#94a288]/30'
+                ? 'bg-[#85af61] hover:bg-[#6b873b] text-black shadow-lg shadow-[#94a288]/30'
                 : 'bg-yellow-500 hover:bg-yellow-400 text-black shadow-lg shadow-yellow-500/30'
             }`}
           >

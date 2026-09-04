@@ -68,7 +68,11 @@ interface RateLimitRecord {
 }
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
-// Limpa entradas expiradas a cada 5 minutos para evitar memory leak
+// Limpa entradas expiradas a cada 5 minutos para evitar memory leak.
+// OBS: em serverless (Vercel) cada invocação pode rodar numa instância nova,
+// então esse setInterval só é útil de fato quando o processo fica de pé
+// (rodando local ou fora da Vercel). Isso não quebra nada, só fica menos
+// eficaz — o Map some quando a instância é reciclada de qualquer forma.
 setInterval(() => {
   const now = Date.now();
   for (const [key, record] of rateLimitStore.entries()) {
@@ -315,7 +319,11 @@ async function exportFirestoreDataToJSON(): Promise<{
   }
 }
 
-// Backup periódico a cada hora
+// Backup periódico a cada hora.
+// OBS: mesma ressalva do rate-limiter acima — em serverless isso só roda
+// enquanto a instância da function ficar viva (nem sempre garantido). Pra um
+// backup confiável em produção na Vercel, o ideal é migrar isso pra um
+// Vercel Cron Job chamando /api/admin/backup/export periodicamente.
 setInterval(() => {
   exportFirestoreDataToJSON().catch(err => console.error('Erro no backup periódico:', err));
 }, 60 * 60 * 1000);
@@ -438,26 +446,36 @@ app.post('/api/gemini/assistant', rateLimiterMiddleware, authCheckMiddleware, as
   app(req, res, next);
 });
 
-// ─── Vite / Static ────────────────────────────────────────────────────────────
-async function start() {
-  if (process.env.NODE_ENV !== 'production') {
-    const isHmrDisabled = process.env.DISABLE_HMR === 'true';
-    const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: isHmrDisabled ? false : { server } },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+// ─── Vite / Static (apenas fora da Vercel) ─────────────────────────────────────
+// Na Vercel cada request é uma invocação serverless isolada: não existe processo
+// de longa duração, e os arquivos estáticos (dist) já são servidos pela própria
+// Vercel via vercel.json — então nunca chamamos .listen() nem montamos o Vite
+// middleware/estático quando VERCEL está definido. Local (npm run dev) ou em
+// qualquer outro host que rode Node "de verdade" (Render, Railway, VPS...),
+// o comportamento continua idêntico ao original.
+if (!process.env.VERCEL) {
+  (async function start() {
+    if (process.env.NODE_ENV !== 'production') {
+      const isHmrDisabled = process.env.DISABLE_HMR === 'true';
+      const vite = await createViteServer({
+        server: { middlewareMode: true, hmr: isHmrDisabled ? false : { server } },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (_req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
 
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`[Ded Black App] Servidor rodando em http://localhost:${PORT}`);
-  });
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Ded Black App] Servidor rodando em http://localhost:${PORT}`);
+    });
+  })();
 }
 
-start();
+// Exportado como default: é isso que o @vercel/node usa como handler
+// serverless (Express funciona como um (req, res) => void normal).
+export default app;

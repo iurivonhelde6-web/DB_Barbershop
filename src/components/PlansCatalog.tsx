@@ -261,15 +261,15 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
   return (
     <div className="bg-[#0c0c0c] pb-16 min-h-screen text-[#e0e0e0]">
       {/* Hero Header */}
-      <section className="bg-[#0f0f0f] py-12 border-b border-[#94a288]/30 relative overflow-hidden">
+      <section className="bg-[#355C47] py-12 border-b border-[#94a288]/30 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#94a288]/20 text-[#94a288] text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border border-[#94a288]/40">
-              <Award className="w-3.5 h-3.5 text-[#94a288]" />
+              <Award className="w-3.5 h-3.5 text-[#8da479]" />
               Clube de Assinaturas Ded Black
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-white leading-tight">
-              Planos de <span className="text-[#94a288]">Membro</span>
+              Planos de <span className="text-[#749756]">Membro</span>
             </h2>
             <p className="mt-4 text-stone-300 text-xs sm:text-sm leading-relaxed opacity-80 font-sans">
               Escolha o plano ideal para a sua rotina. Economize até 40% em relação aos serviços avulsos, garanta prioridade e controle total pelo seu Cartão de Membro.
@@ -469,7 +469,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
 
       {/* Standalone Services Price Table */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-[#111111] rounded-lg p-6 sm:p-8 border border-[#94a288]/30 shadow-xl relative overflow-hidden">
+        <div className="bg-[#355C47] rounded-lg p-6 sm:p-8 border border-[#94a288]/30 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10">
             <div>
               <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#94a288] uppercase tracking-[0.25em] mb-1">
@@ -477,7 +477,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                 Tabela Oficial de Preços Avulsos
               </span>
               <h3 className="text-xl sm:text-2xl font-serif italic text-white">
-                Serviços <span className="text-[#94a288]">Avulsos</span> (Atendimentos Avulsos)
+                Serviços <span className="text-[#28563e]">Avulsos</span> (Atendimentos Avulsos)
               </h3>
               <p className="text-xs text-stone-400 mt-1">
                 Valores para atendimentos individuais sem adesão aos planos de membros recorrentes.

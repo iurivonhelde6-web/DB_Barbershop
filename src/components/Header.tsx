@@ -87,11 +87,11 @@ export const Header: React.FC<HeaderProps> = ({
                 <h1 className="text-2xl font-serif italic tracking-widest text-white">
                   DED BLACK
                 </h1>
-                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-[#94a288] text-black">
+                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-[#3f522e] text-black">
                   BARBERSHOP
                 </span>
               </div>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-[#94a288] font-bold mt-0.5">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-[#819f67] font-bold mt-0.5">
                 DB CLUB
               </p>
             </div>
@@ -102,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-[#151515] border border-[#94a288]/30 text-xs">
               <div className="w-2 h-2 rounded-full bg-[#94a288] animate-ping" />
               <span className="text-stone-400 text-[11px] uppercase tracking-wider">Assinantes Ativos:</span>
-              <strong className="text-[#94a288] font-bold">{activeSubscribersCount} Membros</strong>
+              <strong className="text-[#3db196] font-bold">{activeSubscribersCount} Membros</strong>
             </div>
 
             <button
@@ -165,7 +165,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('plans')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-[11px] uppercase tracking-widest font-bold transition-all whitespace-nowrap ${
               activeTab === 'plans'
-                ? 'bg-[#94a288] text-black shadow-sm'
+                ? 'bg-[#809969] text-black shadow-sm'
                 : 'text-stone-400 hover:text-white hover:bg-[#151515]'
             }`}
           >
@@ -179,7 +179,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setActiveTab('calculator')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-[11px] uppercase tracking-widest font-bold transition-all whitespace-nowrap ${
                 activeTab === 'calculator'
-                  ? 'bg-[#94a288] text-black shadow-sm'
+                  ? 'bg-[#7d9864] text-black shadow-sm'
                   : 'text-stone-400 hover:text-white hover:bg-[#151515]'
               }`}
             >
@@ -210,7 +210,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('checkin')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-[11px] uppercase tracking-widest font-bold transition-all whitespace-nowrap ${
               activeTab === 'checkin'
-                ? 'bg-[#94a288] text-black shadow-sm'
+                ? 'bg-[#89a96d] text-black shadow-sm'
                 : 'text-stone-400 hover:text-white hover:bg-[#151515]'
             }`}
           >
@@ -222,7 +222,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('rules')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-[11px] uppercase tracking-widest font-bold transition-all whitespace-nowrap ${
               activeTab === 'rules'
-                ? 'bg-[#94a288] text-black shadow-sm'
+                ? 'bg-[#79985d] text-black shadow-sm'
                 : 'text-stone-400 hover:text-white hover:bg-[#151515]'
             }`}
           >
