@@ -24,8 +24,7 @@ function subscriptionStatusToInvoiceStatus(status: Stripe.Subscription.Status): 
   return status === 'active' || status === 'trialing' ? 'PAID' : 'PENDING';
 }
 
-// ─── Auth Middleware (reutilizado sem circular dependency) ────────────────────
-// Recebe adminAuth injetado pelo server.ts para evitar re-inicialização
+// ─── Auth Middleware ──────────────────────────────────────────────────────────
 function createAuthMiddleware(adminAuth: ReturnType<typeof getAdminAuth>) {
   return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
@@ -63,6 +62,9 @@ export function registerStripeRoutes(app: express.Application, db: any) {
   console.log(`  - Firestore: ${db ? 'Conectado' : 'Indisponível'}`);
   console.log(`  - Modo: ${isStripeConfigured ? 'PRODUÇÃO' : 'MOCK/DEV'}`);
   console.log('─────────────────────────────────────────────────────────────────');
+
+  // Middleware JSON para rotas comuns do Stripe
+  const jsonParser = express.json({ limit: '1mb' });
 
   // ─── Health Check (público, sem auth) ─────────────────────────────────────
   app.get('/api/health', async (_req, res) => {
@@ -103,36 +105,41 @@ export function registerStripeRoutes(app: express.Application, db: any) {
     });
   });
 
-  // ─── SetupIntent — requer autenticação ────────────────────────────────────
-  app.post('/api/stripe/setup-intent', async (req, res) => {
+  // ─── SetupIntent — Inicialização segura de cartão ─────────────────────────
+  app.post('/api/stripe/setup-intent', jsonParser, async (req, res) => {
     try {
       const { clientName, clientCpf, planName } = req.body || {};
-
-      if (!clientName || !clientCpf) {
-        return res.status(400).json({ error: 'Nome e CPF do cliente são obrigatórios.' });
-      }
-
-      const cleanCpf = clientCpf.replace(/\D/g, '');
+      const cleanCpf = typeof clientCpf === 'string' ? clientCpf.replace(/\D/g, '') : '';
+      const name = typeof clientName === 'string' && clientName.trim() ? clientName.trim() : 'Cliente Ded Black';
       const stripe = getStripe();
 
       if (stripe) {
         let stripeCustomerId: string | undefined;
-        try {
-          const existingCustomers = await stripe.customers.search({ query: `metadata['cpf']:'${cleanCpf}'`, limit: 1 });
-          if (existingCustomers.data.length > 0) {
-            stripeCustomerId = existingCustomers.data[0].id;
-          } else {
-            const customer = await stripe.customers.create({ name: clientName, metadata: { cpf: cleanCpf, planName } });
-            stripeCustomerId = customer.id;
+
+        if (cleanCpf) {
+          try {
+            const existingCustomers = await stripe.customers.search({ query: `metadata['cpf']:'${cleanCpf}'`, limit: 1 });
+            if (existingCustomers.data.length > 0) {
+              stripeCustomerId = existingCustomers.data[0].id;
+            }
+          } catch {
+            // Ignora falha de busca por metadata caso a conta seja nova
           }
-        } catch {
-          const customer = await stripe.customers.create({ name: clientName, metadata: { cpf: cleanCpf, planName } });
+        }
+
+        if (!stripeCustomerId) {
+          const customer = await stripe.customers.create({
+            name,
+            metadata: { cpf: cleanCpf || 'PENDING', planName: planName || 'DESCONHECIDO' },
+          });
           stripeCustomerId = customer.id;
         }
 
         const setupIntent = await stripe.setupIntents.create({
-          customer: stripeCustomerId, payment_method_types: ['card'], usage: 'off_session',
-          metadata: { cpf: cleanCpf, planName, clientName },
+          customer: stripeCustomerId,
+          payment_method_types: ['card'],
+          usage: 'off_session',
+          metadata: { cpf: cleanCpf, planName: planName || '', clientName: name },
         });
 
         return res.json({ clientSecret: setupIntent.client_secret, stripeCustomerId });
@@ -141,20 +148,20 @@ export function registerStripeRoutes(app: express.Application, db: any) {
       if (isProduction) return res.status(503).json({ error: 'Stripe não está configurado para produção.' });
 
       const mockSecret = `seti_mock_${Date.now().toString(36)}_secret_${Math.random().toString(36).substring(2, 10)}`;
-      return res.json({ clientSecret: mockSecret, stripeCustomerId: `cus_mock_${cleanCpf}`, mockMode: true });
+      return res.json({ clientSecret: mockSecret, stripeCustomerId: `cus_mock_${cleanCpf || 'anon'}`, mockMode: true });
     } catch (err: any) {
       console.error('[Stripe] Erro ao criar SetupIntent:', err);
       return res.status(500).json({ error: err.message || 'Erro ao inicializar checkout seguro.' });
     }
   });
 
-  // ─── Subscribe — requer autenticação ──────────────────────────────────────
-  app.post('/api/stripe/subscribe', async (req, res) => {
+  // ─── Subscribe — Processamento final da assinatura ───────────────────────
+  app.post('/api/stripe/subscribe', jsonParser, async (req, res) => {
     try {
-      const { paymentMethodId, clientName, clientCpf, clientPhone, planName, planAmount, subscriberId, cardCode } = req.body;
+      const { paymentMethodId, clientName, clientCpf, clientPhone, planName, planAmount, subscriberId, cardCode } = req.body || {};
 
       if (!paymentMethodId || !clientName || !clientCpf || !planAmount) {
-        return res.status(400).json({ error: 'Dados obrigatórios ausentes.' });
+        return res.status(400).json({ error: 'Dados obrigatórios ausentes (Método de Pagamento, Nome, CPF ou Valor).' });
       }
 
       const stripe = getStripe();
@@ -162,7 +169,7 @@ export function registerStripeRoutes(app: express.Application, db: any) {
 
       const cleanCpf = clientCpf.replace(/\D/g, '');
       const amountInCents = Math.round(Number(planAmount) * 100);
-      const validPlan = PLANS_LIST.find((p) => p.tierLabel === planName || p.id === planName);
+      const validPlan = PLANS_LIST.find((p) => p.tierLabel === planName || p.id === planName || p.serviceName === planName);
       if (!validPlan || Math.abs(validPlan.totalPrice - Number(planAmount)) > 0.01) {
         return res.status(400).json({ error: 'Plano ou valor inválido.' });
       }
@@ -265,7 +272,7 @@ export function registerStripeRoutes(app: express.Application, db: any) {
     }
   });
 
-  // ─── Webhook Stripe — raw body OBRIGATÓRIO, registrar antes do json parser ──
+  // ─── Webhook Stripe — usa express.raw OBRIGATORIAMENTE ────────────────────
   app.post(
     '/api/webhooks/stripe',
     express.raw({ type: 'application/json' }),
@@ -370,4 +377,4 @@ export function registerStripeRoutes(app: express.Application, db: any) {
       return res.json({ received: true, event: event.type });
     },
   );
-}
+};
