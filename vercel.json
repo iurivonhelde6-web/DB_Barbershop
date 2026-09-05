@@ -6,8 +6,9 @@
     { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
   ],
   "routes": [
-    { "src": "/api/chats", "dest": "/api/chats.ts" },
+    { "src": "/api/chat", "dest": "/api/chat.ts" },
+    { "src": "/api/stripe/setup-intent", "dest": "/api/stripe/setup-intent.ts" },
     { "src": "/api/(.*)", "dest": "/server.ts" },
-    { "src": "/(.*)", "dest": "/$1" }
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
