@@ -3,7 +3,6 @@ import http from 'http';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
@@ -259,6 +258,8 @@ app.post('/api/admin/action', requireAdminRole, async (req, res) => {
 });
 
 // ─── Backup Service ───────────────────────────────────────────────────────────
+// IMPORTANTE: o filesystem da Vercel é somente leitura em produção (exceto /tmp),
+// então esse serviço de backup em disco só faz sentido — e só roda — fora da Vercel.
 const BACKUP_DIR = path.join(process.cwd(), 'backups');
 
 async function exportFirestoreDataToJSON(): Promise<{
@@ -322,13 +323,16 @@ async function exportFirestoreDataToJSON(): Promise<{
   }
 }
 
-setInterval(() => {
-  exportFirestoreDataToJSON().catch(err => console.error('Erro no backup periódico:', err));
-}, 60 * 60 * 1000);
+// Agendamento do backup automático — só roda fora da Vercel (filesystem local disponível)
+if (!process.env.VERCEL) {
+  setInterval(() => {
+    exportFirestoreDataToJSON().catch(err => console.error('Erro no backup periódico:', err));
+  }, 60 * 60 * 1000);
 
-setTimeout(() => {
-  exportFirestoreDataToJSON().catch(err => console.error('Erro no backup inicial:', err));
-}, 12000);
+  setTimeout(() => {
+    exportFirestoreDataToJSON().catch(err => console.error('Erro no backup inicial:', err));
+  }, 12000);
+}
 
 app.post('/api/admin/backup/export', requireAdminRole, async (_req, res) => {
   try {
@@ -444,9 +448,16 @@ app.post('/api/gemini/assistant', rateLimiterMiddleware, authCheckMiddleware, as
 });
 
 // ─── Vite / Static (fora da Vercel) ───────────────────────────────────────────
+// IMPORTANTE: o import do 'vite' agora é DINÂMICO (await import('vite')) e só
+// acontece dentro deste bloco, que só roda quando !process.env.VERCEL. Isso evita
+// que o pacote 'vite' (e sua dependência 'rollup', que precisa de um binário nativo
+// específico da plataforma) seja carregado dentro da função serverless da Vercel —
+// era isso que causava o FUNCTION_INVOCATION_FAILED com o erro
+// "Cannot find module '@rollup/rollup-linux-x64-gnu'".
 if (!process.env.VERCEL) {
   (async function start() {
     if (process.env.NODE_ENV !== 'production') {
+      const { createServer: createViteServer } = await import('vite');
       const isHmrDisabled = process.env.DISABLE_HMR === 'true';
       const vite = await createViteServer({
         server: { middlewareMode: true, hmr: isHmrDisabled ? false : { server } },
