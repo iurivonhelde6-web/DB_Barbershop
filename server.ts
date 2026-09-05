@@ -10,8 +10,8 @@ import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { getApps as getAdminApps, initializeApp as initializeAdminApp, cert, getApp as getAdminApp } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
-import { PLANS_LIST } from './src/data/barberData';
-import { registerStripeRoutes } from './stripe-routes';
+import { PLANS_LIST } from './src/data/barberData.js';
+import { registerStripeRoutes } from './stripe-routes.js';
 
 dotenv.config();
 
