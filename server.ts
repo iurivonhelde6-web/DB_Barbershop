@@ -4,8 +4,6 @@ import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { getApps as getAdminApps, initializeApp as initializeAdminApp, cert, getApp as getAdminApp } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
@@ -31,18 +29,13 @@ app.use((_req, res, next) => {
   next();
 });
 
-// ─── Firebase Client SDK (Backend Reflector) ──────────────────────────────────
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'db-barbeshop-oficial',
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID,
-};
-
-const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
+// ─── Projeto Firebase ─────────────────────────────────────────────────────────
+// O backend NÃO usa o SDK cliente do Firestore. Ele roda sem sessão de usuário, então
+// `request.auth` seria null e as regras negariam toda leitura e escrita — era exatamente
+// isso que impedia os webhooks do Stripe de gravar. Todo acesso a dados aqui passa pelo
+// Admin SDK (`adminDb`), que opera com a credencial de serviço e não passa pelas regras.
+const FIREBASE_PROJECT_ID =
+  process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'db-barbeshop-oficial';
 
 // ─── Firebase Admin SDK ───────────────────────────────────────────────────────
 function getAdminCredential() {
@@ -63,14 +56,14 @@ const adminApp = getAdminApps().length > 0
   : initializeAdminApp(
       adminCredential
         ? { credential: adminCredential }
-        : { projectId: firebaseConfig.projectId }
+        : { projectId: FIREBASE_PROJECT_ID }
     );
 
 const adminAuth = getAdminAuth(adminApp);
 const adminDb = getAdminFirestore(adminApp);
 
 // ─── Stripe Routes ────────────────────────────────────────────────────────────
-registerStripeRoutes(app, db);
+registerStripeRoutes(app, adminDb);
 
 // ─── Body Parsers ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
@@ -143,15 +136,16 @@ const requireAdminRole = async (req: express.Request, res: express.Response, nex
 
     const decoded = (req as any).firebaseUser || await adminAuth.verifyIdToken(authHeader.slice('Bearer '.length).trim());
     const userId = decoded.uid;
-    const email = String(decoded.email || '').toLowerCase();
-    const MASTER_ADMIN_EMAIL = String(process.env.VITE_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'blackmmania@gmail.com').toLowerCase();
 
-    let isAdmin = email === MASTER_ADMIN_EMAIL;
-    let databaseRole = 'client';
+    // Autorização vem do custom claim assinado pelo Firebase (npm run set-admin -- <email>).
+    // Nenhum e-mail hardcoded: e-mail é identidade, não autorização.
+    let isAdmin = decoded.admin === true;
+    let databaseRole = isAdmin ? 'admin' : 'client';
 
     if (!isAdmin) {
-      const userSnap = await getDoc(doc(db, 'users', userId));
-      if (userSnap.exists()) {
+      // Fallback pelo Admin SDK (ignora as regras do Firestore, ao contrário do SDK cliente)
+      const userSnap = await adminDb.collection('users').doc(userId).get();
+      if (userSnap.exists) {
         databaseRole = userSnap.data()?.role || 'client';
         isAdmin = databaseRole === 'admin';
       }

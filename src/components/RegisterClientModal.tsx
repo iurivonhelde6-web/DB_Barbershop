@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserAccount, SubscriberCard } from '../types';
+import { SubscriberCard, UserAccount, ClientProfileData } from '../types';
 import { DbLogo } from './DbLogo';
 import { playPaymentAlert } from '../utils/soundAlert';
 import {
@@ -8,27 +8,46 @@ import {
   User,
   MapPin,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  LogOut,
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 
 interface RegisterClientModalProps {
   isOpen: boolean;
-  onClose: () => void;
-  onAddSubscriber: (newSub: SubscriberCard) => void;
-  onLoginAfterRegister?: (user: UserAccount) => void;
+  onClose?: () => void;
+  /** Cadastro de assinante pelo admin (usado apenas em variant="modal") */
+  onAddSubscriber?: (newSub: SubscriberCard) => void;
+  /** Usuário já autenticado, para pré-preencher o formulário (variant="page") */
+  currentUser?: UserAccount | null;
+  /** Salva os dados pessoais em users/{uid} (variant="page") */
+  onCompleteProfile?: (profile: ClientProfileData) => void | Promise<void>;
+  /** "Preencher depois" — entra no app sem completar o perfil (variant="page") */
+  onSkip?: () => void;
+  /** Sai da conta e volta para a tela de Login (variant="page") */
+  onGoToLogin?: () => void;
+  /** 'modal' (padrão) abre sobre o app; 'page' ocupa a tela inteira no fluxo de entrada */
+  variant?: 'modal' | 'page';
 }
 
 export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
   isOpen,
   onClose,
   onAddSubscriber,
-  onLoginAfterRegister,
+  currentUser,
+  onCompleteProfile,
+  onSkip,
+  onGoToLogin,
+  variant = 'modal',
 }) => {
-  const [fullName, setFullName] = useState('');
-  const [age, setAge] = useState<string>('');
-  const [cpf, setCpf] = useState('');
-  const [phone, setPhone] = useState('');
-  
+  const isPage = variant === 'page';
+
+  const [fullName, setFullName] = useState(isPage ? currentUser?.name ?? '' : '');
+  const [age, setAge] = useState<string>(isPage && currentUser?.age ? String(currentUser.age) : '');
+  const [cpf, setCpf] = useState(isPage ? currentUser?.cpf ?? '' : '');
+  const [phone, setPhone] = useState(isPage ? currentUser?.phone ?? '' : '');
+
   // Address fields
   const [street, setStreet] = useState('');
   const [number, setNumber] = useState('');
@@ -38,6 +57,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
 
   // States for UX
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [createdSub, setCreatedSub] = useState<SubscriberCard | null>(null);
 
   if (!isOpen) return null;
@@ -92,7 +112,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
     setCreatedSub(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!fullName.trim() || fullName.trim().split(' ').length < 2) {
@@ -117,10 +137,31 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
 
     setErrorMsg('');
 
-    // Criação direta da conta/cartão sem cobrança inicial
-    const generatedCardCode = `DB-${Math.floor(1000 + Math.random() * 9000)}`;
     const fullAddress = `${street.trim()}, nº ${number.trim()} - ${neighborhood.trim()} - ${city}${cep ? ` (CEP: ${cep})` : ''}`;
 
+    // ─── Fluxo de entrada: grava o perfil do cliente JÁ AUTENTICADO em users/{uid} ───
+    if (isPage) {
+      if (!onCompleteProfile) return;
+      setIsSaving(true);
+      try {
+        await onCompleteProfile({
+          name: fullName.trim(),
+          cpf: cpf.trim(),
+          age: parseInt(age),
+          address: fullAddress,
+          phone: phone.trim(),
+        });
+        // Em caso de sucesso o App avança para o dashboard e desmonta esta tela
+      } catch (err) {
+        console.error('Erro ao salvar perfil do cliente:', err);
+        setErrorMsg('Não foi possível salvar seus dados agora. Verifique sua conexão e tente novamente.');
+        setIsSaving(false);
+      }
+      return;
+    }
+
+    // ─── Cadastro de assinante pelo admin (variant="modal") ─────────────────────
+    const generatedCardCode = `DB-${Math.floor(1000 + Math.random() * 9000)}`;
     const today = new Date();
     const startDateStr = today.toISOString().split('T')[0];
 
@@ -150,51 +191,69 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
       transactionId: `REG-${Date.now()}`,
     };
 
-    onAddSubscriber(newSubscriberCard);
+    onAddSubscriber?.(newSubscriberCard);
     playPaymentAlert();
     setCreatedSub(newSubscriberCard);
+  };
 
-    if (onLoginAfterRegister) {
-      onLoginAfterRegister({
-        id: newSubscriberCard.id,
-        name: newSubscriberCard.clientName,
-        email: `${fullName.toLowerCase().replace(/\s+/g, '.')}@cliente.com`,
-        role: 'client',
-        cpf: newSubscriberCard.cpf,
-        age: newSubscriberCard.age,
-        address: newSubscriberCard.address,
-        cardCode: newSubscriberCard.cardCode,
-        planName: newSubscriberCard.planName,
-      });
-    }
+  const handleBackToLogin = () => {
+    handleResetForm();
+    onGoToLogin?.();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#121212] border border-[#94a288]/40 w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden relative text-stone-100 max-h-[92vh] flex flex-col">
+    <div
+      className={
+        isPage
+          ? 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_50%_0%,#16210f_0%,#0b0b0b_55%,#000000_100%)] p-4 animate-in fade-in duration-300'
+          : 'fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200'
+      }
+    >
+      <div
+        className={`bg-[#121212] w-full max-w-2xl overflow-hidden relative text-stone-100 max-h-[92vh] flex flex-col ${
+          isPage
+            ? 'border border-[#94a288]/25 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.6)] my-auto'
+            : 'border border-[#94a288]/40 rounded-xl shadow-2xl'
+        }`}
+      >
         {/* Header */}
         <div className="bg-[#0a0a0a] px-6 py-4 border-b border-[#94a288]/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <DbLogo className="w-10 h-10" />
             <div>
               <h3 className="text-lg font-serif font-bold text-white italic flex items-center gap-2">
-                Cadastro de Novo Cliente D•B
+                {isPage ? 'Complete seu perfil D•B' : 'Cadastro de Novo Cliente D•B'}
               </h3>
               <p className="text-[11px] text-stone-400">
-                Preencha os dados pessoais para criar sua conta no sistema
+                {isPage
+                  ? `Conectado como ${currentUser?.email || currentUser?.name || 'sua conta'}`
+                  : 'Preencha os dados pessoais para criar sua conta no sistema'}
               </p>
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              handleResetForm();
-              onClose();
-            }}
-            className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {isPage ? (
+            onGoToLogin && (
+              <button
+                onClick={handleBackToLogin}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-stone-300 hover:text-white hover:bg-white/10 border border-white/10 text-[11px] font-bold uppercase tracking-wider transition"
+                title="Sair desta conta e entrar com outra"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Trocar de conta
+              </button>
+            )
+          ) : (
+            <button
+              onClick={() => {
+                handleResetForm();
+                onClose?.();
+              }}
+              className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Content Body */}
@@ -258,7 +317,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                 <button
                   onClick={() => {
                     handleResetForm();
-                    onClose();
+                    onClose?.();
                   }}
                   className="px-6 py-2.5 rounded-lg bg-[#94a288] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-lg w-full sm:w-auto"
                 >
@@ -273,6 +332,17 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                 <div className="p-3 bg-red-950/40 border border-red-500/30 text-red-400 rounded-lg text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{errorMsg}</span>
+                </div>
+              )}
+
+              {isPage && (
+                <div className="p-3 bg-[#0a0a0a] border border-[#94a288]/25 rounded-lg text-xs text-stone-300 flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-[#94a288] shrink-0 mt-0.5" />
+                  <span>
+                    Seus dados são gravados com segurança na sua conta autenticada e só podem ser
+                    lidos por você e pela administração da barbearia. Preencher agora é opcional —
+                    você pode entrar no app e completar depois.
+                  </span>
                 </div>
               )}
 
@@ -421,14 +491,35 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
               </div>
 
               {/* Submit Button */}
-              <div className="pt-3">
+              <div className="pt-3 space-y-2.5">
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-lg bg-[#94a288] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-xl flex items-center justify-center gap-2 group"
+                  disabled={isSaving}
+                  className="w-full py-3.5 rounded-lg bg-[#94a288] hover:bg-[#68833a] text-black font-bold uppercase text-xs tracking-wider transition shadow-xl flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <UserPlus className="w-4 h-4 text-black group-hover:scale-110 transition-transform" />
-                  <span>CONCLUIR CADASTRO</span>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 text-black animate-spin" />
+                      <span>SALVANDO...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 text-black group-hover:scale-110 transition-transform" />
+                      <span>{isPage ? 'SALVAR E ENTRAR NO APP' : 'CONCLUIR CADASTRO'}</span>
+                    </>
+                  )}
                 </button>
+
+                {isPage && onSkip && (
+                  <button
+                    type="button"
+                    onClick={onSkip}
+                    disabled={isSaving}
+                    className="w-full py-2.5 rounded-lg bg-transparent hover:bg-white/5 text-stone-400 hover:text-stone-200 border border-white/10 font-bold uppercase text-[11px] tracking-wider transition disabled:opacity-50"
+                  >
+                    Pular por agora
+                  </button>
+                )}
               </div>
             </form>
           )}

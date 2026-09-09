@@ -57,9 +57,34 @@ Aplicação web completa e responsiva desenvolvida para a **Ded Black Barbershop
 ## 🔒 Parâmetros de Segurança do Firebase
 
 As regras de segurança do Cloud Firestore (`firestore.rules`) garantem:
-- Leitura em tempo real dos horários públicos disponíveis para agendamento.
-- Criação pública controlada de agendamentos e assinaturas.
-- Permissão de atualização e cancelamento exclusiva para os donos dos dados e para o Administrador (`iurivonheldetatuador@gmail.com`).
+- Nenhum acesso anônimo: toda leitura e escrita exige sessão autenticada.
+- Cada cliente lê e escreve apenas os próprios dados (`users/{uid}`, e documentos cujo `userUid` bate com o dele).
+- Permissão administrativa exclusiva para contas com o custom claim `admin`.
+
+### Papel de administrador
+
+O privilégio de admin vem **exclusivamente do custom claim `admin`** do Firebase Auth —
+assinado pelo Firebase, verificado nas regras (`request.auth.token.admin == true`) e no
+backend. Não existe e-mail de admin hardcoded no código, nas regras ou no bundle do
+navegador: e-mail é identidade, não autorização.
+
+Para conceder (ou revogar) o papel:
+
+```bash
+# 1. A pessoa precisa ter feito login no app pelo menos uma vez
+# 2. Com FIREBASE_SERVICE_ACCOUNT_JSON definido no ambiente:
+npm run set-admin -- email@dominio.com
+
+# Revogar:
+npm run set-admin -- email@dominio.com --revoke
+```
+
+O script atualiza o claim, alinha o campo `role` em `users/{uid}` e revoga os refresh
+tokens. **A pessoa precisa sair e entrar de novo no app** para o novo token valer.
+
+> Ordem importa: rode o `set-admin` **antes** de publicar as regras
+> (`firebase deploy --only firestore:rules`), senão você fica sem acesso admin no
+> intervalo entre as duas coisas.
 
 ---
 
@@ -128,7 +153,9 @@ Este projeto é exclusivo da **Ded Black Barbershop**. Todos os direitos reserva
 
 ## Produção: pré-requisitos obrigatórios
 
-1. Configure Firebase Authentication (Google/Apple) e Firestore.
+1. Configure o Firebase Authentication (provedor **Google**, único suportado) e o Firestore.
+   Inclua o domínio de produção em Authentication → Settings → Domínios autorizados,
+   senão o popup do Google falha fora do `localhost`.
 2. Configure credenciais do Firebase Admin SDK no backend usando Application Default Credentials ou `FIREBASE_SERVICE_ACCOUNT_JSON`.
 3. Configure `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` e `VITE_STRIPE_PUBLIC_KEY`. Em produção o checkout é bloqueado sem Stripe real.
 4. Configure o endpoint `/api/webhooks/stripe` no Stripe e mantenha o webhook secret em segredo.

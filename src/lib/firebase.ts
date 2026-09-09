@@ -1,9 +1,8 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  OAuthProvider, 
-  signInWithPopup, 
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
   signOut, 
   onAuthStateChanged,
   User as FirebaseUser
@@ -22,7 +21,7 @@ import {
   orderBy,
   serverTimestamp
 } from 'firebase/firestore';
-import { SubscriberCard, Appointment, UserAccount } from '../types';
+import { SubscriberCard, Appointment, UserAccount, ClientProfileData } from '../types';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -38,24 +37,30 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 
 export const googleProvider = new GoogleAuthProvider();
-export const appleProvider = new OAuthProvider('apple.com');
 
-// Leitura via variável de ambiente injetada pelo Vite no build
-// NUNCA expor email de admin hardcoded no bundle do cliente
-const ADMIN_EMAIL: string = (import.meta as any).env?.VITE_ADMIN_EMAIL || '';
+/**
+ * O papel de administrador vem EXCLUSIVAMENTE do custom claim `admin` do Firebase Auth,
+ * definido pelo Admin SDK (veja scripts/set-admin-claim.ts) e verificado nas regras do
+ * Firestore. Nenhum e-mail de admin é comparado no cliente — o bundle do navegador não é
+ * um lugar confiável para decidir privilégio.
+ */
+export async function hasAdminClaim(user: FirebaseUser, forceRefresh = false): Promise<boolean> {
+  try {
+    const tokenResult = await user.getIdTokenResult(forceRefresh);
+    return tokenResult.claims.admin === true;
+  } catch (err) {
+    console.warn('Não foi possível ler as claims do usuário:', err);
+    return false;
+  }
+}
 
 // Authentication Functions
-export async function loginWithGoogle(): Promise<FirebaseUser> {
+export async function loginWithGoogle(): Promise<{ user: FirebaseUser; profile: UserAccount }> {
   const result = await signInWithPopup(auth, googleProvider);
-  await ensureUserProfile(result.user);
-  return result.user;
+  const profile = await ensureUserProfile(result.user);
+  return { user: result.user, profile };
 }
 
-export async function loginWithApple(): Promise<FirebaseUser> {
-  const result = await signInWithPopup(auth, appleProvider);
-  await ensureUserProfile(result.user);
-  return result.user;
-}
 
 export async function logoutUser(): Promise<void> {
   await signOut(auth);
@@ -115,8 +120,9 @@ export async function verifyBackendAdminRole(): Promise<{ verified: boolean; rol
 export async function ensureUserProfile(user: FirebaseUser): Promise<UserAccount> {
   const userRef = doc(db, 'users', user.uid);
   const snap = await getDoc(userRef);
-  
-  const isAdminUser = ADMIN_EMAIL ? user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() : false;
+
+  // Fonte da verdade do privilégio: o custom claim assinado pelo Firebase, não o e-mail.
+  const isAdminUser = await hasAdminClaim(user);
 
   if (!snap.exists()) {
     const newUserAccount: UserAccount = {
@@ -143,9 +149,50 @@ export async function ensureUserProfile(user: FirebaseUser): Promise<UserAccount
       id: user.uid,
       name: data.displayName || data.name || user.displayName || 'Cliente D•B',
       email: data.email || user.email || '',
-      role: data.role || (isAdminUser ? 'admin' : 'client'),
+      role: isAdminUser ? 'admin' : (data.role === 'admin' ? 'admin' : 'client'),
+      cpf: data.cpf || undefined,
+      age: typeof data.age === 'number' ? data.age : undefined,
+      address: data.address || undefined,
+      phone: data.phone || undefined,
+      profileSkipped: data.profileSkipped === true,
       cardCode: data.cardCode || `DB-${Math.floor(1000 + Math.random() * 9000)}`,
     };
+  }
+}
+
+/**
+ * Grava os dados pessoais do cliente no próprio documento users/{uid}.
+ * A regra de dono já permite essa escrita, desde que o campo `role` não mude.
+ */
+export async function saveClientProfile(uid: string, profile: ClientProfileData): Promise<void> {
+  const userRef = doc(db, 'users', uid);
+  try {
+    await updateDoc(userRef, {
+      name: profile.name,
+      cpf: profile.cpf,
+      age: profile.age,
+      address: profile.address,
+      phone: profile.phone,
+      profileSkipped: false,
+      profileCompletedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `users/${uid}`);
+  }
+}
+
+/** Marca que o cliente escolheu preencher o perfil depois (não pergunta de novo a cada login) */
+export async function markProfileSkipped(uid: string): Promise<void> {
+  const userRef = doc(db, 'users', uid);
+  try {
+    await updateDoc(userRef, {
+      profileSkipped: true,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    // Pular o perfil nunca deve travar a entrada do cliente no app
+    console.warn('Não foi possível registrar a opção "preencher depois":', err);
   }
 }
 
@@ -159,9 +206,7 @@ export function subscribeToSubscribers(callback: (subscribers: SubscriberCard[])
       const currentUser = auth.currentUser;
       if (!currentUser) { callback([]); return; }
 
-      const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
-      const isAdmin = (ADMIN_EMAIL && currentUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase())
-        || userSnap.data()?.role === 'admin';
+      const isAdmin = await hasAdminClaim(currentUser);
       const colRef = collection(db, 'subscribers');
       const source = isAdmin ? colRef : query(colRef, where('userUid', '==', currentUser.uid));
 
@@ -212,9 +257,7 @@ export function subscribeToAppointments(callback: (appointments: Appointment[]) 
       const currentUser = auth.currentUser;
       if (!currentUser) { callback([]); return; }
 
-      const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
-      const isAdmin = (ADMIN_EMAIL && currentUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase())
-        || userSnap.data()?.role === 'admin';
+      const isAdmin = await hasAdminClaim(currentUser);
       const colRef = collection(db, 'appointments');
       const source = isAdmin ? colRef : query(colRef, where('userUid', '==', currentUser.uid));
 

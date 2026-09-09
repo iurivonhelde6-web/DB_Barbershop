@@ -1,29 +1,26 @@
 import React, { useState } from 'react';
 import { UserAccount, UserRole } from '../types';
-import { loginWithGoogle, loginWithApple } from '../lib/firebase';
+import { loginWithGoogle } from '../lib/firebase';
 import { DbLogo } from './DbLogo';
 import {
   ShieldCheck,
   User,
   X,
-  Lock,
-  CheckCircle2,
   Sparkles,
-  Scissors,
   LogOut,
-  ArrowRight,
   AlertCircle,
-  UserPlus,
-  Smartphone
+  UserPlus
 } from 'lucide-react';
 
 interface LoginModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   currentUser: UserAccount | null;
   onLogin: (user: UserAccount) => void;
   onLogout: () => void;
   onOpenRegister?: () => void;
+  /** 'modal' (padrão) abre sobre o app; 'page' ocupa a tela inteira no fluxo de entrada */
+  variant?: 'modal' | 'page';
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -33,6 +30,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onLogin,
   onLogout,
   onOpenRegister,
+  variant = 'modal',
 }) => {
   const [selectedRoleTab, setSelectedRoleTab] = useState<UserRole>('client');
   const [errorMessage, setErrorMessage] = useState('');
@@ -44,17 +42,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setIsLoadingAuth(true);
     setErrorMessage('');
     try {
-      const fbUser = await loginWithGoogle();
-      const isAdminUser = fbUser.email?.toLowerCase() === ((import.meta as any).env?.VITE_ADMIN_EMAIL || '').toLowerCase();
+      // O perfil (incluindo o papel) vem do Firestore/custom claim, nunca de comparação de e-mail no cliente
+      const { user: fbUser, profile } = await loginWithGoogle();
       onLogin({
-        id: fbUser.uid,
-        name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Cliente D•B',
-        email: fbUser.email || '',
-        role: isAdminUser ? 'admin' : 'client',
+        ...profile,
         avatarUrl: fbUser.photoURL || undefined,
-        planName: isAdminUser ? 'Gestão Completa D•B (Admin)' : 'Assinante D•B',
+        planName: profile.role === 'admin' ? 'Gestão Completa D•B (Admin)' : 'Assinante D•B',
       });
-      onClose();
+      onClose?.();
     } catch (err: any) {
       if (err?.code === 'auth/popup-closed-by-user' || err?.message?.includes('popup-closed-by-user')) {
         setErrorMessage('A janela de login do Google foi fechada antes de concluir o acesso.');
@@ -62,67 +57,73 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         setErrorMessage('');
       } else if (err?.code === 'auth/popup-blocked') {
         setErrorMessage('O navegador bloqueou o popup de login. Por favor, permita popups para este site.');
+      } else if (err?.code === 'auth/network-request-failed') {
+        setErrorMessage('Sem conexão com o servidor de login. Verifique sua internet e tente novamente.');
+      } else if (
+        // Erros de configuração do projeto: culpa do app, não do cliente.
+        // Nunca despejar a mensagem crua do Firebase na tela de quem só quer entrar.
+        err?.code === 'auth/api-key-not-valid' ||
+        err?.code === 'auth/invalid-api-key' ||
+        err?.code === 'auth/configuration-not-found' ||
+        err?.code === 'auth/operation-not-allowed' ||
+        err?.code === 'auth/unauthorized-domain' ||
+        String(err?.message || '').includes('api-key-not-valid')
+      ) {
+        console.error('[Login] Configuração do Firebase inválida:', err?.code, err?.message);
+        setErrorMessage(
+          'O login está temporariamente indisponível por um problema de configuração do aplicativo. ' +
+            'Já estamos cientes — tente novamente em alguns minutos ou fale com a barbearia pelo WhatsApp.'
+        );
       } else {
         console.warn('Alerta na autenticação Google:', err);
-        setErrorMessage(err.message || 'Falha ao autenticar com a conta Google. Tente novamente.');
+        setErrorMessage('Não foi possível concluir o login com o Google. Tente novamente.');
       }
     } finally {
       setIsLoadingAuth(false);
     }
   };
 
-  const handleAppleLogin = async () => {
-    setIsLoadingAuth(true);
-    setErrorMessage('');
-    try {
-      const fbUser = await loginWithApple();
-      const isAdminUser = fbUser.email?.toLowerCase() === ((import.meta as any).env?.VITE_ADMIN_EMAIL || '').toLowerCase();
-      onLogin({
-        id: fbUser.uid,
-        name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Cliente Apple',
-        email: fbUser.email || '',
-        role: isAdminUser ? 'admin' : 'client',
-        avatarUrl: fbUser.photoURL || undefined,
-        planName: isAdminUser ? 'Gestão Completa D•B (Admin)' : 'Assinante D•B',
-      });
-      onClose();
-    } catch (err: any) {
-      if (err?.code === 'auth/popup-closed-by-user' || err?.message?.includes('popup-closed-by-user')) {
-        setErrorMessage('A janela de login da Apple foi fechada antes de concluir o acesso.');
-      } else {
-        // Friendly message for Apple auth preview limitation
-        setErrorMessage(
-          'Não foi possível concluir a autenticação Apple. Tente novamente ou use o login do Google.'
-        );
-      }
-    } finally {
-      setIsLoadingAuth(false);
-    }
-  };
+  const isPage = variant === 'page';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#121212] border border-[#94a288]/40 w-full max-w-lg rounded-xl shadow-2xl overflow-hidden relative text-stone-100">
+    <div
+      className={
+        isPage
+          ? 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_50%_0%,#16210f_0%,#0b0b0b_55%,#000000_100%)] p-4 animate-in fade-in duration-300'
+          : 'fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200'
+      }
+    >
+      <div
+        className={`bg-[#121212] w-full max-w-lg overflow-hidden relative text-stone-100 ${
+          isPage
+            ? 'border border-[#94a288]/25 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.6)] my-auto'
+            : 'border border-[#94a288]/40 rounded-xl shadow-2xl'
+        }`}
+      >
         {/* Header */}
         <div className="bg-[#0a0a0a] px-6 py-5 border-b border-[#94a288]/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <DbLogo className="w-10 h-10" />
+            <DbLogo className={isPage ? 'w-12 h-12' : 'w-10 h-10'} />
             <div>
               <h3 className="text-lg font-serif font-bold text-white italic">
-                Autenticação Ded Black Barbershop
+                {isPage ? 'Bem-vindo à Ded Black Barbershop' : 'Autenticação Ded Black Barbershop'}
               </h3>
               <p className="text-[11px] text-stone-400">
-                Acesse com sua Conta Google, Apple ou Perfil de Gestor
+                {isPage
+                  ? 'Entre para acessar seu cartão digital, planos e agendamentos'
+                  : 'Acesse com sua Conta Google ou Perfil de Gestor'}
               </p>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!isPage && (
+            <button
+              onClick={() => onClose?.()}
+              className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Current User Logged In Info */}
@@ -158,7 +159,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <button
               onClick={() => {
                 onLogout();
-                onClose();
+                onClose?.();
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-red-950/40 text-red-400 hover:bg-red-900/50 border border-red-500/30 text-xs font-bold transition"
             >
@@ -222,10 +223,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </p>
               </div>
 
-              {/* Primary OAuth Buttons: Google & Apple */}
+              {/* Primary OAuth Button: Google */}
               <div className="space-y-2.5">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 block">
-                  Escolha o método de entrada:
+                  Entre com sua Conta Google:
                 </label>
 
                 {/* Google Sign In Button */}
@@ -256,27 +257,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <span>Entrar com o Google</span>
                 </button>
 
-                {/* Apple / iPhone Sign In Button */}
-                <button
-                  type="button"
-                  disabled={isLoadingAuth}
-                  onClick={handleAppleLogin}
-                  className="w-full py-3 px-4 rounded-lg bg-[#000000] hover:bg-[#1a1a1a] text-white font-bold text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-3 border border-white/20 disabled:opacity-50"
-                >
-                  <Smartphone className="w-4 h-4 text-white" />
-                  <span>Entrar com a Apple / iPhone</span>
-                </button>
               </div>
 
               <div className="p-3 bg-amber-950/20 border border-amber-500/20 rounded text-xs text-stone-300">
-                Para acessar seus dados sincronizados com segurança, use uma conta Google ou Apple. O acesso por nome/CPF sem autenticação foi desativado para evitar impersonação.
+                Para acessar seus dados sincronizados com segurança, use uma conta Google. O acesso por nome/CPF sem autenticação foi desativado para evitar impersonação.
               </div>
 
               {onOpenRegister && (
                 <button
                   type="button"
                   onClick={() => {
-                    onClose();
+                    onClose?.();
                     onOpenRegister();
                   }}
                   className="w-full py-2 rounded bg-[#181818] hover:bg-[#222222] text-[#94a288] border border-[#94a288]/40 font-bold uppercase text-[11px] tracking-wider transition flex items-center justify-center gap-2"
@@ -312,7 +303,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </button>
 
               <div className="p-3 bg-yellow-950/20 border border-yellow-500/20 rounded text-xs text-stone-300">
-                O acesso administrativo exige autenticação Google/Apple válida e autorização de administrador no Firebase. Não existe senha padrão ou credencial hardcoded no navegador.
+                O acesso administrativo exige autenticação Google válida e o papel de administrador concedido no Firebase (custom claim). Não existe senha padrão ou credencial hardcoded no navegador.
               </div>
             </div>
           )}
@@ -320,7 +311,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Footer */}
         <div className="bg-[#0a0a0a] px-6 py-3 border-t border-white/5 text-[10px] text-stone-500 flex items-center justify-between">
-          <span>Ded Black Barbershop &bull; Autenticação Google / Apple</span>
+          <span>Ded Black Barbershop &bull; Autenticação Google</span>
           <span className="font-mono text-emerald-400">Nuvem Firestore Ativa</span>
         </div>
       </div>

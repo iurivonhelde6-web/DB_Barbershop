@@ -16,9 +16,10 @@ import { RestrictedFinancialView } from './components/RestrictedFinancialView';
 import { ScheduleBookingModal } from './components/ScheduleBookingModal';
 import { WhatsAppSupportModal } from './components/WhatsAppSupportModal';
 import { RegisterClientModal } from './components/RegisterClientModal';
+import { SplashScreen } from './components/SplashScreen';
 import { AdminNotificationToast, AdminNotification } from './components/AdminNotificationToast';
 import { MOCK_SUBSCRIBERS, INITIAL_APPOINTMENTS } from './data/barberData';
-import { SubscriberCard, UserAccount, Appointment } from './types';
+import { SubscriberCard, UserAccount, Appointment, ClientProfileData } from './types';
 import { Scissors, ShieldCheck, Heart, MessageSquare } from 'lucide-react';
 import { 
   auth, 
@@ -30,16 +31,37 @@ import {
   deleteSubscriberFromCloud,
   addAppointmentToCloud,
   deleteAppointmentFromCloud,
-  logoutUser
+  logoutUser,
+  saveClientProfile,
+  markProfileSkipped
 } from './lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
 const SUBSCRIBERS_STORAGE_KEY = 'dedblack_subscribers_v2';
 const APPOINTMENTS_STORAGE_KEY = 'dedblack_appointments_v2';
 
+type AppPhase = 'splash' | 'login' | 'register' | 'app';
+
+/**
+ * Pede o preenchimento do perfil apenas no primeiro acesso: quem já informou o CPF
+ * ou escolheu "pular por agora" entra direto no app.
+ */
+function needsProfileCompletion(user: UserAccount | null): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return false;
+  if (user.profileSkipped) return false;
+  return !user.cpf || !user.address;
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'plans' | 'calculator' | 'checkin' | 'rules' | 'ai'>('plans');
-  
+
+  // Fluxo obrigatório de entrada: Splash → Login → Cadastro (opcional) → App
+  const [appPhase, setAppPhase] = useState<AppPhase>('splash');
+  const [isSplashDone, setIsSplashDone] = useState(false);
+  // Vira true na primeira resposta do Firebase Auth (com ou sem sessão salva)
+  const [isAuthResolved, setIsAuthResolved] = useState(false);
+
   // Real-time Cloud Subscribers State
   const [subscribers, setSubscribers] = useState<SubscriberCard[]>([]);
   // Real-time Cloud Appointments State
@@ -55,7 +77,8 @@ export default function App() {
   // Login & Authentication State
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  // Modal de conta (trocar de usuário / sair) aberto pelo Header, já dentro do app
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   // Subscribe to Firebase Auth state
   useEffect(() => {
@@ -63,6 +86,7 @@ export default function App() {
       setFirebaseUser(user);
       if (!user) {
         setCurrentUser(null);
+        setIsAuthResolved(true);
         return;
       }
       try {
@@ -71,10 +95,41 @@ export default function App() {
       } catch (e) {
         console.error('Erro ao sincronizar perfil do usuário:', e);
         setCurrentUser(null);
+      } finally {
+        setIsAuthResolved(true);
       }
     });
     return () => unsubscribeAuth();
   }, []);
+
+  // Splash → decide o destino assim que a animação acaba E o Auth responde
+  useEffect(() => {
+    if (appPhase !== 'splash') return;
+    if (!isSplashDone || !isAuthResolved) return;
+    // Sem sessão — ou com sessão cujo perfil não pôde ser carregado — volta ao login,
+    // onde o cliente consegue tentar de novo em vez de ficar preso num app sem conta.
+    if (!firebaseUser || !currentUser) {
+      setAppPhase('login');
+      return;
+    }
+    setAppPhase(needsProfileCompletion(currentUser) ? 'register' : 'app');
+  }, [appPhase, isSplashDone, isAuthResolved, firebaseUser, currentUser]);
+
+  // Login concluído → completa o perfil (1º acesso) ou entra direto no app
+  useEffect(() => {
+    if (appPhase !== 'login') return;
+    if (!currentUser) return;
+    setAppPhase(needsProfileCompletion(currentUser) ? 'register' : 'app');
+  }, [appPhase, currentUser]);
+
+  // Sessão encerrada depois do login → volta para a tela de login
+  useEffect(() => {
+    if (appPhase !== 'app' && appPhase !== 'register') return;
+    if (isAuthResolved && !firebaseUser && !currentUser) {
+      setIsAccountModalOpen(false);
+      setAppPhase('login');
+    }
+  }, [appPhase, isAuthResolved, firebaseUser, currentUser]);
 
   // Subscribe to Firestore Realtime Data
   useEffect(() => {
@@ -202,6 +257,55 @@ export default function App() {
     setCurrentUser(null);
   };
 
+  // Salva os dados pessoais no próprio documento do usuário autenticado
+  const handleCompleteProfile = async (profile: ClientProfileData) => {
+    if (!firebaseUser) throw new Error('Sessão expirada. Entre novamente para salvar seus dados.');
+    await saveClientProfile(firebaseUser.uid, profile);
+    setCurrentUser((prev) => (prev ? { ...prev, ...profile, profileSkipped: false } : prev));
+    setAppPhase('app');
+  };
+
+  const handleSkipProfile = async () => {
+    setAppPhase('app');
+    if (firebaseUser) {
+      await markProfileSkipped(firebaseUser.uid);
+      setCurrentUser((prev) => (prev ? { ...prev, profileSkipped: true } : prev));
+    }
+  };
+
+  // ─── Fluxo de entrada obrigatório ───────────────────────────────────────────
+  if (appPhase === 'splash') {
+    return <SplashScreen onFinished={() => setIsSplashDone(true)} />;
+  }
+
+  if (appPhase === 'login') {
+    // Sem `onOpenRegister`: no fluxo "login primeiro", a própria conta Google cria o
+    // cadastro. A fase 'register' só existe autenticada (completar perfil), então um
+    // atalho para ela aqui seria revertido na hora pelo efeito de sessão encerrada.
+    return (
+      <LoginModal
+        variant="page"
+        isOpen={true}
+        currentUser={currentUser}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (appPhase === 'register') {
+    return (
+      <RegisterClientModal
+        variant="page"
+        isOpen={true}
+        currentUser={currentUser}
+        onCompleteProfile={handleCompleteProfile}
+        onSkip={handleSkipProfile}
+        onGoToLogin={handleLogout}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-stone-950 text-stone-100 font-sans selection:bg-emerald-500 selection:text-stone-950 flex flex-col justify-between">
       <div>
@@ -211,10 +315,9 @@ export default function App() {
           setActiveTab={setActiveTab}
           activeSubscribersCount={activeSubscribersCount}
           currentUser={currentUser}
-          onOpenLogin={() => setIsLoginModalOpen(true)}
+          onOpenLogin={() => setIsAccountModalOpen(true)}
           onOpenBooking={() => setIsBookingModalOpen(true)}
           onOpenWhatsApp={() => setIsWhatsAppModalOpen(true)}
-          onOpenRegister={() => setIsRegisterModalOpen(true)}
         />
 
         {/* Tab Views */}
@@ -240,7 +343,7 @@ export default function App() {
             ) : (
               <RestrictedFinancialView
                 currentUser={currentUser}
-                onOpenAdminLogin={() => setIsLoginModalOpen(true)}
+                onOpenAdminLogin={() => setIsAccountModalOpen(true)}
                 onGoToPlans={() => setActiveTab('plans')}
               />
             )
@@ -268,14 +371,14 @@ export default function App() {
         onClose={() => setActiveNotification(null)}
       />
 
-      {/* Login / Role Switching Modal */}
+      {/* Account Modal: trocar de conta / sair (aberto pelo Header) */}
       <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
+        variant="modal"
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
         currentUser={currentUser}
         onLogin={handleLogin}
         onLogout={handleLogout}
-        onOpenRegister={() => setIsRegisterModalOpen(true)}
       />
 
       {/* New Client Registration Modal */}
@@ -283,7 +386,6 @@ export default function App() {
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
         onAddSubscriber={handleAddSubscriber}
-        onLoginAfterRegister={handleLogin}
       />
 
       {/* Appointment Schedule Modal */}

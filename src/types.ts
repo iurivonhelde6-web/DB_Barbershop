@@ -8,9 +8,21 @@ export interface UserAccount {
   cpf?: string;
   age?: number;
   address?: string;
+  phone?: string;
   cardCode?: string;
   planName?: string;
   avatarUrl?: string;
+  /** true quando o cliente optou por "pular por agora" na tela de perfil */
+  profileSkipped?: boolean;
+}
+
+/** Dados pessoais que o cliente preenche na tela de perfil (gravados em users/{uid}) */
+export interface ClientProfileData {
+  name: string;
+  cpf: string;
+  age: number;
+  address: string;
+  phone: string;
 }
 
 export type PlanTier = 'basic' | 'plus' | 'select' | 'family' | 'flex_premium';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scissors, ShieldCheck, Sparkles, CreditCard, FileText, Bot, Layers, User, Lock, LogIn, Calendar, MessageSquare, UserPlus } from 'lucide-react';
+import { ShieldCheck, Sparkles, CreditCard, FileText, Bot, Layers, Lock, Calendar, MessageSquare } from 'lucide-react';
 import { UserAccount } from '../types';
 import { DbLogo } from './DbLogo';
 
@@ -11,7 +11,6 @@ interface HeaderProps {
   onOpenLogin: () => void;
   onOpenBooking: () => void;
   onOpenWhatsApp: () => void;
-  onOpenRegister?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,7 +21,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLogin,
   onOpenBooking,
   onOpenWhatsApp,
-  onOpenRegister,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const isClient = currentUser?.role === 'client';
@@ -38,25 +36,13 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         </div>
 
-        {/* User Account Login & Register Status Pill */}
+        {/* Logged In User Account Pill (trocar de conta / sair) */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {onOpenRegister && (
+          {currentUser && (
             <button
-              onClick={onOpenRegister}
-              className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded bg-[#94a288]/30 hover:bg-[#94a288]/50 border border-[#94a288]/60 text-[#94a288] text-[10px] font-bold tracking-wider transition"
+              onClick={onOpenLogin}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#181818] hover:bg-[#222222] border border-[#94a288]/40 text-[10px] font-bold tracking-wider text-stone-200 transition group"
             >
-              <UserPlus className="w-3 h-3 text-[#94a288] shrink-0" />
-              <span className="hidden xs:inline">Novo </span>
-              <span>Cadastro</span>
-            </button>
-          )}
-
-          <button
-            onClick={onOpenLogin}
-            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#181818] hover:bg-[#222222] border border-[#94a288]/40 text-[10px] font-bold tracking-wider text-stone-200 transition group"
-          >
-          {currentUser ? (
-            <>
               <span className={isAdmin ? 'text-yellow-400' : 'text-[#94a288]'}>
                 {isAdmin ? '👑' : '👤'}
               </span>
@@ -66,14 +52,8 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-stone-400 group-hover:text-white transition text-[9px] hidden xs:inline">
                 [Trocar]
               </span>
-            </>
-          ) : (
-            <>
-              <LogIn className="w-3 h-3 text-[#94a288] shrink-0" />
-              <span className="text-stone-300">Entrar</span>
-            </>
+            </button>
           )}
-        </button>
         </div>
       </div>
 

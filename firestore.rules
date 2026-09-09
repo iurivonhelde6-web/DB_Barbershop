@@ -3,12 +3,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function isAdmin() {
-      return signedIn() && (
-        request.auth.token.admin == true ||
-        request.auth.token.email == 'iurivonheldetatuador@gmail.com'
-      );
-    }
+
+    // Privilégio de administrador vem EXCLUSIVAMENTE do custom claim assinado pelo
+    // Firebase Auth (definido via Admin SDK: npm run set-admin -- <email>).
+    // Nenhum e-mail é hardcoded aqui: e-mail é identidade, não autorização.
+    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+
     function owner(userId) { return signedIn() && request.auth.uid == userId; }
 
     match /users/{userId} {
@@ -16,9 +16,9 @@ service cloud.firestore {
       allow create: if owner(userId)
         && request.resource.data.uid == request.auth.uid
         && (request.resource.data.role == 'client'
-            || (request.auth.token.email == 'iurivonheldetatuador@gmail.com' && request.resource.data.role == 'admin'));
+            || (isAdmin() && request.resource.data.role == 'admin'));
+      // O dono edita os próprios dados pessoais, mas nunca o próprio papel
       allow update: if (owner(userId) && request.resource.data.role == resource.data.role)
-        || (request.auth.token.email == 'iurivonheldetatuador@gmail.com' && request.resource.data.role == 'admin')
         || isAdmin();
       allow delete: if isAdmin();
     }

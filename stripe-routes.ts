@@ -1,8 +1,14 @@
 import express from 'express';
 import Stripe from 'stripe';
-import { doc, getDoc, setDoc, getDocs, collection } from 'firebase/firestore';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
+
+/**
+ * Firestore do Admin SDK. Estas rotas rodam no servidor, sem sessão de usuário —
+ * o SDK cliente teria `request.auth` null e as regras negariam toda escrita, que era
+ * o motivo de renovações e falhas de pagamento nunca chegarem ao banco.
+ */
+type AdminFirestore = ReturnType<typeof getAdminFirestore>;
 
 // ─── Lista de Planos do Backend (Evita erro de importação na Vercel) ──────────
 const PLANS_LIST = [
@@ -767,7 +773,7 @@ function createAuthMiddleware(adminAuth: ReturnType<typeof getAdminAuth>) {
   };
 }
 
-export function registerStripeRoutes(app: express.Application, db: any) {
+export function registerStripeRoutes(app: express.Application, db: AdminFirestore) {
   const stripeKey = process.env.STRIPE_SECRET_KEY || '';
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
   const publicKey = process.env.VITE_STRIPE_PUBLIC_KEY || '';
@@ -810,9 +816,12 @@ export function registerStripeRoutes(app: express.Application, db: any) {
     let firestoreStatus = 'unconfigured';
     if (db) {
       try {
-        await getDocs(collection(db, 'subscribers'));
+        await db.collection('subscribers').limit(1).get();
         firestoreStatus = 'authenticated';
-      } catch { firestoreStatus = 'connected'; }
+      } catch (dbErr) {
+        console.error('[Health] Firestore inacessível:', dbErr);
+        firestoreStatus = 'error';
+      }
     }
 
     return res.json({
@@ -962,13 +971,13 @@ export function registerStripeRoutes(app: express.Application, db: any) {
       };
 
       const targetId = subscriberId || `stripe_${Date.now()}`;
-      const subDocRef = doc(db, 'subscribers', targetId);
+      const subDocRef = db.collection('subscribers').doc(targetId);
 
       try {
-        const snap = await getDoc(subDocRef);
-        const existing = snap.exists() ? snap.data() : {};
+        const snap = await subDocRef.get();
+        const existing = (snap.exists ? snap.data() : {}) as Record<string, any>;
         const history = Array.isArray(existing.paymentHistory) ? existing.paymentHistory : [];
-        await setDoc(subDocRef, {
+        await subDocRef.set({
           ...existing, id: targetId,
           cardCode: existing.cardCode || cardCode || `DB-${Math.floor(1000 + Math.random() * 9000)}`,
           clientName, cpf: cleanCpf, phone: clientPhone || existing.phone || '', planName,
@@ -1022,13 +1031,21 @@ export function registerStripeRoutes(app: express.Application, db: any) {
       console.log(`[Stripe Webhook] Evento: ${event.type}`);
 
       const findSubscriber = async (subscriptionId?: string, customerId?: string) => {
+        // Consulta indexada por campo, em vez de varrer a coleção inteira a cada webhook.
+        // Igualdade em campo único usa o índice automático do Firestore — nada a publicar.
+        const queryBy = async (field: string, value: string) => {
+          const snap = await db.collection('subscribers').where(field, '==', value).limit(1).get();
+          return snap.empty ? null : { id: snap.docs[0].id, data: snap.docs[0].data() as Record<string, any> };
+        };
+
         try {
-          const snap = await getDocs(collection(db, 'subscribers'));
-          for (const d of snap.docs) {
-            const data = d.data();
-            if ((subscriptionId && data.stripeSubscriptionId === subscriptionId) || (customerId && data.stripeCustomerId === customerId)) {
-              return { id: d.id, data };
-            }
+          if (subscriptionId) {
+            const bySubscription = await queryBy('stripeSubscriptionId', subscriptionId);
+            if (bySubscription) return bySubscription;
+          }
+          if (customerId) {
+            const byCustomer = await queryBy('stripeCustomerId', customerId);
+            if (byCustomer) return byCustomer;
           }
         } catch (e) { console.error('[Stripe Webhook] Erro ao buscar assinante:', e); }
         return null;
@@ -1056,7 +1073,7 @@ export function registerStripeRoutes(app: express.Application, db: any) {
               notes: 'Fatura renovada automaticamente via Stripe (invoice.paid)',
             };
             const history = Array.isArray(match.data.paymentHistory) ? match.data.paymentHistory : [];
-            await setDoc(doc(db, 'subscribers', match.id), { ...match.data, status: 'ACTIVE', paymentStatus: 'PAID', paymentDate: now.toISOString().split('T')[0], expirationDate: expDate.toISOString().split('T')[0], paymentHistory: [renewalInvoice, ...history], updatedAt: now.toISOString() }, { merge: true });
+            await db.collection('subscribers').doc(match.id).set({ ...match.data, status: 'ACTIVE', paymentStatus: 'PAID', paymentDate: now.toISOString().split('T')[0], expirationDate: expDate.toISOString().split('T')[0], paymentHistory: [renewalInvoice, ...history], updatedAt: now.toISOString() }, { merge: true });
             console.log(`[Stripe Webhook] invoice.paid — assinante ${match.id} renovado.`);
             break;
           }
@@ -1078,7 +1095,7 @@ export function registerStripeRoutes(app: express.Application, db: any) {
               notes: 'Falha na cobrança automática via Stripe. Cliente deve atualizar o cartão.',
             };
             const history = Array.isArray(match.data.paymentHistory) ? match.data.paymentHistory : [];
-            await setDoc(doc(db, 'subscribers', match.id), { ...match.data, status: 'PAYMENT_PENDING', paymentStatus: 'FAILED', paymentHistory: [failedInvoice, ...history], updatedAt: new Date().toISOString() }, { merge: true });
+            await db.collection('subscribers').doc(match.id).set({ ...match.data, status: 'PAYMENT_PENDING', paymentStatus: 'FAILED', paymentHistory: [failedInvoice, ...history], updatedAt: new Date().toISOString() }, { merge: true });
             console.warn(`[Stripe Webhook] invoice.payment_failed — assinante ${match.id} → PAYMENT_PENDING.`);
             break;
           }
@@ -1087,7 +1104,7 @@ export function registerStripeRoutes(app: express.Application, db: any) {
             const sub = event.data.object as Stripe.Subscription;
             const match = await findSubscriber(sub.id, typeof sub.customer === 'string' ? sub.customer : sub.customer?.id);
             if (!match) break;
-            await setDoc(doc(db, 'subscribers', match.id), { status: 'SUSPENDED', updatedAt: new Date().toISOString() }, { merge: true });
+            await db.collection('subscribers').doc(match.id).set({ status: 'SUSPENDED', updatedAt: new Date().toISOString() }, { merge: true });
             console.log(`[Stripe Webhook] subscription.deleted — assinante ${match.id} suspenso.`);
             break;
           }
