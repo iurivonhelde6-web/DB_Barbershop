@@ -10,7 +10,10 @@
     "clean": "rm -rf dist server.cjs",
     "set-admin": "tsx scripts/set-admin-claim.ts",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -38,14 +41,16 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vercel/node": "^12.0.1",
+    "@vitest/coverage-v8": "^5.0.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "vitest": "^5.0.0"
   },
   "overrides": {
     "uuid": "9.0.1"
   }
-} 
+}

@@ -824,12 +824,12 @@ export const PLANS_LIST: PlanOption[] = [
     serviceName: 'Multi-Serviços Livres (Corte, Disfarce, Barba, Tesoura)',
     numAtendimentos: 8,
     totalPrice: 320,
-    pricePerAtd: 36.25,
-    costPerAtd: 36.25,
-    barberSplitPerAtd: 21.75,
-    houseMarginPerAtd: 14.5,
-    totalBarberCommission: 174, // 60%
-    totalHouseMargin: 116,     // 40%
+    pricePerAtd: 40.00,
+    costPerAtd: 40.00,
+    barberSplitPerAtd: 24.00,
+    houseMarginPerAtd: 16.00,
+    totalBarberCommission: 192, // 60%
+    totalHouseMargin: 128,      // 40%
     badgeTag: '⚫ O Mais Completo (Liberdade Total)',
     recommendedFor: 'Cliente exigente que quer liberdade sem ficar preso a um único serviço.',
     comingSoon: true,
