@@ -12,6 +12,7 @@ import {
 import { SubscriberCard, Appointment } from '../types';
 import { BARBERS_LIST, SERVICES_LIST, PLANS_LIST } from '../data/barberData';
 import { FinancialCalculator } from './FinancialCalculator';
+import { AvailabilityManager } from './AvailabilityManager';
 import { verifyBackendAdminRole } from '../lib/firebase';
 import { SubscriberStatusBadge } from '../utils/statusUtils';
 import {
@@ -70,7 +71,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenRegister,
   onDeleteAppointment,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'calculator' | 'backups'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'calculator' | 'backups' | 'agenda'>('overview');
   const [appointmentFilter, setAppointmentFilter] = useState<'ALL' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [selectedBarberFilter, setSelectedBarberFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -628,6 +629,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <Calculator className="w-4 h-4" />
             <span>Simulador & Calculadora Financeira</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('agenda')}
+            className={`px-5 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition flex items-center gap-2 ${
+              activeTab === 'agenda'
+                ? 'bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-xl border border-[#6D7E5A]/50'
+                : 'bg-[#111111] text-[#A4A9A5] border border-[#38472A]/30 hover:text-[#FDFDFD] hover:border-[#6D7E5A]/40'
+            }`}
+          >
+            <CalendarDays className="w-4 h-4" />
+            <span>Agenda de Barbeiros</span>
           </button>
 
           <button
@@ -1470,6 +1483,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
         </>
+      ) : activeTab === 'agenda' ? (
+        /* Agenda de Barbeiros */
+        <div className="bg-[#121212] rounded-2xl border border-[#94a288]/30 p-6 shadow-2xl">
+          <AvailabilityManager />
+        </div>
       ) : activeTab === 'backups' ? (
         /* Backup & Data Export View */
         <div className="bg-[#121212] rounded-2xl border border-[#94a288]/30 p-6 shadow-2xl space-y-6">

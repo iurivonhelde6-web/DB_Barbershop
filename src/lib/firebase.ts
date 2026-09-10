@@ -21,7 +21,7 @@ import {
   orderBy,
   serverTimestamp
 } from 'firebase/firestore';
-import { SubscriberCard, Appointment, UserAccount, ClientProfileData } from '../types';
+import { SubscriberCard, Appointment, UserAccount, ClientProfileData, BarberAvailability } from '../types';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -371,4 +371,76 @@ export async function deleteAppointmentFromCloud(id: string): Promise<void> {
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `appointments/${id}`);
   }
+}
+
+// ─── Disponibilidade de Agenda ────────────────────────────────────────────────
+
+/**
+ * Retorna os horários liberados pelo admin para um barbeiro em uma data.
+ * Retorna [] se o documento não existir (barbeiro sem expediente nesse dia).
+ */
+export async function getBarberAvailability(barberId: string, date: string): Promise<string[]> {
+  const docId = `${barberId}_${date}`;
+  const docRef = doc(db, 'availability', docId);
+  try {
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return [];
+    const data = snap.data();
+    return Array.isArray(data.horarios) ? (data.horarios as string[]) : [];
+  } catch (error) {
+    console.warn('[Availability] Erro ao buscar disponibilidade:', error);
+    return [];
+  }
+}
+
+/**
+ * Salva (ou substitui) os horários de um barbeiro em uma data.
+ * Somente admins têm permissão de escrita (regra no Firestore).
+ */
+export async function setBarberAvailability(
+  barberId: string,
+  date: string,
+  horarios: string[],
+  adminUid: string,
+): Promise<void> {
+  const docId = `${barberId}_${date}`;
+  const docRef = doc(db, 'availability', docId);
+  const payload: BarberAvailability = {
+    barberId,
+    date,
+    horarios,
+    updatedAt: new Date().toISOString(),
+    updatedBy: adminUid,
+  };
+  try {
+    await setDoc(docRef, payload);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `availability/${docId}`);
+  }
+}
+
+/**
+ * Listener em tempo real de toda a disponibilidade de uma data específica
+ * (todos os barbeiros). Usado pelo painel admin para atualizar a UI ao salvar.
+ */
+export function subscribeToAvailabilityForDate(
+  date: string,
+  callback: (data: Record<string, string[]>) => void,
+): () => void {
+  const colRef = collection(db, 'availability');
+  const q = query(colRef, where('date', '==', date));
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const result: Record<string, string[]> = {};
+    snapshot.forEach((docSnap) => {
+      const d = docSnap.data();
+      if (d.barberId && Array.isArray(d.horarios)) {
+        result[d.barberId as string] = d.horarios as string[];
+      }
+    });
+    callback(result);
+  }, (err) => {
+    console.warn('[Availability] Erro no listener de disponibilidade:', err?.message || err);
+    callback({});
+  });
+  return unsubscribe;
 }

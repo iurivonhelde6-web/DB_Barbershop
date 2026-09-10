@@ -159,3 +159,11 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
 }
+
+export interface BarberAvailability {
+  barberId: string;
+  date: string;       // YYYY-MM-DD
+  horarios: string[]; // ["09:00", "14:30"]
+  updatedAt?: string;
+  updatedBy?: string;
+}

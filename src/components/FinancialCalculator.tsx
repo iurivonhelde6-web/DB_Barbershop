@@ -1074,8 +1074,13 @@ export const FinancialCalculator: React.FC = () => {
             <tbody className="divide-y divide-white/5 text-stone-200 font-medium">
               {filteredPlansTable.map((plan) => {
                 const avulso = SERVICES_LIST.find((s) => s.id === plan.serviceId)?.avulsoPrice || 0;
-                const barberPct = plan.tier === 'basic' ? '55%' : plan.tier === 'plus' ? '57,5%' : '60%';
-                const housePct = plan.tier === 'basic' ? '45%' : plan.tier === 'plus' ? '42,5%' : '40%';
+                // Derive percentage from stored data (handles Family 4 = 55%, Family 8 = 60% correctly)
+                const commissionRatio = plan.totalPrice > 0 ? plan.totalBarberCommission / plan.totalPrice : 0.55;
+                const barberPctNum = Math.round(commissionRatio * 200) / 2; // rounds to nearest 0.5
+                const housePctNum = 100 - barberPctNum;
+                const fmtPct = (n: number) => n % 1 === 0 ? `${n}%` : `${n.toFixed(1).replace('.', ',')}%`;
+                const barberPct = fmtPct(barberPctNum);
+                const housePct = fmtPct(housePctNum);
 
                 return (
                   <tr key={plan.id} className="hover:bg-[#202020] transition">

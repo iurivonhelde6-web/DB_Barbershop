@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Barber, Appointment, UserAccount } from '../types';
 import {
   BARBERS_LIST,
@@ -33,6 +33,7 @@ import {
   Volume2
 } from 'lucide-react';
 import { playAppointmentAlert } from '../utils/soundAlert';
+import { getBarberAvailability } from '../lib/firebase';
 
 interface ScheduleBookingModalProps {
   isOpen: boolean;
@@ -43,18 +44,10 @@ interface ScheduleBookingModalProps {
   onCancelAppointment: (aptId: string) => void;
 }
 
-const AVAILABLE_TIMES = [
-  '09:00',
-  '10:00',
-  '11:00',
-  '12:00',
-  '13:30',
-  '14:30',
-  '15:30',
-  '16:30',
-  '17:30',
-  '18:30',
-  '19:30'
+// Mantido apenas como referência visual de ordem; os slots reais vêm do Firestore.
+const ALL_POSSIBLE_TIMES = [
+  '09:00', '10:00', '11:00', '12:00', '13:30',
+  '14:30', '15:30', '16:30', '17:30', '18:30', '19:30',
 ];
 
 // Tiers cobertos pela tabela de upgrade do André (FLEX PREMIUM não entra
@@ -124,6 +117,28 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
   const [selectedAppointmentForMsg, setSelectedAppointmentForMsg] = useState<Appointment | null>(null);
   const [successFeedback, setSuccessFeedback] = useState<string | null>(null);
   const [cancelNotice, setCancelNotice] = useState<{ id: string; message: string; isLate: boolean } | null>(null);
+
+  // Horários liberados pelo admin para o barbeiro/data selecionados
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setIsLoadingSlots(true);
+    setAvailableSlots([]);
+    getBarberAvailability(selectedBarberId, selectedDate).then((slots) => {
+      if (!cancelled) {
+        setAvailableSlots(slots);
+        // Se o slot selecionado não está mais disponível, reseta para o primeiro disponível
+        if (slots.length > 0 && !slots.includes(selectedTime)) {
+          setSelectedTime(slots[0]);
+        }
+        setIsLoadingSlots(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [selectedBarberId, selectedDate, isOpen]);
 
   if (!isOpen) return null;
 
@@ -628,38 +643,53 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                 </div>
               )}
 
-              {/* 3. Time Slots */}
+              {/* 3. Time Slots — liberados pelo admin via painel de agenda */}
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-widest text-stone-300 block mb-2 flex items-center justify-between">
                   <span>4. Horários Disponíveis para {selectedBarber.name}</span>
                   <span className="text-[10px] text-stone-400 font-mono">10 min de tolerância</span>
                 </label>
 
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                  {AVAILABLE_TIMES.map((time) => {
-                    const taken = isTimeSlotTaken(time);
-                    const isSelected = selectedTime === time;
+                {isLoadingSlots ? (
+                  <div className="py-6 flex items-center justify-center gap-2 text-stone-500 text-xs">
+                    <div className="w-4 h-4 border-2 border-stone-600 border-t-[#94a288] rounded-full animate-spin" />
+                    Verificando disponibilidade...
+                  </div>
+                ) : availableSlots.length === 0 ? (
+                  <div className="py-5 px-4 rounded-lg bg-[#0a0a0a] border border-white/5 text-center space-y-1">
+                    <p className="text-stone-400 text-xs font-bold">Sem atendimento nesse dia</p>
+                    <p className="text-stone-600 text-[11px]">
+                      {selectedBarber.name} não tem horários liberados para {selectedDate}.<br />
+                      Entre em contato com a barbearia.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {availableSlots.map((time) => {
+                      const taken = isTimeSlotTaken(time);
+                      const isSelected = selectedTime === time;
 
-                    return (
-                      <button
-                        key={time}
-                        type="button"
-                        disabled={taken}
-                        onClick={() => setSelectedTime(time)}
-                        className={`py-2 px-1 rounded text-xs font-mono text-center font-bold transition border ${
-                          taken
-                            ? 'bg-red-950/20 border-red-900/40 text-red-500/50 cursor-not-allowed line-through'
-                            : isSelected
-                            ? 'bg-[#94a288] border-[#94a288] text-black shadow-md'
-                            : 'bg-[#0a0a0a] border-white/5 hover:border-[#94a288]/50 text-stone-300'
-                        }`}
-                      >
-                        {time}
-                        {taken && <span className="block text-[8px] no-underline">Ocupado</span>}
-                      </button>
-                    );
-                  })}
-                </div>
+                      return (
+                        <button
+                          key={time}
+                          type="button"
+                          disabled={taken}
+                          onClick={() => setSelectedTime(time)}
+                          className={`py-2 px-1 rounded text-xs font-mono text-center font-bold transition border ${
+                            taken
+                              ? 'bg-red-950/20 border-red-900/40 text-red-500/50 cursor-not-allowed line-through'
+                              : isSelected
+                              ? 'bg-[#94a288] border-[#94a288] text-black shadow-md'
+                              : 'bg-[#0a0a0a] border-white/5 hover:border-[#94a288]/50 text-stone-300'
+                          }`}
+                        >
+                          {time}
+                          {taken && <span className="block text-[8px] no-underline">Ocupado</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* 4. Client Info Inputs */}
@@ -714,7 +744,8 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-lg bg-[#94a288] hover:bg-[#69843a] text-black font-bold uppercase text-xs tracking-wider transition shadow-xl flex items-center justify-center gap-2"
+                disabled={availableSlots.length === 0 || isLoadingSlots}
+                className="w-full py-3.5 rounded-lg bg-[#94a288] hover:bg-[#69843a] text-black font-bold uppercase text-xs tracking-wider transition shadow-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Confirmar Agendamento com {selectedBarber.name} ({selectedDate} - {selectedTime})

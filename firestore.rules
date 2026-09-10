@@ -37,6 +37,13 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (signedIn() && resource.data.userUid == request.auth.uid);
     }
 
+    // Disponibilidade de agenda definida pelo admin por barbeiro/dia.
+    // Clientes autenticados precisam ler para exibir os horários disponíveis.
+    match /availability/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
