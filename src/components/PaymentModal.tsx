@@ -181,10 +181,16 @@ const StripeCardForm: React.FC<{
         if (!stripe) {
           throw new Error('Stripe SDK não inicializado.');
         }
-        const paymentResult = await stripe.confirmCardPayment(subData.paymentClientSecret);
+        const paymentResult = await stripe.confirmCardPayment(subData.paymentClientSecret, {
+          payment_method: paymentMethodId,
+        });
         if (paymentResult.error) {
           throw new Error(paymentResult.error.message || 'O pagamento inicial foi recusado.');
         }
+      } else if (subData.subscriptionStatus !== 'active' && subData.subscriptionStatus !== 'trialing') {
+        setErrorMessage('Pagamento recusado pelo emissor. Verifique o saldo do cartão ou tente com outro cartão.');
+        setIsProcessing(false);
+        return;
       }
 
       const transactionId = subData.transactionId || `STRIPE-${subData.stripeSubscriptionId || Date.now()}`;

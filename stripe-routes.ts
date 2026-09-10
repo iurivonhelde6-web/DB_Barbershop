@@ -947,8 +947,20 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
         stripeSubscriptionId = subscription.id;
         subscriptionStatus = subscription.status;
 
-        const latestInvoice = subscription.latest_invoice as Stripe.Invoice | null;
-        const latestPaymentIntent = (latestInvoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent | null })?.payment_intent ?? null;
+        // Extrai o payment_intent da invoice mais recente para confirmar pagamento no frontend.
+        // Quando o expand não retorna o objeto completo (retorna string/ID), buscamos manualmente.
+        let latestPaymentIntent: Stripe.PaymentIntent | null = null;
+        const latestInvoiceRaw = subscription.latest_invoice;
+        if (latestInvoiceRaw && typeof latestInvoiceRaw !== 'string') {
+          latestPaymentIntent = ((latestInvoiceRaw as any).payment_intent as Stripe.PaymentIntent | null) ?? null;
+        } else if (typeof latestInvoiceRaw === 'string' && subscriptionStatus !== 'active') {
+          try {
+            const invoiceObj = await stripe.invoices.retrieve(latestInvoiceRaw, { expand: ['payment_intent'] });
+            latestPaymentIntent = ((invoiceObj as any).payment_intent as Stripe.PaymentIntent | null) ?? null;
+          } catch (invoiceErr) {
+            console.warn('[Stripe] Não foi possível recuperar invoice para confirmar pagamento:', invoiceErr);
+          }
+        }
         paymentClientSecret = (latestPaymentIntent?.status === 'requires_payment_method' || latestPaymentIntent?.status === 'requires_action') ? latestPaymentIntent.client_secret : null;
 
         const pm = subscription.default_payment_method as Stripe.PaymentMethod | null;
