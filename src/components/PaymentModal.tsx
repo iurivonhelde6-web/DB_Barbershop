@@ -11,6 +11,7 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { SubscriberCard } from '../types';
+import { auth } from '../lib/firebase';
 
 // Inicializa o Stripe SDK do Frontend com a chave pública do arquivo .env
 const stripePublicKey = (import.meta as any).env?.VITE_STRIPE_PUBLIC_KEY as string | undefined;
@@ -161,6 +162,7 @@ const StripeCardForm: React.FC<{
           planAmount,
           subscriberId: subscriberCard?.id,
           cardCode: subscriberCard?.cardCode,
+          userUid: auth.currentUser?.uid || '',
         }),
       });
 

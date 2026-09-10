@@ -893,7 +893,7 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
   // ─── Subscribe — Processamento final da assinatura ───────────────────────
   app.post('/api/stripe/subscribe', jsonParser, async (req, res) => {
     try {
-      const { paymentMethodId, clientName, clientCpf, clientPhone, planName, planAmount, subscriberId, cardCode } = req.body || {};
+      const { paymentMethodId, clientName, clientCpf, clientPhone, planName, planAmount, subscriberId, cardCode, userUid } = req.body || {};
 
       if (!paymentMethodId || !clientName || !clientCpf || !planAmount) {
         return res.status(400).json({ error: 'Dados obrigatórios ausentes (Método de Pagamento, Nome, CPF ou Valor).' });
@@ -997,6 +997,7 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
           clientName, cpf: cleanCpf, phone: clientPhone || existing.phone || '', planName,
           serviceName: existing.serviceName || planName, totalSessions: existing.totalSessions || 4,
           usedSessions: existing.usedSessions || 0, startDate: startDateStr, expirationDate: expDateStr,
+          userUid: userUid || existing.userUid || '',
           status: subscriptionStatus === 'active' || subscriptionStatus === 'trialing' ? 'ACTIVE' : 'PAYMENT_PENDING',
           paymentStatus: subscriptionStatus === 'active' || subscriptionStatus === 'trialing' ? 'PAID' : 'PENDING',
           paymentMethod: 'CREDIT_CARD', paymentDate: startDateStr, transactionId: stripeSubscriptionId,
@@ -1073,22 +1074,54 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
             const subId = typeof subscription === 'string' ? subscription : subscription?.id;
             const custId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
             const match = await findSubscriber(subId || undefined, custId || undefined);
-            if (!match) break;
 
             const now = new Date();
             const expDate = new Date(); expDate.setDate(expDate.getDate() + 30);
-            const renewalInvoice = {
+            const paidInvoice = {
               id: `INV-STRIPE-RENEW-${Date.now()}`, invoiceCode: `STRIPE-RNW-${invoice.id?.slice(-8).toUpperCase() || Date.now()}`,
-              planName: match.data.planName || 'Assinatura Recorrente', amount: (invoice.amount_paid || 0) / 100,
+              planName: match?.data.planName || 'Assinatura Recorrente', amount: (invoice.amount_paid || 0) / 100,
               paymentMethod: 'CREDIT_CARD' as const, paymentDate: now.toLocaleString('pt-BR'),
               dueDate: now.toISOString().split('T')[0], period: 'Renovação Recorrente',
               status: 'PAID' as const, validationStatus: 'VALIDATED' as const,
               transactionId: invoice.id || `stripe-${Date.now()}`,
-              notes: 'Fatura renovada automaticamente via Stripe (invoice.paid)',
+              notes: 'Fatura paga via Stripe (invoice.paid)',
             };
-            const history = Array.isArray(match.data.paymentHistory) ? match.data.paymentHistory : [];
-            await db.collection('subscribers').doc(match.id).set({ ...match.data, status: 'ACTIVE', paymentStatus: 'PAID', paymentDate: now.toISOString().split('T')[0], expirationDate: expDate.toISOString().split('T')[0], paymentHistory: [renewalInvoice, ...history], updatedAt: now.toISOString() }, { merge: true });
-            console.log(`[Stripe Webhook] invoice.paid — assinante ${match.id} renovado.`);
+
+            if (match) {
+              const history = Array.isArray(match.data.paymentHistory) ? match.data.paymentHistory : [];
+              await db.collection('subscribers').doc(match.id).set({ ...match.data, status: 'ACTIVE', paymentStatus: 'PAID', paymentDate: now.toISOString().split('T')[0], expirationDate: expDate.toISOString().split('T')[0], paymentHistory: [paidInvoice, ...history], updatedAt: now.toISOString() }, { merge: true });
+              console.log(`[Stripe Webhook] invoice.paid — assinante ${match.id} ativado.`);
+            } else {
+              // Documento não encontrado — cria registro mínimo para não perder o pagamento
+              const fallbackId = `stripe_${(subId || custId || Date.now()).toString().replace(/\W/g, '_')}`;
+              await db.collection('subscribers').doc(fallbackId).set({
+                id: fallbackId, stripeSubscriptionId: subId || '', stripeCustomerId: custId || '',
+                planName: 'Assinatura Recorrente', serviceName: 'Assinatura Recorrente',
+                status: 'ACTIVE', paymentStatus: 'PAID',
+                paymentMethod: 'CREDIT_CARD', paymentDate: now.toISOString().split('T')[0],
+                startDate: now.toISOString().split('T')[0], expirationDate: expDate.toISOString().split('T')[0],
+                paidAmount: (invoice.amount_paid || 0) / 100, expectedAmount: (invoice.amount_paid || 0) / 100,
+                totalSessions: 0, usedSessions: 0, userUid: '', cardCode: '',
+                clientName: '', cpf: '', phone: '', cardLast4: '', cardBrand: '',
+                paymentHistory: [paidInvoice], updatedAt: now.toISOString(),
+              });
+              console.warn(`[Stripe Webhook] invoice.paid — assinante não encontrado, fallback criado: ${fallbackId}`);
+            }
+            break;
+          }
+
+          case 'customer.subscription.updated': {
+            const sub = event.data.object as Stripe.Subscription;
+            const custId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
+            const match = await findSubscriber(sub.id, custId || undefined);
+            if (!match) break;
+            const newStatus = sub.status === 'active' || sub.status === 'trialing' ? 'ACTIVE'
+              : sub.status === 'canceled' || sub.status === 'unpaid' ? 'SUSPENDED'
+              : 'PAYMENT_PENDING';
+            if (match.data.status !== newStatus) {
+              await db.collection('subscribers').doc(match.id).set({ status: newStatus, paymentStatus: newStatus === 'ACTIVE' ? 'PAID' : 'PENDING', updatedAt: new Date().toISOString() }, { merge: true });
+              console.log(`[Stripe Webhook] subscription.updated — assinante ${match.id} → ${newStatus}.`);
+            }
             break;
           }
 
