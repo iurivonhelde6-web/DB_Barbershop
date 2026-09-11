@@ -221,21 +221,21 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
   }) => {
     if (!selectedPlanForSub) return;
 
-    const randomId = Math.floor(1000 + Math.random() * 9000);
-    const newCardCode = `DB-${randomId}`;
-
     const today = new Date();
     const startDate = today.toISOString().split('T')[0];
     const expDateObj = new Date();
     expDateObj.setDate(expDateObj.getDate() + 30);
     const expirationDate = expDateObj.toISOString().split('T')[0];
 
-    const newSub: SubscriberCard = {
-      id: `sub-${Date.now()}`,
-      cardCode: newCardCode,
+    // Dados para a tela de sucesso (display only).
+    // O documento real foi criado e confirmado pelo servidor via verify-payment.
+    // O onSnapshot do listener em subscribeToSubscribers vai popular a lista automaticamente.
+    const displaySub: SubscriberCard = {
+      id: paymentData.transactionId,
+      cardCode: '',
       clientName: clientNameInput.trim(),
-      cpf: clientCpfInput.trim() || '000.000.000-00',
-      phone: clientPhoneInput.trim() || '(21) 90000-0000',
+      cpf: clientCpfInput.trim() || '',
+      phone: clientPhoneInput.trim() || '',
       planName: selectedPlanForSub.tierLabel,
       serviceName: selectedPlanForSub.serviceName,
       totalSessions: selectedPlanForSub.numAtendimentos,
@@ -243,8 +243,8 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
       startDate,
       expirationDate,
       status: 'ACTIVE',
-      qrCodeValue: `${newCardCode}-${clientNameInput.toUpperCase().replace(/\s+/g, '-')}`,
-      notes: `Plano quitado e ativado. Transação: ${paymentData.transactionId}`,
+      qrCodeValue: '',
+      notes: `Pagamento confirmado via Stripe. Transação: ${paymentData.transactionId}`,
       paymentStatus: 'PAID',
       paidAmount: paymentData.paidAmount,
       expectedAmount: selectedPlanForSub.totalPrice,
@@ -253,9 +253,10 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
       transactionId: paymentData.transactionId,
     };
 
-    onAddSubscriber(newSub);
+    // NÃO chama onAddSubscriber — o servidor já criou o documento no Firestore.
+    // Evita documento duplicado e impede que o frontend grave PAID sem verificação.
     playPaymentAlert();
-    setCreatedSubSuccess(newSub);
+    setCreatedSubSuccess(displaySub);
   };
 
   return (

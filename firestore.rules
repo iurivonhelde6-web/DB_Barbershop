@@ -23,11 +23,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Assinantes: somente admin (client SDK) ou server (Admin SDK) podem criar/atualizar.
+    // O Admin SDK bypassa regras automaticamente, então stripe-routes.ts continua funcionando.
+    // Clientes autenticados podem apenas ler o próprio documento.
     match /subscribers/{subscriberId} {
       allow read: if isAdmin() || (signedIn() && resource.data.userUid == request.auth.uid);
-      allow create: if signedIn() && request.resource.data.userUid == request.auth.uid;
-      allow update: if isAdmin() || (signedIn() && resource.data.userUid == request.auth.uid
-        && request.resource.data.userUid == request.auth.uid);
+      allow create, update: if isAdmin();
       allow delete: if isAdmin();
     }
 

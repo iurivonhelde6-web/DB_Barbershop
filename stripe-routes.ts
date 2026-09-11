@@ -914,7 +914,7 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
       let stripePriceId = `price_mock_${Date.now().toString(36)}`;
       let cardBrand = 'VISA';
       let cardLast4 = '4242';
-      let subscriptionStatus: Stripe.Subscription.Status = isProduction ? 'incomplete' : 'active';
+      let subscriptionStatus: Stripe.Subscription.Status = 'incomplete';
       let paymentClientSecret: string | null = null;
 
       if (stripe) {
@@ -1009,7 +1009,8 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
       } catch (dbErr) { console.error('[Stripe] Erro ao salvar no Firestore:', dbErr); }
 
       return res.json({
-        success: true, subscriptionId: stripeSubscriptionId, paymentClientSecret, subscriptionStatus,
+        success: true, subscriptionId: stripeSubscriptionId, subscriberId: targetId,
+        paymentClientSecret, subscriptionStatus,
         stripeCustomerId, cardBrand: cardBrand.toUpperCase(), cardLast4,
         status: subscriptionStatus === 'active' || subscriptionStatus === 'trialing' ? 'ACTIVE' : 'PAYMENT_PENDING',
         expirationDate: expDateStr,
@@ -1017,6 +1018,69 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
     } catch (err: any) {
       console.error('[Stripe] Erro ao criar assinatura:', err);
       return res.status(500).json({ error: err.message || 'Erro ao processar assinatura.' });
+    }
+  });
+
+  // ─── Verify Payment — verificação server-side pós-confirmCardPayment ─────
+  app.post('/api/stripe/verify-payment', jsonParser, async (req, res) => {
+    try {
+      const { subscriptionId } = req.body || {};
+      if (!subscriptionId || typeof subscriptionId !== 'string') {
+        return res.status(400).json({ error: 'subscriptionId obrigatório.', verified: false, paymentConfirmed: false });
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.status(503).json({ error: 'Stripe não configurado.', verified: false, paymentConfirmed: false });
+      }
+
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ['latest_invoice.payment_intent'],
+      });
+
+      const isActive = subscription.status === 'active' || subscription.status === 'trialing';
+
+      // Para subscriptions ainda incomplete, verifica o PaymentIntent diretamente
+      let paymentConfirmed = isActive;
+      if (!isActive && subscription.latest_invoice && typeof subscription.latest_invoice !== 'string') {
+        const pi = (subscription.latest_invoice as any).payment_intent as Stripe.PaymentIntent | null;
+        paymentConfirmed = pi?.status === 'succeeded';
+      }
+
+      // Se o pagamento foi confirmado, atualizar Firestore via Admin SDK
+      if (paymentConfirmed) {
+        const snap = await db.collection('subscribers')
+          .where('stripeSubscriptionId', '==', subscriptionId).limit(1).get();
+
+        if (!snap.empty) {
+          const now = new Date();
+          const expDate = new Date(); expDate.setDate(expDate.getDate() + 30);
+          await snap.docs[0].ref.set({
+            status: 'ACTIVE', paymentStatus: 'PAID',
+            paymentDate: now.toISOString().split('T')[0],
+            expirationDate: expDate.toISOString().split('T')[0],
+            updatedAt: now.toISOString(),
+          }, { merge: true });
+          console.log(`[Stripe] verify-payment — assinante ${snap.docs[0].id} confirmado como PAID.`);
+        }
+      }
+
+      // Buscar o subscriberId do documento para o frontend
+      let subscriberId = '';
+      const snap2 = await db.collection('subscribers')
+        .where('stripeSubscriptionId', '==', subscriptionId).limit(1).get();
+      if (!snap2.empty) subscriberId = snap2.docs[0].id;
+
+      return res.json({
+        verified: true, paymentConfirmed,
+        subscriptionStatus: subscription.status,
+        status: paymentConfirmed ? 'ACTIVE' : 'PAYMENT_PENDING',
+        paymentStatus: paymentConfirmed ? 'PAID' : 'PENDING',
+        subscriberId,
+      });
+    } catch (err: any) {
+      console.error('[Stripe] Erro ao verificar pagamento:', err);
+      return res.status(500).json({ error: err.message || 'Erro ao verificar pagamento.', verified: false, paymentConfirmed: false });
     }
   });
 

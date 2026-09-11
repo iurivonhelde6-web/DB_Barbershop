@@ -172,15 +172,18 @@ export default function App() {
       timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     });
 
-    // Save to Firestore real-time cloud database
-    try {
-      await addSubscriberToCloud({
-        ...newSub,
-        userUid: firebaseUser?.uid,
-        email: firebaseUser?.email || newSub.email,
-      });
-    } catch (e) {
-      console.error('Erro ao salvar no Firestore:', e);
+    // Save to Firestore — somente admin pode gravar via client SDK.
+    // Assinantes criados pelo Stripe são gravados server-side (Admin SDK) em stripe-routes.ts.
+    if (currentUser?.role === 'admin') {
+      try {
+        await addSubscriberToCloud({
+          ...newSub,
+          userUid: firebaseUser?.uid,
+          email: firebaseUser?.email || newSub.email,
+        });
+      } catch (e) {
+        console.error('Erro ao salvar no Firestore:', e);
+      }
     }
   };
 

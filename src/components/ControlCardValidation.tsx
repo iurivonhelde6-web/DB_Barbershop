@@ -197,40 +197,11 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
   }) => {
     if (!selectedSub) return;
 
-    const newInvoice: PaymentInvoice = {
-      id: `inv-${Date.now()}`,
-      invoiceCode: `FAT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-      planName: selectedSub.planName,
-      amount: paymentData.paidAmount,
-      paymentMethod: paymentData.paymentMethod,
-      paymentDate: paymentData.paymentDate,
-      dueDate: selectedSub.startDate || new Date().toISOString().slice(0, 10),
-      period: `${new Date().toLocaleString('pt-BR', { month: 'long' })} / ${new Date().getFullYear()}`,
-      status: 'PAID',
-      validationStatus: 'VALIDATED',
-      transactionId: paymentData.transactionId,
-      notes: `Pagamento de R$ ${paymentData.paidAmount.toFixed(2)} confirmado via ${paymentData.paymentMethod}. Carteirinha ativada.`,
-    };
-
-    const currentHistory = getSubscriberPaymentHistory(selectedSub);
-    const updatedHistory = [newInvoice, ...currentHistory.filter((inv) => inv.id !== newInvoice.id)];
-
-    const updatedSub: SubscriberCard = {
-      ...selectedSub,
-      status: 'ACTIVE',
-      paymentStatus: 'PAID',
-      paidAmount: paymentData.paidAmount,
-      expectedAmount: paymentData.paidAmount,
-      paymentMethod: paymentData.paymentMethod,
-      paymentDate: paymentData.paymentDate,
-      transactionId: paymentData.transactionId,
-      paymentHistory: updatedHistory,
-      notes: `Mensalidade do plano quitada com sucesso em ${paymentData.paymentDate}. Transação: ${paymentData.transactionId}`,
-    };
-
-    onUpdateSubscriber(updatedSub);
+    // NÃO sobrescreve o documento com ACTIVE/PAID.
+    // O verify-payment (chamado pelo PaymentModal) já atualizou o Firestore server-side.
+    // O onSnapshot vai refletir o status correto automaticamente.
     setCheckinSuccessMsg(
-      `🎉 Mensalidade de ${selectedSub.clientName} quitada com sucesso (R$ ${paymentData.paidAmount.toFixed(2)})! Carteirinha e atendimentos liberados.`
+      `Pagamento de ${selectedSub.clientName} confirmado pelo Stripe (R$ ${paymentData.paidAmount.toFixed(2)}). A carteirinha será atualizada em instantes.`
     );
     setTimeout(() => setCheckinSuccessMsg(null), 6000);
   };

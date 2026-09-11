@@ -195,7 +195,21 @@ const StripeCardForm: React.FC<{
         return;
       }
 
-      const transactionId = subData.transactionId || `STRIPE-${subData.stripeSubscriptionId || Date.now()}`;
+      // Verificação server-side: confirma com o Stripe que o pagamento realmente foi aprovado
+      const verifyRes = await fetch('/api/stripe/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptionId: subData.subscriptionId }),
+      });
+      const verifyData = await verifyRes.json().catch(() => ({ verified: false, paymentConfirmed: false }));
+
+      if (!verifyData.paymentConfirmed) {
+        setErrorMessage('Pagamento não confirmado pelo Stripe. Se o valor foi debitado, entre em contato conosco.');
+        setIsProcessing(false);
+        return;
+      }
+
+      const transactionId = subData.subscriptionId || `sub_${Date.now()}`;
       const nowStr = new Date().toLocaleString('pt-BR');
 
       cardLast4 = subData.cardLast4 || cardLast4;
