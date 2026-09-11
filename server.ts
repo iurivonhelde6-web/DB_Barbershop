@@ -7,6 +7,7 @@ import { GoogleGenAI } from '@google/genai';
 import { getApps as getAdminApps, initializeApp as initializeAdminApp, cert, getApp as getAdminApp } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
+import Stripe from 'stripe';
 import { PLANS_LIST } from './src/data/barberData.js';
 import { registerStripeRoutes } from './stripe-routes.js';
 
@@ -203,7 +204,6 @@ app.post('/api/payment/create-intent', authCheckMiddleware, async (req, res) => 
       return res.status(503).json({ error: 'Gateway de pagamento não configurado para produção.' });
     }
 
-    const { default: Stripe } = await import('stripe');
     const stripe = new Stripe(stripeKey);
 
     if (paymentMethod !== 'CREDIT_CARD') {

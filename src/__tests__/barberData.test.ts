@@ -66,7 +66,7 @@ describe('PLANS_LIST — integridade e aritmética', () => {
 
   it('barberSplitPerAtd + houseMarginPerAtd ≈ pricePerAtd (tolerância R$ 0,10)', () => {
     PLANS_LIST.forEach((plan) => {
-      const soma = round2(plan.barberSplitPerAtd + plan.houseMarginPerAtd);
+      const soma = round2((plan.barberSplitPerAtd ?? 0) + (plan.houseMarginPerAtd ?? 0));
       const diff = Math.abs(soma - plan.pricePerAtd);
       expect(diff, `Split por ATD errado no plano '${plan.id}': ${soma} ≠ ${plan.pricePerAtd}`).toBeLessThanOrEqual(0.10);
     });

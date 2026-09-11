@@ -1158,7 +1158,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
             <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={() => handlePrintReceipt(selectedInvoiceForModal)}
-                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#6D7E5A] to-[#38472A] hover:from-[#7e9169] hover:to-[#465835] text-[#FDFDFD] font-extrabold uppercase text-xs tracking-wider transition flex items-center justify-center gap-2 shadow-lg"
+                className="flex-1 px-4 py-3 rounded-xl bg-linear-to-r from-[#6D7E5A] to-[#38472A] hover:from-[#7e9169] hover:to-[#465835] text-[#FDFDFD] font-extrabold uppercase text-xs tracking-wider transition flex items-center justify-center gap-2 shadow-lg"
               >
                 <Printer className="w-4 h-4 text-[#FDFDFD]" />
                 <span>Imprimir Recibo</span>

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "lib": ["ES2022"],
+    "skipLibCheck": true,
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "strict": false,
+    "allowJs": true,
+    "outDir": "dist"
+  },
+  "include": ["server.ts", "stripe-routes.ts", "scripts/**/*"]
+}

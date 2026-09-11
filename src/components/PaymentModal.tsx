@@ -297,7 +297,7 @@ const StripeCardForm: React.FC<{
       <button
         type="submit"
         disabled={isProcessing}
-        className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-stone-950 uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+        className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-linear-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-stone-950 uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
       >
         {isProcessing ? (
           <>
@@ -357,7 +357,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
       <div className="relative w-full max-w-lg bg-[#111111] border border-[#38472A]/60 rounded-2xl shadow-2xl overflow-hidden my-8">
         {/* Header */}
-        <div className="p-5 border-b border-[#38472A]/40 flex items-center justify-between bg-gradient-to-r from-[#182013] to-[#111111]">
+        <div className="p-5 border-b border-[#38472A]/40 flex items-center justify-between bg-linear-to-r from-[#182013] to-[#111111]">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
               <Building className="w-5 h-5" />

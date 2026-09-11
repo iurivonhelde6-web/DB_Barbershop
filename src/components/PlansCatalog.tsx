@@ -356,7 +356,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
       {/* Appointment Booking Banner & Rules Box */}
       {onOpenBooking && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="bg-gradient-to-r from-[#141414] via-[#1a1c14] to-[#141414] rounded-lg p-6 border border-amber-500/30 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+          <div className="bg-linear-to-r from-[#141414] via-[#1a1c14] to-[#141414] rounded-lg p-6 border border-amber-500/30 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
             <div className="space-y-2 max-w-2xl">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-bold uppercase tracking-widest border border-amber-500/30">
                 <Calendar className="w-3.5 h-3.5" />
@@ -502,7 +502,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                   onClick={() => setSelectedServiceId(srv.id)}
                   className={`p-5 rounded-lg border transition-all duration-200 cursor-pointer flex flex-col justify-between relative ${
                     isSoTesoura
-                      ? 'bg-gradient-to-br from-[#1a1c14] to-[#121212] border-amber-500/50 shadow-lg hover:border-amber-400'
+                      ? 'bg-linear-to-br from-[#1a1c14] to-[#121212] border-amber-500/50 shadow-lg hover:border-amber-400'
                       : isSelected
                       ? 'bg-[#1a1a1a] border-[#94a288] shadow-lg ring-1 ring-[#94a288]'
                       : 'bg-[#0a0a0a] border-white/10 hover:border-[#94a288]/40 hover:bg-[#141414]'

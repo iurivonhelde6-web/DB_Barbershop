@@ -552,13 +552,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 text-[#FDFDFD]">
       {/* Top Banner & Title Section */}
-      <div className="bg-gradient-to-br from-[#111111] via-[#1a2215] to-[#111111] rounded-2xl p-6 sm:p-8 border border-[#38472A]/60 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#6D7E5A]/15 to-[#38472A]/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+      <div className="bg-linear-to-br from-[#111111] via-[#1a2215] to-[#111111] rounded-2xl p-6 sm:p-8 border border-[#38472A]/60 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-br from-[#6D7E5A]/15 to-[#38472A]/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
         
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-gradient-to-r from-[#6D7E5A]/25 to-[#38472A]/40 border border-[#6D7E5A]/50 text-[#FDFDFD] text-xs font-bold uppercase tracking-wider shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-linear-to-r from-[#6D7E5A]/25 to-[#38472A]/40 border border-[#6D7E5A]/50 text-[#FDFDFD] text-xs font-bold uppercase tracking-wider shadow-sm">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#6D7E5A]" />
                 <span>Painel Central de Gestão Administrador</span>
               </div>
@@ -581,7 +581,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={onOpenBooking}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6D7E5A] to-[#38472A] hover:from-[#7b8e67] hover:to-[#435633] text-[#FDFDFD] font-extrabold text-xs uppercase tracking-wider transition shadow-lg border border-[#6D7E5A]/40 flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl bg-linear-to-r from-[#6D7E5A] to-[#38472A] hover:from-[#7b8e67] hover:to-[#435633] text-[#FDFDFD] font-extrabold text-xs uppercase tracking-wider transition shadow-lg border border-[#6D7E5A]/40 flex items-center gap-2"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Novo Agendamento</span>
@@ -589,7 +589,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <button
               onClick={onOpenCheckin}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#111111] to-[#181d15] hover:from-[#181d15] hover:to-[#22281e] text-[#FDFDFD] border border-[#38472A]/50 font-bold text-xs uppercase tracking-wider transition flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl bg-linear-to-r from-[#111111] to-[#181d15] hover:from-[#181d15] hover:to-[#22281e] text-[#FDFDFD] border border-[#38472A]/50 font-bold text-xs uppercase tracking-wider transition flex items-center gap-2"
             >
               <UserCheck className="w-4 h-4 text-[#6D7E5A]" />
               <span>Validar Cartão Membro</span>
@@ -597,7 +597,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <button
               onClick={onOpenRegister}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#111111] to-[#1d1b14] hover:from-[#1d1b14] hover:to-[#28241a] text-amber-300 border border-amber-500/30 font-bold text-xs uppercase tracking-wider transition flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl bg-linear-to-r from-[#111111] to-[#1d1b14] hover:from-[#1d1b14] hover:to-[#28241a] text-amber-300 border border-amber-500/30 font-bold text-xs uppercase tracking-wider transition flex items-center gap-2"
             >
               <Sparkles className="w-4 h-4" />
               <span>Cadastrar Membro</span>
@@ -611,7 +611,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setActiveTab('overview')}
             className={`px-5 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition flex items-center gap-2 ${
               activeTab === 'overview'
-                ? 'bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-xl border border-[#6D7E5A]/50'
+                ? 'bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-xl border border-[#6D7E5A]/50'
                 : 'bg-[#111111] text-[#A4A9A5] border border-[#38472A]/30 hover:text-[#FDFDFD] hover:border-[#6D7E5A]/40'
             }`}
           >
@@ -623,7 +623,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setActiveTab('calculator')}
             className={`px-5 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition flex items-center gap-2 ${
               activeTab === 'calculator'
-                ? 'bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-xl border border-[#6D7E5A]/50'
+                ? 'bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-xl border border-[#6D7E5A]/50'
                 : 'bg-[#111111] text-[#A4A9A5] border border-[#38472A]/30 hover:text-[#FDFDFD] hover:border-[#6D7E5A]/40'
             }`}
           >
@@ -635,7 +635,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setActiveTab('agenda')}
             className={`px-5 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition flex items-center gap-2 ${
               activeTab === 'agenda'
-                ? 'bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-xl border border-[#6D7E5A]/50'
+                ? 'bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-xl border border-[#6D7E5A]/50'
                 : 'bg-[#111111] text-[#A4A9A5] border border-[#38472A]/30 hover:text-[#FDFDFD] hover:border-[#6D7E5A]/40'
             }`}
           >
@@ -647,7 +647,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setActiveTab('backups')}
             className={`px-5 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition flex items-center gap-2 ${
               activeTab === 'backups'
-                ? 'bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-xl border border-[#6D7E5A]/50'
+                ? 'bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-xl border border-[#6D7E5A]/50'
                 : 'bg-[#111111] text-[#A4A9A5] border border-[#38472A]/30 hover:text-[#FDFDFD] hover:border-[#6D7E5A]/40'
             }`}
           >
@@ -660,17 +660,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab === 'overview' ? (
         <>
           {/* Seletor de Intervalo de Datas / Filtro por Período */}
-          <div className="bg-gradient-to-br from-[#111111] via-[#161c13] to-[#111111] rounded-2xl border border-[#38472A]/50 p-5 shadow-2xl space-y-4">
+          <div className="bg-linear-to-br from-[#111111] via-[#161c13] to-[#111111] rounded-2xl border border-[#38472A]/50 p-5 shadow-2xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#38472A]/40">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-[#6D7E5A]/20 to-[#38472A]/30 border border-[#6D7E5A]/40 text-[#6D7E5A]">
+                <div className="p-2 rounded-xl bg-linear-to-br from-[#6D7E5A]/20 to-[#38472A]/30 border border-[#6D7E5A]/40 text-[#6D7E5A]">
                   <CalendarDays className="w-5 h-5 text-[#6D7E5A]" />
                 </div>
                 <div>
                   <h3 className="text-sm font-extrabold text-[#FDFDFD] uppercase tracking-wider flex items-center gap-2">
                     <span>Filtrar Métrica por Período / Intervalo de Datas</span>
                     {activeDateLabel && (
-                      <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] font-extrabold text-[10px] uppercase font-mono shadow-sm">
+                      <span className="px-2 py-0.5 rounded-full bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] font-extrabold text-[10px] uppercase font-mono shadow-sm">
                         Filtro Ativo
                       </span>
                     )}
@@ -712,7 +712,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onClick={() => setDatePreset(preset.id as any)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition whitespace-nowrap ${
                     datePreset === preset.id
-                      ? 'bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-lg border border-[#6D7E5A]/50 font-extrabold'
+                      ? 'bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-lg border border-[#6D7E5A]/50 font-extrabold'
                       : 'bg-[#111111] text-[#A4A9A5] border border-[#38472A]/30 hover:text-[#FDFDFD]'
                   }`}
                 >
@@ -751,7 +751,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {/* Active Interval Description Badge */}
             {activeDateLabel && (
-              <div className="bg-gradient-to-r from-[#111111] via-[#1a2215] to-[#111111] border border-[#6D7E5A]/40 rounded-xl px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#A4A9A5]">
+              <div className="bg-linear-to-r from-[#111111] via-[#1a2215] to-[#111111] border border-[#6D7E5A]/40 rounded-xl px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#A4A9A5]">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-[#6D7E5A] shrink-0" />
                   <span>
@@ -770,13 +770,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Key KPI Metric Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* KPI 1: Receita Mensal Estimada */}
-            <div className="bg-gradient-to-br from-[#111111] via-[#172014] to-[#111111] p-6 rounded-2xl border border-[#6D7E5A]/40 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
+            <div className="bg-linear-to-br from-[#111111] via-[#172014] to-[#111111] p-6 rounded-2xl border border-[#6D7E5A]/40 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#A4A9A5] flex items-center gap-1.5">
                   <DollarSign className="w-4 h-4 text-[#6D7E5A]" />
                   Receita Mensal Estimada
                 </span>
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-md">
+                <div className="p-2.5 rounded-xl bg-linear-to-br from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-md">
                   <TrendingUp className="w-5 h-5" />
                 </div>
               </div>
@@ -805,13 +805,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* KPI 2: Total de Assinantes Ativos */}
-            <div className="bg-gradient-to-br from-[#111111] via-[#191e17] to-[#111111] p-6 rounded-2xl border border-[#38472A]/40 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
+            <div className="bg-linear-to-br from-[#111111] via-[#191e17] to-[#111111] p-6 rounded-2xl border border-[#38472A]/40 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#A4A9A5] flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-[#A4A9A5]" />
                   Assinantes Ativos D•B
                 </span>
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#6D7E5A]/30 to-[#38472A]/50 border border-[#6D7E5A]/40 text-[#FDFDFD]">
+                <div className="p-2.5 rounded-xl bg-linear-to-br from-[#6D7E5A]/30 to-[#38472A]/50 border border-[#6D7E5A]/40 text-[#FDFDFD]">
                   <UserCheck className="w-5 h-5" />
                 </div>
               </div>
@@ -849,13 +849,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* KPI 3: Próximos Agendamentos */}
-            <div className="bg-gradient-to-br from-[#111111] via-[#171c15] to-[#111111] p-6 rounded-2xl border border-[#38472A]/40 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
+            <div className="bg-linear-to-br from-[#111111] via-[#171c15] to-[#111111] p-6 rounded-2xl border border-[#38472A]/40 shadow-xl relative overflow-hidden flex flex-col justify-between space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#A4A9A5] flex items-center gap-1.5">
                   <CalendarCheck className="w-4 h-4 text-sky-400" />
                   Próximos Agendamentos
                 </span>
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#38472A] to-[#111111] border border-[#38472A]/60 text-[#A4A9A5]">
+                <div className="p-2.5 rounded-xl bg-linear-to-br from-[#38472A] to-[#111111] border border-[#38472A]/60 text-[#A4A9A5]">
                   <Clock className="w-5 h-5 text-sky-400" />
                 </div>
               </div>
@@ -880,7 +880,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* PAINEL DE ALERTA VISUAL: Assinaturas Próximas do Vencimento (< 3 Dias) */}
           {expiringSubscribersList.length > 0 ? (
-            <div className="bg-gradient-to-br from-[#1c160c] via-[#261d0f] to-[#141009] rounded-2xl border-2 border-amber-500/60 p-6 shadow-2xl space-y-5 relative overflow-hidden">
+            <div className="bg-linear-to-br from-[#1c160c] via-[#261d0f] to-[#141009] rounded-2xl border-2 border-amber-500/60 p-6 shadow-2xl space-y-5 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-amber-500/30 relative z-10">
@@ -984,7 +984,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             href={whatsappUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full px-3 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-extrabold text-[11px] uppercase tracking-wider transition flex items-center justify-center gap-1.5 shadow-md"
+                            className="w-full px-3 py-2 rounded-lg bg-linear-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-extrabold text-[11px] uppercase tracking-wider transition flex items-center justify-center gap-1.5 shadow-md"
                             title="Notificar cliente sobre a renovação pelo WhatsApp"
                           >
                             <MessageSquare className="w-3.5 h-3.5 fill-current" />
@@ -1021,10 +1021,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
           {/* Recharts Bar Chart: Receita Mensal dos Últimos 6 Meses */}
-          <div className="bg-gradient-to-br from-[#111111] via-[#161c13] to-[#111111] rounded-2xl border border-[#38472A]/50 p-6 shadow-2xl space-y-6">
+          <div className="bg-linear-to-br from-[#111111] via-[#161c13] to-[#111111] rounded-2xl border border-[#38472A]/50 p-6 shadow-2xl space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#38472A]/30">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-gradient-to-r from-[#6D7E5A]/20 to-[#38472A]/40 border border-[#6D7E5A]/40 text-[#FDFDFD] text-[10px] font-bold uppercase tracking-wider">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-linear-to-r from-[#6D7E5A]/20 to-[#38472A]/40 border border-[#6D7E5A]/40 text-[#FDFDFD] text-[10px] font-bold uppercase tracking-wider">
                   <BarChart3 className="w-3.5 h-3.5 text-[#6D7E5A]" />
                   <span>Histórico & Projeção Financeira</span>
                 </div>
@@ -1095,11 +1095,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="bg-gradient-to-br from-[#111111] via-[#1a2215] to-[#111111] border border-[#6D7E5A]/60 p-3.5 rounded-xl shadow-2xl text-xs space-y-1.5 font-sans">
+                          <div className="bg-linear-to-br from-[#111111] via-[#1a2215] to-[#111111] border border-[#6D7E5A]/60 p-3.5 rounded-xl shadow-2xl text-xs space-y-1.5 font-sans">
                             <div className="font-bold text-[#FDFDFD] border-b border-[#38472A]/50 pb-1.5 flex items-center justify-between gap-4">
                               <span>{data.fullMonthName} {data.year}</span>
                               {data.isCurrentMonth && (
-                                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] font-extrabold shadow-sm">
+                                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] font-extrabold shadow-sm">
                                   MÊS ATUAL
                                 </span>
                               )}
@@ -1225,7 +1225,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           {/* Real-time Appointments Section */}
-          <div className="bg-gradient-to-br from-[#111111] via-[#161c13] to-[#111111] rounded-2xl border border-[#38472A]/50 p-6 shadow-2xl space-y-6">
+          <div className="bg-linear-to-br from-[#111111] via-[#161c13] to-[#111111] rounded-2xl border border-[#38472A]/50 p-6 shadow-2xl space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-[#FDFDFD] flex items-center gap-2">
@@ -1245,7 +1245,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     onClick={() => setAppointmentFilter(st)}
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition ${
                       appointmentFilter === st
-                        ? 'bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-md border border-[#6D7E5A]/50 font-extrabold'
+                        ? 'bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-md border border-[#6D7E5A]/50 font-extrabold'
                         : 'bg-[#111111] text-[#A4A9A5] border border-[#38472A]/30 hover:text-[#FDFDFD]'
                     }`}
                   >
@@ -1294,7 +1294,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onClick={() => setSelectedBarberFilter('ALL')}
                   className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase transition whitespace-nowrap ${
                     selectedBarberFilter === 'ALL'
-                      ? 'bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-sm font-extrabold'
+                      ? 'bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-sm font-extrabold'
                       : 'bg-[#111111] text-[#A4A9A5] hover:text-[#FDFDFD] border border-[#38472A]/30'
                   }`}
                 >
@@ -1318,7 +1318,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       onClick={() => setSelectedBarberFilter(isSelected ? 'ALL' : b.name)}
                       className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition flex items-center gap-1 whitespace-nowrap ${
                         isSelected
-                          ? 'bg-gradient-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-sm font-extrabold'
+                          ? 'bg-linear-to-r from-[#6D7E5A] to-[#38472A] text-[#FDFDFD] shadow-sm font-extrabold'
                           : 'bg-[#111111] text-[#A4A9A5] hover:text-[#FDFDFD] border border-[#38472A]/30'
                       }`}
                       title={`Filtrar agendamentos de ${b.name}`}
