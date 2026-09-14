@@ -752,8 +752,17 @@ function getStripe(): Stripe | null {
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 
-function subscriptionStatusToInvoiceStatus(status: Stripe.Subscription.Status): 'PAID' | 'PENDING' {
-  return status === 'active' || status === 'trialing' ? 'PAID' : 'PENDING';
+/**
+ * Único portão que decide se um evento de webhook pode ativar/renovar uma assinatura.
+ * checkout.session.completed cobre a ativação inicial (Stripe Checkout); invoice.paid
+ * cobre as renovações recorrentes. Nenhum outro caminho (frontend, criação da sessão,
+ * outros tipos de evento) tem permissão para marcar um assinante como PAID/ACTIVE —
+ * é isso que fecha o bug de cartão sem limite sendo aceito antes da confirmação real.
+ */
+export function isPaymentConfirmationEvent(
+  eventType: string,
+): eventType is 'checkout.session.completed' | 'invoice.paid' {
+  return eventType === 'checkout.session.completed' || eventType === 'invoice.paid';
 }
 
 // ─── Auth Middleware ──────────────────────────────────────────────────────────
@@ -840,247 +849,125 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
     });
   });
 
-  // ─── SetupIntent — Inicialização segura de cartão ─────────────────────────
-  app.post('/api/stripe/setup-intent', jsonParser, async (req, res) => {
+  // ─── Checkout Session — Redireciona o cliente para a página hospedada pelo Stripe ──
+  // Nenhum dado de cartão (número, validade, CVV) passa por este servidor ou pelo
+  // frontend: o Stripe Checkout Session coleta tudo na própria página do Stripe.
+  // A assinatura só é ativada quando o webhook confirmar o pagamento (veja
+  // isPaymentConfirmationEvent), nunca aqui na criação da sessão.
+  app.post('/api/stripe/create-checkout-session', jsonParser, async (req, res) => {
     try {
-      const { clientName, clientCpf, planName } = req.body || {};
-      const cleanCpf = typeof clientCpf === 'string' ? clientCpf.replace(/\D/g, '') : '';
-      const name = typeof clientName === 'string' && clientName.trim() ? clientName.trim() : 'Cliente Ded Black';
-      const stripe = getStripe();
+      const { planName, serviceName, planAmount, clientName, clientCpf, clientPhone, subscriberId, cardCode, userUid, barberId } = req.body || {};
 
-      if (stripe) {
-        let stripeCustomerId: string | undefined;
-
-        if (cleanCpf) {
-          try {
-            const existingCustomers = await stripe.customers.search({ query: `metadata['cpf']:'${cleanCpf}'`, limit: 1 });
-            if (existingCustomers.data.length > 0) {
-              stripeCustomerId = existingCustomers.data[0].id;
-            }
-          } catch {
-            // Ignora falha de busca por metadata caso a conta seja nova
-          }
-        }
-
-        if (!stripeCustomerId) {
-          const customer = await stripe.customers.create({
-            name,
-            metadata: { cpf: cleanCpf || 'PENDING', planName: planName || 'DESCONHECIDO' },
-          });
-          stripeCustomerId = customer.id;
-        }
-
-        const setupIntent = await stripe.setupIntents.create({
-          customer: stripeCustomerId,
-          payment_method_types: ['card'],
-          usage: 'off_session',
-          metadata: { cpf: cleanCpf, planName: planName || '', clientName: name },
-        });
-
-        return res.json({ clientSecret: setupIntent.client_secret, stripeCustomerId });
+      if (!clientName || typeof clientName !== 'string' || !clientName.trim()) {
+        return res.status(400).json({ error: 'Nome do cliente é obrigatório.' });
       }
 
-      if (isProduction) return res.status(503).json({ error: 'Stripe não está configurado para produção.' });
-
-      const mockSecret = `seti_mock_${Date.now().toString(36)}_secret_${Math.random().toString(36).substring(2, 10)}`;
-      return res.json({ clientSecret: mockSecret, stripeCustomerId: `cus_mock_${cleanCpf || 'anon'}`, mockMode: true });
-    } catch (err: any) {
-      console.error('[Stripe] Erro ao criar SetupIntent:', err);
-      return res.status(500).json({ error: err.message || 'Erro ao inicializar checkout seguro.' });
-    }
-  });
-
-  // ─── Subscribe — Processamento final da assinatura ───────────────────────
-  app.post('/api/stripe/subscribe', jsonParser, async (req, res) => {
-    try {
-      const { paymentMethodId, clientName, clientCpf, clientPhone, planName, planAmount, subscriberId, cardCode, userUid } = req.body || {};
-
-      if (!paymentMethodId || !clientName || !clientCpf || !planAmount) {
-        return res.status(400).json({ error: 'Dados obrigatórios ausentes (Método de Pagamento, Nome, CPF ou Valor).' });
-      }
-
-      const stripe = getStripe();
-      if (isProduction && !stripe) return res.status(503).json({ error: 'Stripe não está configurado para produção.' });
-
-      const cleanCpf = clientCpf.replace(/\D/g, '');
-      const amountInCents = Math.round(Number(planAmount) * 100);
-      const validPlan = PLANS_LIST.find((p) => p.tierLabel === planName || p.id === planName || p.serviceName === planName);
-      if (!validPlan || Math.abs(validPlan.totalPrice - Number(planAmount)) > 0.01) {
+      const validPlan = PLANS_LIST.find(
+        (p) => (p.tierLabel === planName && p.serviceName === serviceName) || p.id === planName,
+      );
+      if (!validPlan || (planAmount != null && Math.abs(validPlan.totalPrice - Number(planAmount)) > 0.01)) {
         return res.status(400).json({ error: 'Plano ou valor inválido.' });
-      }
-
-      let stripeCustomerId = `cus_mock_${cleanCpf || Date.now()}`;
-      let stripeSubscriptionId = `sub_mock_${Date.now().toString(36)}`;
-      let stripePriceId = `price_mock_${Date.now().toString(36)}`;
-      let cardBrand = 'VISA';
-      let cardLast4 = '4242';
-      let subscriptionStatus: Stripe.Subscription.Status = 'incomplete';
-      let paymentClientSecret: string | null = null;
-
-      if (stripe) {
-        try {
-          const existingCustomers = await stripe.customers.search({ query: `metadata['cpf']:'${cleanCpf}'`, limit: 1 });
-          if (existingCustomers.data.length > 0) {
-            stripeCustomerId = existingCustomers.data[0].id;
-            await stripe.customers.update(stripeCustomerId, { invoice_settings: { default_payment_method: paymentMethodId } });
-          } else {
-            const customer = await stripe.customers.create({ name: clientName, phone: clientPhone || undefined, payment_method: paymentMethodId, invoice_settings: { default_payment_method: paymentMethodId }, metadata: { cpf: cleanCpf, planName, barbershop: 'Ded Black' } });
-            stripeCustomerId = customer.id;
-          }
-        } catch {
-          const customer = await stripe.customers.create({ name: clientName, phone: clientPhone || undefined, payment_method: paymentMethodId, invoice_settings: { default_payment_method: paymentMethodId }, metadata: { cpf: cleanCpf, planName, barbershop: 'Ded Black' } });
-          stripeCustomerId = customer.id;
-        }
-
-        if (paymentMethodId && !paymentMethodId.startsWith('pm_mock')) {
-          await stripe.paymentMethods.attach(paymentMethodId, { customer: stripeCustomerId }).catch(() => {});
-        }
-
-        const price = await stripe.prices.create({ unit_amount: amountInCents, currency: 'brl', recurring: { interval: 'month' }, product_data: { name: `Ded Black — ${planName}`, metadata: { barbershop: 'Ded Black' } } });
-        stripePriceId = price.id;
-
-        const subscription = await stripe.subscriptions.create({
-          customer: stripeCustomerId, items: [{ price: price.id }],
-          default_payment_method: paymentMethodId.startsWith('pm_mock') ? undefined : paymentMethodId,
-          payment_behavior: 'default_incomplete', payment_settings: { save_default_payment_method: 'on_subscription' },
-          expand: ['latest_invoice.payment_intent', 'default_payment_method'],
-          metadata: { cpf: cleanCpf, planName, cardCode: cardCode || '', subscriberId: subscriberId || '', barbershop: 'Ded Black' },
-        });
-        stripeSubscriptionId = subscription.id;
-        subscriptionStatus = subscription.status;
-
-        // Extrai o payment_intent da invoice mais recente para confirmar pagamento no frontend.
-        // Quando o expand não retorna o objeto completo (retorna string/ID), buscamos manualmente.
-        let latestPaymentIntent: Stripe.PaymentIntent | null = null;
-        const latestInvoiceRaw = subscription.latest_invoice;
-        if (latestInvoiceRaw && typeof latestInvoiceRaw !== 'string') {
-          latestPaymentIntent = ((latestInvoiceRaw as any).payment_intent as Stripe.PaymentIntent | null) ?? null;
-        } else if (typeof latestInvoiceRaw === 'string' && subscriptionStatus !== 'active') {
-          try {
-            const invoiceObj = await stripe.invoices.retrieve(latestInvoiceRaw, { expand: ['payment_intent'] });
-            latestPaymentIntent = ((invoiceObj as any).payment_intent as Stripe.PaymentIntent | null) ?? null;
-          } catch (invoiceErr) {
-            console.warn('[Stripe] Não foi possível recuperar invoice para confirmar pagamento:', invoiceErr);
-          }
-        }
-        paymentClientSecret = (latestPaymentIntent?.status === 'requires_payment_method' || latestPaymentIntent?.status === 'requires_action') ? latestPaymentIntent.client_secret : null;
-
-        const pm = subscription.default_payment_method as Stripe.PaymentMethod | null;
-        cardBrand = pm?.card?.brand ? pm.card.brand.toUpperCase() : 'VISA';
-        cardLast4 = pm?.card?.last4 || '4242';
-      }
-
-      const now = new Date();
-      const expDate = new Date(); expDate.setDate(expDate.getDate() + 30);
-      const startDateStr = now.toISOString().split('T')[0];
-      const expDateStr = expDate.toISOString().split('T')[0];
-
-      const newInvoice = {
-        id: `INV-STRIPE-${Date.now()}`, invoiceCode: `STRIPE-${stripeSubscriptionId.slice(-8).toUpperCase()}`,
-        planName, amount: planAmount, paymentMethod: 'CREDIT_CARD' as const,
-        paymentDate: now.toLocaleString('pt-BR'), dueDate: startDateStr, period: 'Mensal Recorrente',
-        status: subscriptionStatusToInvoiceStatus(subscriptionStatus),
-        validationStatus: subscriptionStatus === 'active' || subscriptionStatus === 'trialing' ? 'VALIDATED' as const : 'UNDER_REVIEW' as const,
-        transactionId: stripeSubscriptionId, notes: `Assinatura Stripe (${cardBrand.toUpperCase()} •••• ${cardLast4})`,
-      };
-
-      const targetId = subscriberId || `stripe_${Date.now()}`;
-      const subDocRef = db.collection('subscribers').doc(targetId);
-
-      try {
-        const snap = await subDocRef.get();
-        const existing = (snap.exists ? snap.data() : {}) as Record<string, any>;
-        const history = Array.isArray(existing.paymentHistory) ? existing.paymentHistory : [];
-        await subDocRef.set({
-          ...existing, id: targetId,
-          cardCode: existing.cardCode || cardCode || `DB-${Math.floor(1000 + Math.random() * 9000)}`,
-          clientName, cpf: cleanCpf, phone: clientPhone || existing.phone || '', planName,
-          serviceName: existing.serviceName || planName, totalSessions: existing.totalSessions || 4,
-          usedSessions: existing.usedSessions || 0, startDate: startDateStr, expirationDate: expDateStr,
-          userUid: userUid || existing.userUid || '',
-          status: subscriptionStatus === 'active' || subscriptionStatus === 'trialing' ? 'ACTIVE' : 'PAYMENT_PENDING',
-          paymentStatus: subscriptionStatus === 'active' || subscriptionStatus === 'trialing' ? 'PAID' : 'PENDING',
-          paymentMethod: 'CREDIT_CARD', paymentDate: startDateStr, transactionId: stripeSubscriptionId,
-          paidAmount: planAmount, expectedAmount: planAmount, stripeCustomerId, stripeSubscriptionId,
-          stripePriceId, cardLast4, cardBrand: cardBrand.toUpperCase(),
-          paymentHistory: [newInvoice, ...history], updatedAt: now.toISOString(),
-        }, { merge: true });
-        console.log(`[Stripe] Assinante ${targetId} ativado — sub: ${stripeSubscriptionId}`);
-      } catch (dbErr) { console.error('[Stripe] Erro ao salvar no Firestore:', dbErr); }
-
-      return res.json({
-        success: true, subscriptionId: stripeSubscriptionId, subscriberId: targetId,
-        paymentClientSecret, subscriptionStatus,
-        stripeCustomerId, cardBrand: cardBrand.toUpperCase(), cardLast4,
-        status: subscriptionStatus === 'active' || subscriptionStatus === 'trialing' ? 'ACTIVE' : 'PAYMENT_PENDING',
-        expirationDate: expDateStr,
-      });
-    } catch (err: any) {
-      console.error('[Stripe] Erro ao criar assinatura:', err);
-      return res.status(500).json({ error: err.message || 'Erro ao processar assinatura.' });
-    }
-  });
-
-  // ─── Verify Payment — verificação server-side pós-confirmCardPayment ─────
-  app.post('/api/stripe/verify-payment', jsonParser, async (req, res) => {
-    try {
-      const { subscriptionId } = req.body || {};
-      if (!subscriptionId || typeof subscriptionId !== 'string') {
-        return res.status(400).json({ error: 'subscriptionId obrigatório.', verified: false, paymentConfirmed: false });
       }
 
       const stripe = getStripe();
       if (!stripe) {
-        return res.status(503).json({ error: 'Stripe não configurado.', verified: false, paymentConfirmed: false });
+        return res.status(503).json({ error: 'Stripe não está configurado neste ambiente.' });
       }
 
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-        expand: ['latest_invoice.payment_intent'],
+      const cleanCpf = typeof clientCpf === 'string' ? clientCpf.replace(/\D/g, '') : '';
+      const targetSubscriberId = subscriberId || `stripe_${Date.now()}`;
+      // Origem tomada do próprio request (nunca de um campo enviado pelo cliente),
+      // evitando que success_url/cancel_url virem um open redirect controlado por quem chama a rota.
+      const origin = `${req.protocol}://${req.get('host')}`;
+
+      const sharedMetadata: Record<string, string> = {
+        subscriberId: targetSubscriberId,
+        planoId: validPlan.id,
+        planName: validPlan.tierLabel,
+        serviceName: validPlan.serviceName,
+        clientName: clientName.trim(),
+        clientCpf: cleanCpf,
+        clientPhone: clientPhone || '',
+        cardCode: cardCode || '',
+        userUid: userUid || '',
+        barbeiroId: barberId || '',
+      };
+
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'brl',
+              unit_amount: Math.round(validPlan.totalPrice * 100),
+              recurring: { interval: 'month' },
+              product_data: {
+                name: `Ded Black — ${validPlan.tierLabel} (${validPlan.serviceName})`,
+                metadata: { barbershop: 'Ded Black', planId: validPlan.id },
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${origin}/pagamento-sucesso?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/pagamento-cancelado`,
+        metadata: sharedMetadata,
+        subscription_data: { metadata: sharedMetadata },
       });
 
-      const isActive = subscription.status === 'active' || subscription.status === 'trialing';
-
-      // Para subscriptions ainda incomplete, verifica o PaymentIntent diretamente
-      let paymentConfirmed = isActive;
-      if (!isActive && subscription.latest_invoice && typeof subscription.latest_invoice !== 'string') {
-        const pi = (subscription.latest_invoice as any).payment_intent as Stripe.PaymentIntent | null;
-        paymentConfirmed = pi?.status === 'succeeded';
+      if (!session.url) {
+        return res.status(502).json({ error: 'Stripe não retornou a URL da sessão de checkout.' });
       }
 
-      // Se o pagamento foi confirmado, atualizar Firestore via Admin SDK
-      if (paymentConfirmed) {
-        const snap = await db.collection('subscribers')
-          .where('stripeSubscriptionId', '==', subscriptionId).limit(1).get();
+      return res.json({ url: session.url, sessionId: session.id });
+    } catch (err: any) {
+      console.error('[Stripe] Erro ao criar checkout session:', err);
+      return res.status(500).json({ error: err.message || 'Erro ao iniciar pagamento.' });
+    }
+  });
 
-        if (!snap.empty) {
-          const now = new Date();
-          const expDate = new Date(); expDate.setDate(expDate.getDate() + 30);
-          await snap.docs[0].ref.set({
-            status: 'ACTIVE', paymentStatus: 'PAID',
-            paymentDate: now.toISOString().split('T')[0],
-            expirationDate: expDate.toISOString().split('T')[0],
-            updatedAt: now.toISOString(),
-          }, { merge: true });
-          console.log(`[Stripe] verify-payment — assinante ${snap.docs[0].id} confirmado como PAID.`);
+  // ─── Checkout Session Status — consulta somente leitura para a tela de retorno ──
+  // Nunca escreve no Firestore: serve só para a página /pagamento-sucesso mostrar
+  // "processando..." até que o webhook (única fonte de verdade) tenha ativado a
+  // assinatura de fato.
+  app.get('/api/stripe/checkout-session-status', async (req, res) => {
+    try {
+      const sessionId = typeof req.query.session_id === 'string' ? req.query.session_id : '';
+      if (!sessionId) {
+        return res.status(400).json({ error: 'session_id obrigatório.' });
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.status(503).json({ error: 'Stripe não está configurado neste ambiente.' });
+      }
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const subscriberId = session.metadata?.subscriberId || '';
+
+      let activated = false;
+      let subscriberSnapshot: Record<string, any> | null = null;
+      if (subscriberId) {
+        const snap = await db.collection('subscribers').doc(subscriberId).get();
+        if (snap.exists) {
+          const data = snap.data() as Record<string, any>;
+          // Só considera ativado se o webhook já gravou o resultado desta sessão específica.
+          activated = data.paymentStatus === 'PAID' && data.checkoutSessionId === sessionId;
+          subscriberSnapshot = activated ? { cardCode: data.cardCode, planName: data.planName, totalSessions: data.totalSessions } : null;
         }
       }
 
-      // Buscar o subscriberId do documento para o frontend
-      let subscriberId = '';
-      const snap2 = await db.collection('subscribers')
-        .where('stripeSubscriptionId', '==', subscriptionId).limit(1).get();
-      if (!snap2.empty) subscriberId = snap2.docs[0].id;
-
       return res.json({
-        verified: true, paymentConfirmed,
-        subscriptionStatus: subscription.status,
-        status: paymentConfirmed ? 'ACTIVE' : 'PAYMENT_PENDING',
-        paymentStatus: paymentConfirmed ? 'PAID' : 'PENDING',
+        sessionId,
+        paymentStatus: session.payment_status,
         subscriberId,
+        activated,
+        subscriber: subscriberSnapshot,
       });
     } catch (err: any) {
-      console.error('[Stripe] Erro ao verificar pagamento:', err);
-      return res.status(500).json({ error: err.message || 'Erro ao verificar pagamento.', verified: false, paymentConfirmed: false });
+      console.error('[Stripe] Erro ao consultar status da checkout session:', err);
+      return res.status(500).json({ error: err.message || 'Erro ao consultar status do pagamento.' });
     }
   });
 
@@ -1132,8 +1019,97 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
 
       try {
         switch (event.type) {
+          // Ativação inicial da assinatura — só acontece aqui, depois que o Stripe confirma
+          // que o Checkout foi concluído e o pagamento foi de fato aprovado pelo emissor do
+          // cartão (isPaymentConfirmationEvent documenta e testa esse contrato).
+          case 'checkout.session.completed': {
+            const session = event.data.object as Stripe.Checkout.Session;
+
+            // Segunda trava, redundante com a acima: mesmo dentro deste evento, só ativa
+            // se o Stripe realmente marcou a sessão como paga.
+            if (session.payment_status !== 'paid') {
+              console.warn(`[Stripe Webhook] checkout.session.completed sem pagamento confirmado (payment_status=${session.payment_status}) — ignorado.`);
+              break;
+            }
+
+            const metadata = session.metadata || {};
+            const plan = PLANS_LIST.find((p) => p.id === metadata.planoId);
+            const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+            const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+
+            let cardBrand = 'CARD';
+            let cardLast4 = '****';
+            if (subscriptionId) {
+              try {
+                const sub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['default_payment_method'] });
+                const pm = sub.default_payment_method as Stripe.PaymentMethod | null;
+                if (pm?.card) { cardBrand = pm.card.brand.toUpperCase(); cardLast4 = pm.card.last4; }
+              } catch (pmErr) {
+                console.warn('[Stripe Webhook] Não foi possível recuperar o método de pagamento da assinatura:', pmErr);
+              }
+            }
+
+            const now = new Date();
+            const expDate = new Date(); expDate.setDate(expDate.getDate() + 30);
+            const startDateStr = now.toISOString().split('T')[0];
+            const expDateStr = expDate.toISOString().split('T')[0];
+            const paidAmount = (session.amount_total ?? Math.round((plan?.totalPrice || 0) * 100)) / 100;
+
+            const newInvoice = {
+              id: `INV-STRIPE-${Date.now()}`,
+              invoiceCode: `STRIPE-${(subscriptionId || session.id).slice(-8).toUpperCase()}`,
+              planName: plan?.tierLabel || metadata.planName || 'Assinatura Ded Black',
+              amount: paidAmount, paymentMethod: 'CREDIT_CARD' as const,
+              paymentDate: now.toLocaleString('pt-BR'), dueDate: startDateStr, period: 'Mensal Recorrente',
+              status: 'PAID' as const, validationStatus: 'VALIDATED' as const,
+              transactionId: subscriptionId || session.id,
+              notes: `Assinatura via Stripe Checkout (${cardBrand} •••• ${cardLast4})`,
+            };
+
+            const targetId = metadata.subscriberId || `stripe_${Date.now()}`;
+            const subDocRef = db.collection('subscribers').doc(targetId);
+            const snap = await subDocRef.get();
+            const existing = (snap.exists ? snap.data() : {}) as Record<string, any>;
+            const history = Array.isArray(existing.paymentHistory) ? existing.paymentHistory : [];
+
+            await subDocRef.set({
+              ...existing, id: targetId,
+              cardCode: existing.cardCode || metadata.cardCode || `DB-${Math.floor(1000 + Math.random() * 9000)}`,
+              clientName: metadata.clientName || existing.clientName || '',
+              cpf: metadata.clientCpf || existing.cpf || '',
+              phone: metadata.clientPhone || existing.phone || '',
+              planName: plan?.tierLabel || metadata.planName || existing.planName || '',
+              serviceName: plan?.serviceName || metadata.serviceName || existing.serviceName || '',
+              totalSessions: plan?.numAtendimentos || existing.totalSessions || 4,
+              usedSessions: existing.usedSessions || 0,
+              startDate: existing.startDate || startDateStr, expirationDate: expDateStr,
+              userUid: metadata.userUid || existing.userUid || '',
+              status: 'ACTIVE', paymentStatus: 'PAID',
+              paymentMethod: 'CREDIT_CARD', paymentDate: startDateStr,
+              transactionId: subscriptionId || session.id,
+              paidAmount, expectedAmount: plan?.totalPrice ?? paidAmount,
+              stripeCustomerId: customerId || existing.stripeCustomerId || '',
+              stripeSubscriptionId: subscriptionId || existing.stripeSubscriptionId || '',
+              checkoutSessionId: session.id,
+              cardLast4, cardBrand,
+              paymentHistory: [newInvoice, ...history], updatedAt: now.toISOString(),
+            }, { merge: true });
+
+            console.log(`[Stripe Webhook] checkout.session.completed — assinante ${targetId} ativado (sub: ${subscriptionId}).`);
+            break;
+          }
+
           case 'invoice.paid': {
             const invoice = event.data.object as Stripe.Invoice;
+
+            // A primeira fatura de uma assinatura nova já foi tratada por
+            // checkout.session.completed — só entra aqui em renovações reais, evitando
+            // duplicar o registro de pagamento no histórico do assinante.
+            if (invoice.billing_reason === 'subscription_create') {
+              console.log('[Stripe Webhook] invoice.paid da fatura inicial — já ativado via checkout.session.completed, ignorando.');
+              break;
+            }
+
             const subscription = (invoice as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }).subscription;
             const subId = typeof subscription === 'string' ? subscription : subscription?.id;
             const custId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;

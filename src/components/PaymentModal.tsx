@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  CheckCircle2,
   AlertTriangle,
   Lock,
   ShieldCheck,
   X,
-  ArrowRight,
   Building
 } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { SubscriberCard } from '../types';
 import { auth } from '../lib/firebase';
-
-// Inicializa o Stripe SDK do Frontend com a chave pública do arquivo .env
-const stripePublicKey = (import.meta as any).env?.VITE_STRIPE_PUBLIC_KEY as string | undefined;
-const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -35,286 +27,13 @@ interface PaymentModalProps {
   }) => void;
 }
 
-// Subcomponente de Formulário de Cartão via Stripe Elements
-const StripeCardForm: React.FC<{
-  planName: string;
-  planAmount: number;
-  clientName: string;
-  clientCpf: string;
-  clientPhone?: string;
-  subscriberCard?: SubscriberCard | null;
-  setIsProcessing: (val: boolean) => void;
-  setErrorMessage: (msg: string) => void;
-  setPaymentCompleteData: (data: {
-    transactionId: string;
-    paymentDate: string;
-    paidAmount: number;
-    method: string;
-  }) => void;
-  onPaymentSuccess: (data: {
-    paidAmount: number;
-    paymentMethod: 'PIX' | 'CREDIT_CARD';
-    transactionId: string;
-    paymentDate: string;
-  }) => void;
-  isProcessing: boolean;
-}> = ({
-  planName,
-  planAmount,
-  clientName,
-  clientCpf,
-  clientPhone,
-  subscriberCard,
-  setIsProcessing,
-  setErrorMessage,
-  setPaymentCompleteData,
-  onPaymentSuccess,
-  isProcessing,
-}) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [cardHolder, setCardHolder] = useState(clientName || '');
-
-  const handleProcessStripePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
-
-    if (!cardHolder.trim()) {
-      setErrorMessage('Por favor, informe o nome do titular como impresso no cartão.');
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      // ETAPA 1: Solicitar clientSecret do SetupIntent ao backend
-      const setupRes = await fetch('/api/stripe/setup-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientName,
-          clientCpf,
-          planName,
-          clientEmail: subscriberCard?.email || `${clientCpf.replace(/\D/g, '')}@dedblack.com.br`,
-        }),
-      });
-
-      let setupData: any;
-      try {
-        setupData = await setupRes.json();
-      } catch {
-        throw new Error('Servidor indisponível ou rota /api/stripe/setup-intent não encontrada.');
-      }
-
-      if (!setupRes.ok || !setupData.clientSecret) {
-        setErrorMessage(setupData.error || 'Erro ao preparar ambiente seguro de cartão.');
-        setIsProcessing(false);
-        return;
-      }
-
-      let paymentMethodId = `pm_mock_${Date.now()}`;
-      let cardLast4 = '4242';
-      let cardBrand = 'VISA';
-
-      // ETAPA 2: Confirmar o cartão através do SDK da Stripe
-      if (stripe && elements && !setupData.mockMode) {
-        const cardElement = elements.getElement(CardElement);
-        if (!cardElement) {
-          setErrorMessage('Elemento de cartão do Stripe não foi carregado corretamente.');
-          setIsProcessing(false);
-          return;
-        }
-
-        const setupResult = await stripe.confirmCardSetup(setupData.clientSecret, {
-          payment_method: {
-            card: cardElement,
-            billing_details: {
-              name: cardHolder,
-              email: subscriberCard?.email || `${clientCpf.replace(/\D/g, '')}@dedblack.com.br`,
-            },
-          },
-        });
-
-        if (setupResult.error) {
-          setErrorMessage(setupResult.error.message || 'Cartão recusado pelo emissor.');
-          setIsProcessing(false);
-          return;
-        }
-
-        if (setupResult.setupIntent && setupResult.setupIntent.payment_method) {
-          paymentMethodId = typeof setupResult.setupIntent.payment_method === 'string'
-            ? setupResult.setupIntent.payment_method
-            : setupResult.setupIntent.payment_method.id;
-        }
-      }
-
-      // ETAPA 3: Ativar a Assinatura Recorrente no Backend
-      const subRes = await fetch('/api/stripe/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paymentMethodId,
-          clientName,
-          clientCpf,
-          clientEmail: subscriberCard?.email || `${clientCpf.replace(/\D/g, '')}@dedblack.com.br`,
-          clientPhone: clientPhone || subscriberCard?.phone || '',
-          planName,
-          planAmount,
-          subscriberId: subscriberCard?.id,
-          cardCode: subscriberCard?.cardCode,
-          userUid: auth.currentUser?.uid || '',
-        }),
-      });
-
-      let subData: any;
-      try {
-        subData = await subRes.json();
-      } catch {
-        throw new Error('Falha na resposta do servidor de assinatura.');
-      }
-
-      if (!subRes.ok || !subData.success) {
-        setErrorMessage(subData.error || 'Falha ao processar assinatura recorrente no Stripe.');
-        setIsProcessing(false);
-        return;
-      }
-
-      if (subData.paymentClientSecret) {
-        if (!stripe) {
-          throw new Error('Stripe SDK não inicializado.');
-        }
-        const paymentResult = await stripe.confirmCardPayment(subData.paymentClientSecret, {
-          payment_method: paymentMethodId,
-        });
-        if (paymentResult.error) {
-          throw new Error(paymentResult.error.message || 'O pagamento inicial foi recusado.');
-        }
-      } else if (subData.subscriptionStatus !== 'active' && subData.subscriptionStatus !== 'trialing') {
-        setErrorMessage('Pagamento recusado pelo emissor. Verifique o saldo do cartão ou tente com outro cartão.');
-        setIsProcessing(false);
-        return;
-      }
-
-      // Verificação server-side: confirma com o Stripe que o pagamento realmente foi aprovado
-      const verifyRes = await fetch('/api/stripe/verify-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscriptionId: subData.subscriptionId }),
-      });
-      const verifyData = await verifyRes.json().catch(() => ({ verified: false, paymentConfirmed: false }));
-
-      if (!verifyData.paymentConfirmed) {
-        setErrorMessage('Pagamento não confirmado pelo Stripe. Se o valor foi debitado, entre em contato conosco.');
-        setIsProcessing(false);
-        return;
-      }
-
-      const transactionId = subData.subscriptionId || `sub_${Date.now()}`;
-      const nowStr = new Date().toLocaleString('pt-BR');
-
-      cardLast4 = subData.cardLast4 || cardLast4;
-      cardBrand = subData.cardBrand || cardBrand;
-
-      const result = {
-        paidAmount: planAmount,
-        paymentMethod: 'CREDIT_CARD' as const,
-        transactionId,
-        paymentDate: nowStr,
-      };
-
-      setIsProcessing(false);
-      setPaymentCompleteData({
-        transactionId,
-        paymentDate: nowStr,
-        paidAmount: planAmount,
-        method: `Cartão Recorrente Stripe (${cardBrand} •••• ${cardLast4})`,
-      });
-
-      onPaymentSuccess(result);
-    } catch (err: any) {
-      console.error('[Stripe Error]:', err);
-      setIsProcessing(false);
-      setErrorMessage(err?.message || 'Não foi possível concluir o pagamento. Tente novamente.');
-    }
-  };
-
-  return (
-    <form onSubmit={handleProcessStripePayment} className="space-y-4">
-      {/* Campo Titular do Cartão */}
-      <div className="space-y-1">
-        <label className="text-xs text-stone-300 font-medium">Nome no Cartão (Titular)</label>
-        <input
-          type="text"
-          value={cardHolder}
-          onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-          placeholder="NOME COMO IMPRESSO NO CARTÃO"
-          className="w-full bg-[#181818] border border-stone-800 rounded-xl px-3.5 py-2.5 text-stone-100 text-sm focus:outline-none focus:border-amber-500 font-mono placeholder:text-stone-600 uppercase"
-          disabled={isProcessing}
-        />
-      </div>
-
-      {/* Inputs do Cartão via Stripe Elements */}
-      <div className="space-y-1">
-        <label className="text-xs text-stone-300 font-medium flex items-center justify-between">
-          <span>Dados do Cartão de Crédito</span>
-          <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-            <Lock className="w-2.5 h-2.5" /> Protegido por Stripe PCI-DSS
-          </span>
-        </label>
-        <div className="bg-[#181818] border border-stone-800 rounded-xl p-3.5 focus-within:border-amber-500 transition-all">
-          <CardElement
-            options={{
-              style: {
-                base: {
-                  fontSize: '14px',
-                  color: '#FDFDFD',
-                  fontFamily: 'monospace, sans-serif',
-                  '::placeholder': { color: '#6B7280' },
-                  iconColor: '#F59E0B',
-                },
-                invalid: {
-                  color: '#EF4444',
-                  iconColor: '#EF4444',
-                },
-              },
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Box de Segurança */}
-      <div className="p-3 bg-[#181818] rounded-xl border border-white/5 space-y-1 text-xs">
-        <div className="flex items-center gap-2 text-stone-300 font-bold">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>Assinatura Recorrente Mensal Automática</span>
-        </div>
-        <p className="text-[11px] text-stone-400 leading-relaxed">
-          Cobrança no valor de <strong className="text-stone-200 font-mono">R$ {planAmount.toFixed(2)}</strong> renovada a cada 30 dias diretamente pelo Stripe.
-        </p>
-      </div>
-
-      {/* Botão Pagar */}
-      <button
-        type="submit"
-        disabled={isProcessing}
-        className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-linear-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-stone-950 uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-      >
-        {isProcessing ? (
-          <>
-            <div className="w-4 h-4 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
-            <span>Processando Pagamento...</span>
-          </>
-        ) : (
-          <>
-            <Lock className="w-4 h-4" />
-            <span>Pagar e Ativar Assinatura (R$ {planAmount.toFixed(2)})</span>
-          </>
-        )}
-      </button>
-    </form>
-  );
-};
-
+/**
+ * Este modal NUNCA coleta número de cartão, validade ou CVV. Ele só reúne os dados
+ * da assinatura e redireciona o cliente para o Stripe Checkout — a página hospedada
+ * pelo próprio Stripe é quem captura o cartão. A confirmação real do pagamento
+ * (e a ativação da assinatura no Firestore) só acontece depois, via webhook,
+ * quando o cliente retorna em /pagamento-sucesso.
+ */
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
@@ -325,24 +44,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   clientCpf,
   clientPhone,
   subscriberCard,
-  onPaymentSuccess,
 }) => {
-  // Status State
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [paymentCompleteData, setPaymentCompleteData] = useState<{
-    transactionId: string;
-    paymentDate: string;
-    paidAmount: number;
-    method: string;
-  } | null>(null);
 
-  // Reseta os estados toda vez que o modal abre ou fecha
   useEffect(() => {
     if (!isOpen) {
-      setIsProcessing(false);
+      setIsRedirecting(false);
       setErrorMessage('');
-      setPaymentCompleteData(null);
     }
   }, [isOpen]);
 
@@ -352,6 +61,48 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     style: 'currency',
     currency: 'BRL',
   });
+
+  const handleGoToStripeCheckout = async () => {
+    setErrorMessage('');
+    setIsRedirecting(true);
+
+    try {
+      const res = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planName,
+          serviceName,
+          planAmount,
+          clientName,
+          clientCpf,
+          clientPhone: clientPhone || subscriberCard?.phone || '',
+          subscriberId: subscriberCard?.id,
+          cardCode: subscriberCard?.cardCode,
+          userUid: auth.currentUser?.uid || '',
+        }),
+      });
+
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Falha na resposta do servidor ao iniciar o pagamento.');
+      }
+
+      if (!res.ok || !data.url) {
+        setErrorMessage(data.error || 'Não foi possível iniciar o pagamento no Stripe. Tente novamente.');
+        setIsRedirecting(false);
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch (err: any) {
+      console.error('[Stripe Checkout Error]:', err);
+      setErrorMessage(err?.message || 'Não foi possível iniciar o pagamento. Tente novamente.');
+      setIsRedirecting(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
@@ -377,107 +128,66 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </button>
         </div>
 
-        {paymentCompleteData ? (
-          <div className="p-6 space-y-6 text-center">
-            <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 shadow-xl">
-              <CheckCircle2 className="w-8 h-8" />
+        <div className="p-6 space-y-6">
+          {/* Resumo do Plano */}
+          <div className="p-4 rounded-xl bg-[#161c13] border border-[#38472A]/50 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
+                Plano Selecionado
+              </span>
+              <h4 className="font-black text-lg text-[#FDFDFD]">{planName}</h4>
+              <p className="text-xs text-[#A4A9A5]">{serviceName}</p>
             </div>
-
-            <div className="space-y-1">
-              <h4 className="text-xl font-black text-[#FDFDFD]">Pagamento Confirmado!</h4>
-              <p className="text-xs text-emerald-400 font-mono font-bold">Sua assinatura foi ativada com sucesso.</p>
+            <div className="text-right">
+              <span className="text-xs text-[#A4A9A5] block">Valor Mensal</span>
+              <span className="text-xl font-black text-amber-400 font-mono">{formattedPlanAmount}</span>
             </div>
-
-            <div className="bg-[#181818] p-4 rounded-xl border border-white/10 text-left space-y-2 font-mono text-xs">
-              <div className="flex justify-between text-stone-400 border-b border-white/10 pb-2 mb-2">
-                <span className="font-bold text-stone-200 uppercase">Comprovante de Transação</span>
-                <span className="text-amber-400 font-bold">DED BLACK</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">ID da Transação:</span>
-                <span className="text-stone-200 font-bold">{paymentCompleteData.transactionId}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">Cliente:</span>
-                <span className="text-stone-200">{clientName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">Plano:</span>
-                <span className="text-amber-300 font-bold">{planName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">Valor Pago:</span>
-                <span className="text-emerald-400 font-bold">R$ {paymentCompleteData.paidAmount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">Método:</span>
-                <span className="text-stone-200">{paymentCompleteData.method}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2"
-            >
-              <span>Acessar Carteirinha</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
           </div>
-        ) : (
-          <div className="p-6 space-y-6">
-            {/* Resumo do Plano */}
-            <div className="p-4 rounded-xl bg-[#161c13] border border-[#38472A]/50 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
-                  Plano Selecionado
-                </span>
-                <h4 className="font-black text-lg text-[#FDFDFD]">{planName}</h4>
-                <p className="text-xs text-[#A4A9A5]">{serviceName}</p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs text-[#A4A9A5] block">Valor Mensal</span>
-                <span className="text-xl font-black text-amber-400 font-mono">{formattedPlanAmount}</span>
-              </div>
+
+          {/* Alerta de Erro */}
+          {errorMessage && (
+            <div className="p-3.5 rounded-xl bg-red-950/80 border border-red-500/50 text-red-200 text-xs flex items-start gap-2.5 shadow-md">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
             </div>
+          )}
 
-            {/* Alerta de Erro */}
-            {errorMessage && (
-              <div className="p-3.5 rounded-xl bg-red-950/80 border border-red-500/50 text-red-200 text-xs flex items-start gap-2.5 shadow-md">
-                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
+          {/* Box de Segurança */}
+          <div className="p-3.5 bg-[#181818] rounded-xl border border-white/5 space-y-1.5 text-xs">
+            <div className="flex items-center gap-2 text-stone-300 font-bold">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Assinatura Recorrente Mensal Automática</span>
+            </div>
+            <p className="text-[11px] text-stone-400 leading-relaxed">
+              Você será redirecionado para a página segura do <strong className="text-stone-200">Stripe</strong>, onde informa
+              os dados do cartão diretamente ao gateway de pagamento. Este site nunca recebe ou armazena número de
+              cartão, validade ou CVV.
+            </p>
+            <p className="text-[11px] text-stone-400 leading-relaxed">
+              Cobrança no valor de <strong className="text-stone-200 font-mono">R$ {planAmount.toFixed(2)}</strong> renovada a cada 30 dias.
+            </p>
+          </div>
 
-            {/* Renderização segura se a chave do Stripe não estiver configurada */}
-            {!stripePublicKey ? (
-              <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs space-y-2">
-                <div className="flex items-center gap-2 font-bold text-amber-400">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Configuração Pendente do Stripe</span>
-                </div>
-                <p className="text-[11px] leading-relaxed text-amber-300/80">
-                  A chave pública <code>VITE_STRIPE_PUBLIC_KEY</code> não foi encontrada no seu arquivo <code>.env</code> ou na Vercel. Adicione a chave para ativar os pagamentos via Cartão de Crédito.
-                </p>
-              </div>
+          {/* Botão Pagar */}
+          <button
+            type="button"
+            onClick={handleGoToStripeCheckout}
+            disabled={isRedirecting}
+            className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-linear-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-stone-950 uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            {isRedirecting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                <span>Abrindo Pagamento Seguro...</span>
+              </>
             ) : (
-              <Elements stripe={stripePromise}>
-                <StripeCardForm
-                  planName={planName}
-                  planAmount={planAmount}
-                  clientName={clientName}
-                  clientCpf={clientCpf}
-                  clientPhone={clientPhone}
-                  subscriberCard={subscriberCard}
-                  setIsProcessing={setIsProcessing}
-                  setErrorMessage={setErrorMessage}
-                  setPaymentCompleteData={setPaymentCompleteData}
-                  onPaymentSuccess={onPaymentSuccess}
-                  isProcessing={isProcessing}
-                />
-              </Elements>
+              <>
+                <Lock className="w-4 h-4" />
+                <span>Ir para Pagamento Stripe (R$ {planAmount.toFixed(2)})</span>
+              </>
             )}
-          </div>
-        )}
+          </button>
+        </div>
       </div>
     </div>
   );
