@@ -72,11 +72,11 @@ export interface SubscriberCard {
   usedSessions: number;
   expirationDate: string; // YYYY-MM-DD
   startDate: string; // YYYY-MM-DD
-  status: 'ACTIVE' | 'EXPIRED' | 'BLOCKED' | 'SUSPENDED' | 'PAYMENT_PENDING';
+  status: 'ACTIVE' | 'EXPIRED' | 'BLOCKED' | 'SUSPENDED' | 'PAYMENT_PENDING' | 'CANCELLED';
   barberPreferred?: string;
   notes?: string;
   qrCodeValue: string;
-  paymentStatus?: 'PAID' | 'PENDING' | 'FAILED';
+  paymentStatus?: 'PAID' | 'PENDING' | 'FAILED' | 'FRAUDULENT';
   paidAmount?: number;
   expectedAmount?: number;
   paymentMethod?: 'PIX' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'GATEWAY';
@@ -85,6 +85,8 @@ export interface SubscriberCard {
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   stripePriceId?: string;
+  /** Preenchido quando um registro é invalidado por auditoria (ex.: pagamento nunca confirmado pelo Stripe). */
+  invalidReason?: string;
 
   cardLast4?: string;
   cardBrand?: string;
