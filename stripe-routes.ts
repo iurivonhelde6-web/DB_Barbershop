@@ -750,7 +750,15 @@ function getStripe(): Stripe | null {
   return stripeInstance;
 }
 
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+/**
+ * Lido a cada requisição, não no topo do módulo: este arquivo é importado por
+ * server.ts antes de `dotenv.config()` rodar (imports ESM são avaliados primeiro),
+ * então um const de módulo capturaria string vazia e o webhook rejeitaria todo
+ * evento antes mesmo de verificar a assinatura em qualquer host que dependa do .env.
+ */
+function getWebhookSecret(): string {
+  return process.env.STRIPE_WEBHOOK_SECRET || '';
+}
 
 /**
  * Único portão que decide se um evento de webhook pode ativar/renovar uma assinatura.
@@ -977,8 +985,9 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
     express.raw({ type: 'application/json' }),
     async (req, res) => {
       const sig = req.headers['stripe-signature'];
+      const webhookSigningSecret = getWebhookSecret();
 
-      if (!sig || !STRIPE_WEBHOOK_SECRET) {
+      if (!sig || !webhookSigningSecret) {
         console.warn('[Stripe Webhook] Assinatura ou secret ausente — rejeitando.');
         return res.status(400).json({ error: 'Webhook não autorizado.' });
       }
@@ -988,7 +997,7 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
 
       let event: Stripe.Event;
       try {
-        event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSigningSecret);
       } catch (err: any) {
         console.error('[Stripe Webhook] Assinatura inválida:', err.message);
         return res.status(400).json({ error: `Webhook inválido: ${err.message}` });
