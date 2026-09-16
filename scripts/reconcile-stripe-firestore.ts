@@ -70,21 +70,56 @@ async function main() {
   const sessions = await stripe.checkout.sessions.list({ created: { gte: since }, limit: 100 });
   const paidSessions = sessions.data.filter((s) => s.payment_status === 'paid');
 
+  // Clientes com estorno no período: uma cobrança devolvida não é pendência de
+  // provisionamento, é uma decisão de negócio já tomada.
+  const refunds = await stripe.refunds.list({ created: { gte: since }, limit: 100 });
+  const refundedCustomers = new Set(
+    refunds.data
+      .filter((r) => r.status === 'succeeded' && typeof r.customer === 'string')
+      .map((r) => r.customer as string),
+  );
+
   const orphans: { session: Stripe.Checkout.Session; subscriptionId?: string }[] = [];
+  const resolved: { session: Stripe.Checkout.Session; reason: string }[] = [];
+
   for (const session of paidSessions) {
     const subscriptionId =
       typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
     const reconciled =
       knownIds.has(session.id) || (subscriptionId ? knownIds.has(subscriptionId) : false);
-    if (!reconciled) orphans.push({ session, subscriptionId });
+    if (reconciled) continue;
+
+    const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+    const subscription = subscriptionId
+      ? await stripe.subscriptions.retrieve(subscriptionId).catch(() => null)
+      : null;
+
+    // Sem assinatura no Firestore E sem cobrança/assinatura ativa no Stripe: nada a fazer.
+    if (customerId && refundedCustomers.has(customerId)) {
+      resolved.push({ session, reason: 'pagamento estornado' });
+      continue;
+    }
+    if (subscription?.status === 'canceled') {
+      resolved.push({ session, reason: 'assinatura cancelada no Stripe' });
+      continue;
+    }
+
+    orphans.push({ session, subscriptionId });
   }
 
   console.log('─'.repeat(72));
   console.log(`Conciliação Stripe × Firestore — últimos ${days} dias`);
   console.log(`  sessões de checkout pagas no Stripe: ${paidSessions.length}`);
   console.log(`  documentos em subscribers:           ${snap.size}`);
+  console.log(`  estornadas/canceladas (ignoradas):   ${resolved.length}`);
   console.log(`  pagamentos SEM assinatura:           ${orphans.length}`);
   console.log('─'.repeat(72));
+
+  for (const { session, reason } of resolved) {
+    console.log(
+      `· ${brl(session.amount_total || 0)} — ${session.customer_details?.email || '(sem e-mail)'} — ${reason}, nada a fazer`,
+    );
+  }
 
   if (orphans.length === 0) {
     console.log('\n✓ Nenhum pagamento órfão. Stripe e Firestore estão conciliados.');
