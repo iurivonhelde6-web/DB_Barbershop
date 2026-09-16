@@ -9,7 +9,7 @@ export const BARBERS_LIST: Barber[] = [
     name: 'Fernando Neves',
     specialty: '',
     rating: 5.0,
-    avatar: '✂️',
+    avatar:  '💈',
     phone: ADMIN_WHATSAPP,
   },
   {
@@ -25,7 +25,7 @@ export const BARBERS_LIST: Barber[] = [
     name: 'Ricardo',
     specialty: '',
     rating: 5.0,
-    avatar: '✂️',
+    avatar: '💈',
     phone: ADMIN_WHATSAPP,
   },
   {
@@ -41,7 +41,7 @@ export const BARBERS_LIST: Barber[] = [
     name: 'Marcelo Gaúcho',
     specialty: '',
     rating: 5.0,
-    avatar: '✂️',
+    avatar: '💈',
     phone: ADMIN_WHATSAPP,
   },
   {
