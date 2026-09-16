@@ -1208,7 +1208,16 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
           default: break;
         }
       } catch (handlerErr) {
+        // 500 (e não 200) de propósito: responder "recebido" com a gravação quebrada faz o
+        // Stripe marcar o evento como entregue e nunca mais retentar — foi assim que o
+        // Firestore fora do ar em 16/09/2026 virou pagamento aprovado sem assinatura, sem
+        // nenhum sinal de erro. Com 5xx o Stripe reentrega por até 3 dias e o caso se resolve
+        // sozinho quando a causa for corrigida.
         console.error('[Stripe Webhook] Erro ao processar evento:', handlerErr);
+        return res.status(500).json({
+          error: 'Falha ao processar evento — o Stripe deve reentregar.',
+          event: event.type,
+        });
       }
 
       return res.json({ received: true, event: event.type });
