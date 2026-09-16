@@ -9,6 +9,7 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.cjs",
     "set-admin": "tsx scripts/set-admin-claim.ts",
+    "reconcile": "tsx scripts/reconcile-stripe-firestore.ts",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
