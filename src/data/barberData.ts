@@ -49,7 +49,7 @@ export const BARBERS_LIST: Barber[] = [
     name: 'André (Ded Black)',
     specialty: '',
     rating: 5.0,
-    avatar: '👑',
+    avatar: '💈',
     phone: ADMIN_WHATSAPP,
   },
 ];

@@ -137,7 +137,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     : 'bg-[#94a288]/20 text-[#94a288] border border-[#94a288]/40'
                 }`}
               >
-                {currentUser.role === 'admin' ? '👑' : '👤'}
+                👤
               </div>
               <div>
                 <p className="text-xs font-bold text-white flex items-center gap-2">
@@ -284,7 +284,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <div className="space-y-4">
               <div className="p-3 bg-[#0a0a0a] rounded border border-yellow-500/20 text-xs text-stone-300 space-y-1">
                 <span className="text-yellow-400 font-bold block uppercase tracking-wider text-[10px]">
-                  👑 Painel de Administração D•B:
+                  Painel de Administração D•B:
                 </span>
                 <p className="text-stone-400">
                   Os dados do administrador ficam totalmente isolados. Clientes nunca visualizam relatórios financeiros, controle de comissões nem cartões de outros membros.

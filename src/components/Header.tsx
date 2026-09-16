@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#181818] hover:bg-[#222222] border border-[#94a288]/40 text-[10px] font-bold tracking-wider text-stone-200 transition group"
             >
               <span className={isAdmin ? 'text-yellow-400' : 'text-[#94a288]'}>
-                {isAdmin ? '👑' : '👤'}
+                👤
               </span>
               <span className="text-white font-mono truncate max-w-[100px] sm:max-w-none">
                 {currentUser.name}
