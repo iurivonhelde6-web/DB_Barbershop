@@ -758,8 +758,8 @@ export const PLANS_LIST: PlanOption[] = [
     totalPrice: 152.25,
     pricePerAtd: 25.38,
     costPerAtd: 25.38,
-    barberSplitPerAtd: 14.57,
-    houseMarginPerAtd: 10.78,
+    barberSplitPerAtd: 14.59,
+    houseMarginPerAtd: 10.79,
     totalBarberCommission: 87.54, // 57,5%
     totalHouseMargin: 64.71,      // 42,5%
     badgeTag: '🔵 Plus Barba Modelada 6',

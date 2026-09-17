@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import jsPDF from 'jspdf';
 import { PLANS_LIST, SERVICES_LIST } from '../data/barberData';
 import {
+  formatPercentage,
+  getBarberPercentage,
+  getHousePercentage,
+  getTotalBarberCommission,
+  getTotalHouseMargin,
+} from '../utils/commission';
+import {
   DollarSign,
   TrendingUp,
   PieChart as PieIcon,
@@ -344,8 +351,8 @@ export const FinancialCalculator: React.FC = () => {
           doc.rect(14, y, 182, 6, 'F');
         }
         const val = plan.totalPrice;
-        const barb = plan.totalBarberCommission || val * 0.55;
-        const house = plan.totalHouseMargin || val * 0.45;
+        const barb = getTotalBarberCommission(plan);
+        const house = getTotalHouseMargin(plan);
 
         doc.text(`${plan.tierLabel} - ${plan.serviceName}`, 18, y + 4.5);
         doc.text(`R$ ${val.toFixed(2)}`, 70, y + 4.5);
@@ -1074,13 +1081,8 @@ export const FinancialCalculator: React.FC = () => {
             <tbody className="divide-y divide-white/5 text-stone-200 font-medium">
               {filteredPlansTable.map((plan) => {
                 const avulso = SERVICES_LIST.find((s) => s.id === plan.serviceId)?.avulsoPrice || 0;
-                // Derive percentage from stored data (handles Family 4 = 55%, Family 8 = 60% correctly)
-                const commissionRatio = plan.totalPrice > 0 ? plan.totalBarberCommission / plan.totalPrice : 0.55;
-                const barberPctNum = Math.round(commissionRatio * 200) / 2; // rounds to nearest 0.5
-                const housePctNum = 100 - barberPctNum;
-                const fmtPct = (n: number) => n % 1 === 0 ? `${n}%` : `${n.toFixed(1).replace('.', ',')}%`;
-                const barberPct = fmtPct(barberPctNum);
-                const housePct = fmtPct(housePctNum);
+                const barberPct = formatPercentage(getBarberPercentage(plan));
+                const housePct = formatPercentage(getHousePercentage(plan));
 
                 return (
                   <tr key={plan.id} className="hover:bg-[#202020] transition">

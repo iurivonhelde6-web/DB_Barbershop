@@ -16,6 +16,13 @@ import { AvailabilityManager } from './AvailabilityManager';
 import { verifyBackendAdminRole } from '../lib/firebase';
 import { SubscriberStatusBadge } from '../utils/statusUtils';
 import {
+  DATE_PRESETS,
+  DatePreset,
+  describeDateRange,
+  isDateInRange as isDateInRange_,
+  resolveDateRange,
+} from '../utils/dateRange';
+import {
   DollarSign,
   Users,
   CalendarCheck,
@@ -161,7 +168,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [activeTab]);
 
   // Date Range Filtering States
-  const [datePreset, setDatePreset] = useState<'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_30_DAYS' | 'LAST_90_DAYS' | 'CUSTOM'>('ALL');
+  const [datePreset, setDatePreset] = useState<DatePreset>('ALL');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
 
@@ -171,123 +178,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
   }, []);
 
-  // Helper to parse date strings (YYYY-MM-DD, DD/MM/YYYY, ISO)
-  const parseDateString = (dateStr: string | undefined | null): Date | null => {
-    if (!dateStr) return null;
-    const str = String(dateStr).trim();
-    if (!str) return null;
-
-    if (str.includes('-')) {
-      const cleanStr = str.split('T')[0];
-      const parts = cleanStr.split('-');
-      if (parts.length === 3) {
-        const yr = parseInt(parts[0], 10);
-        const mo = parseInt(parts[1], 10) - 1;
-        const dy = parseInt(parts[2], 10);
-        if (!isNaN(yr) && !isNaN(mo) && !isNaN(dy)) {
-          return new Date(yr, mo, dy);
-        }
-      }
-    }
-
-    if (str.includes('/')) {
-      const parts = str.split('/');
-      if (parts.length === 3) {
-        const dy = parseInt(parts[0], 10);
-        const mo = parseInt(parts[1], 10) - 1;
-        const yr = parseInt(parts[2], 10);
-        if (!isNaN(yr) && !isNaN(mo) && !isNaN(dy)) {
-          return new Date(yr, mo, dy);
-        }
-      }
-    }
-
-    const parsed = new Date(str);
-    if (!isNaN(parsed.getTime())) {
-      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-    }
-
-    return null;
-  };
-
-  // Compute Active Range Boundaries
-  const { rangeStart, rangeEnd } = (() => {
-    const now = new Date();
-
-    if (datePreset === 'TODAY') {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      return { rangeStart: start, rangeEnd: end };
-    }
-
-    if (datePreset === 'THIS_WEEK') {
-      const dayOfWeek = now.getDay();
-      const diffToMon = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-      const mon = new Date(now.getFullYear(), now.getMonth(), diffToMon, 0, 0, 0, 0);
-      const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6, 23, 59, 59, 999);
-      return { rangeStart: mon, rangeEnd: sun };
-    }
-
-    if (datePreset === 'THIS_MONTH') {
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-      return { rangeStart: monthStart, rangeEnd: monthEnd };
-    }
-
-    if (datePreset === 'LAST_30_DAYS') {
-      const start30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30, 0, 0, 0, 0);
-      const endToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      return { rangeStart: start30, rangeEnd: endToday };
-    }
-
-    if (datePreset === 'LAST_90_DAYS') {
-      const start90 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90, 0, 0, 0, 0);
-      const endToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      return { rangeStart: start90, rangeEnd: endToday };
-    }
-
-    if (datePreset === 'CUSTOM') {
-      const start = customStartDate ? parseDateString(customStartDate) : null;
-      if (start) start.setHours(0, 0, 0, 0);
-      const end = customEndDate ? parseDateString(customEndDate) : null;
-      if (end) end.setHours(23, 59, 59, 999);
-      return { rangeStart: start, rangeEnd: end };
-    }
-
-    return { rangeStart: null, rangeEnd: null };
-  })();
-
-  const isDateInRange = (dateStr: string | undefined | null) => {
-    if (!rangeStart && !rangeEnd) return true;
-    const d = parseDateString(dateStr);
-    if (!d) return true;
-    if (rangeStart && d < rangeStart) return false;
-    if (rangeEnd && d > rangeEnd) return false;
-    return true;
-  };
-
-  const formatBRDate = (d: Date | null) => {
-    if (!d) return '';
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const activeDateLabel = (() => {
-    if (datePreset === 'ALL' && !customStartDate && !customEndDate) return null;
-    if (datePreset === 'TODAY') return `Hoje (${formatBRDate(rangeStart)})`;
-    if (datePreset === 'THIS_WEEK') return `Esta Semana (${formatBRDate(rangeStart)} a ${formatBRDate(rangeEnd)})`;
-    if (datePreset === 'THIS_MONTH') return `Mês Atual (${formatBRDate(rangeStart)} a ${formatBRDate(rangeEnd)})`;
-    if (datePreset === 'LAST_30_DAYS') return `Últimos 30 Dias (${formatBRDate(rangeStart)} a ${formatBRDate(rangeEnd)})`;
-    if (datePreset === 'LAST_90_DAYS') return `Últimos 90 Dias (${formatBRDate(rangeStart)} a ${formatBRDate(rangeEnd)})`;
-    if (rangeStart || rangeEnd) {
-      const s = rangeStart ? formatBRDate(rangeStart) : 'Início';
-      const e = rangeEnd ? formatBRDate(rangeEnd) : 'Hoje';
-      return `${s} até ${e}`;
-    }
-    return null;
-  })();
+  // Período ativo — a lógica vive em utils/dateRange.ts para que o relatório de
+  // repasses recorte exatamente a mesma semana que os KPIs desta tela.
+  const dateRange = resolveDateRange(datePreset, customStartDate, customEndDate);
+  const { rangeStart, rangeEnd } = dateRange;
+  const isDateInRange = (dateStr: string | undefined | null) => isDateInRange_(dateStr, dateRange);
+  const activeDateLabel = describeDateRange(datePreset, dateRange, customStartDate, customEndDate);
 
   // 1. Calculate Active Subscribers Metrics
   const activeSubscribers = subscribers.filter((s) => s.status === 'ACTIVE');
@@ -698,15 +594,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {/* Quick Presets Buttons */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-              {[
-                { id: 'ALL', label: 'Todos os Períodos' },
-                { id: 'TODAY', label: 'Hoje' },
-                { id: 'THIS_WEEK', label: 'Esta Semana' },
-                { id: 'THIS_MONTH', label: 'Mês Atual' },
-                { id: 'LAST_30_DAYS', label: 'Últimos 30 Dias' },
-                { id: 'LAST_90_DAYS', label: 'Últimos 90 Dias' },
-                { id: 'CUSTOM', label: 'Personalizado' },
-              ].map((preset) => (
+              {DATE_PRESETS.map((preset) => (
                 <button
                   key={preset.id}
                   onClick={() => setDatePreset(preset.id as any)}

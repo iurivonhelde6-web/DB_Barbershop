@@ -7,24 +7,27 @@
 
 import { describe, it, expect } from 'vitest';
 import { PLANS_LIST } from '../data/barberData';
-
-// ─── Replica da função de formatação do FinancialCalculator ──────────────────
-
-function fmtPct(n: number): string {
-  return n % 1 === 0 ? `${n}%` : `${n.toFixed(1).replace('.', ',')}%`;
-}
+import {
+  CommissionPlan,
+  formatPercentage,
+  getBarberPercentage,
+  getHousePercentage,
+} from '../utils/commission';
 
 /**
- * Replica exata do cálculo do FinancialCalculator.tsx:
- *   const commissionRatio = plan.totalBarberCommission / plan.totalPrice;
- *   const barberPctNum = Math.round(commissionRatio * 200) / 2;
- * (ratio é 0..1, não 0..100)
+ * Exercita a implementação real de utils/commission.ts — antes este teste
+ * replicava a fórmula, o que o deixava cego para divergências entre a cópia e o
+ * que a tela de fato exibia.
  */
-function derivePcts(plan: { totalPrice: number; totalBarberCommission: number }) {
-  const ratio = plan.totalPrice > 0 ? plan.totalBarberCommission / plan.totalPrice : 0.55;
-  const barberNum = Math.round(ratio * 200) / 2; // arredonda para múltiplo de 0,5
-  const houseNum = 100 - barberNum;
-  return { barberPct: fmtPct(barberNum), housePct: fmtPct(houseNum), barberNum, houseNum };
+function derivePcts(plan: CommissionPlan) {
+  const barberNum = getBarberPercentage(plan);
+  const houseNum = getHousePercentage(plan);
+  return {
+    barberPct: formatPercentage(barberNum),
+    housePct: formatPercentage(houseNum),
+    barberNum,
+    houseNum,
+  };
 }
 
 // ─── Testes ───────────────────────────────────────────────────────────────────
@@ -84,16 +87,16 @@ describe('FinancialCalculator — derivação de percentuais por plano', () => {
     });
   });
 
-  it('fmtPct formata inteiros sem casas decimais', () => {
-    expect(fmtPct(55)).toBe('55%');
-    expect(fmtPct(60)).toBe('60%');
-    expect(fmtPct(45)).toBe('45%');
-    expect(fmtPct(40)).toBe('40%');
+  it('formatPercentage formata inteiros sem casas decimais', () => {
+    expect(formatPercentage(55)).toBe('55%');
+    expect(formatPercentage(60)).toBe('60%');
+    expect(formatPercentage(45)).toBe('45%');
+    expect(formatPercentage(40)).toBe('40%');
   });
 
-  it('fmtPct formata decimais com vírgula (padrão pt-BR)', () => {
-    expect(fmtPct(57.5)).toBe('57,5%');
-    expect(fmtPct(42.5)).toBe('42,5%');
+  it('formatPercentage formata decimais com vírgula (padrão pt-BR)', () => {
+    expect(formatPercentage(57.5)).toBe('57,5%');
+    expect(formatPercentage(42.5)).toBe('42,5%');
   });
 
   it('soma barberNum + houseNum = 100 para todos os planos', () => {
