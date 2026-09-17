@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { SubscriberCard, UserAccount, PaymentInvoice } from '../types';
-import { PLANS_LIST } from '../data/barberData';
+import { Barber, SubscriberCard, UserAccount, PaymentInvoice } from '../types';
+import { BARBERS_LIST, PLANS_LIST } from '../data/barberData';
 import { PaymentModal } from './PaymentModal';
 import { DbLogo } from './DbLogo';
 import { SubscriberStatusBadge, getSubscriberDynamicStatus } from '../utils/statusUtils';
@@ -33,6 +33,8 @@ import {
 interface ControlCardValidationProps {
   subscribers: SubscriberCard[];
   onUpdateSubscriber: (updatedSub: SubscriberCard) => void | Promise<void>;
+  /** Registra o atendimento realizado e debita o saldo, numa escrita atômica. */
+  onRegisterAttendance: (sub: SubscriberCard, barber: Barber) => Promise<void>;
   onAddNewSubscriberClick: () => void;
   currentUser?: UserAccount | null;
   onDeleteSubscriber?: (subId: string) => void;
@@ -41,12 +43,14 @@ interface ControlCardValidationProps {
 export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
   subscribers,
   onUpdateSubscriber,
+  onRegisterAttendance,
   onAddNewSubscriberClick,
   currentUser,
   onDeleteSubscriber,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const isClient = currentUser?.role === 'client';
+  const [selectedBarberId, setSelectedBarberId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [paymentFilter, setPaymentFilter] = useState<'ALL' | 'PAID' | 'PENDING'>('ALL');
 
@@ -178,19 +182,22 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
       return;
     }
 
-    const updated: SubscriberCard = {
-      ...selectedSub,
-      usedSessions: selectedSub.usedSessions + 1,
-    };
+    // Sem barbeiro não há a quem repassar a comissão deste atendimento.
+    const barber = BARBERS_LIST.find((b) => b.id === selectedBarberId);
+    if (!barber) {
+      setCheckinErrorMsg('❌ Selecione o barbeiro que realizou o atendimento antes de registrar.');
+      return;
+    }
 
     // Só declara sucesso depois que a gravação confirma. Anunciar antes fazia o
     // atendimento "sumir" no recarregamento, sem o admin perceber no balcão.
     setIsRegisteringAttendance(true);
     setCheckinErrorMsg(null);
     try {
-      await onUpdateSubscriber(updated);
+      await onRegisterAttendance(selectedSub, barber);
+      const restantes = selectedSub.totalSessions - selectedSub.usedSessions - 1;
       setCheckinSuccessMsg(
-        `✅ Atendimento registrado com sucesso! Restam ${updated.totalSessions - updated.usedSessions} atendimentos no plano.`
+        `✅ Atendimento com ${barber.name} registrado! Restam ${restantes} atendimentos no plano.`
       );
       setTimeout(() => setCheckinSuccessMsg(null), 5000);
     } catch (err) {
@@ -721,6 +728,32 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                 </div>
               </div>
 
+              {/* Barbeiro do atendimento — define a quem vai o repasse desta baixa */}
+              {isAdmin && (
+                <div className="bg-[#0a0a0a] p-4 rounded border border-[#94a288]/30 my-5 space-y-2">
+                  <label className="text-[10px] uppercase tracking-widest text-[#94a288] font-bold flex items-center gap-1.5">
+                    <Scissors className="w-3.5 h-3.5" />
+                    Barbeiro que realizou o atendimento *
+                  </label>
+                  <select
+                    value={selectedBarberId}
+                    onChange={(e) => setSelectedBarberId(e.target.value)}
+                    disabled={isRegisteringAttendance}
+                    className="w-full bg-[#151515] text-stone-100 text-xs font-bold rounded px-3.5 py-2.5 border border-[#94a288]/40 focus:outline-none focus:border-[#94a288] disabled:opacity-50"
+                  >
+                    <option value="">Selecione o barbeiro...</option>
+                    {BARBERS_LIST.map((barber) => (
+                      <option key={barber.id} value={barber.id}>
+                        {barber.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-stone-500 leading-relaxed">
+                    A comissão deste atendimento entra no repasse semanal do barbeiro escolhido.
+                  </p>
+                </div>
+              )}
+
               {/* QR Code and Actions */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/5">
                 <div className="flex items-center gap-3 bg-[#0a0a0a] p-2.5 rounded border border-white/5">
@@ -759,7 +792,8 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                   {isAdmin && (
                     <button
                       onClick={handleRegisterAttendance}
-                      disabled={remainingSessions <= 0 || isExpired || isRegisteringAttendance}
+                      disabled={remainingSessions <= 0 || isExpired || isRegisteringAttendance || !selectedBarberId}
+                      title={!selectedBarberId ? 'Selecione o barbeiro que realizou o atendimento' : undefined}
                       className="flex-1 sm:flex-none px-4 py-2.5 rounded bg-[#94a288] hover:bg-[#6b863a] disabled:opacity-50 text-black text-[10px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg"
                     >
                       <CheckCircle2 className="w-4 h-4 text-black" />

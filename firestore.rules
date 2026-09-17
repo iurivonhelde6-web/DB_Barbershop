@@ -32,6 +32,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Atendimentos realizados (check-in do balcão) — base do repasse ao barbeiro.
+    // Só admin registra; o cliente pode consultar o próprio histórico.
+    // Nunca são apagados: é histórico financeiro.
+    match /attendances/{attendanceId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.userUid == request.auth.uid);
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
     match /appointments/{appointmentId} {
       allow read: if isAdmin() || (signedIn() && resource.data.userUid == request.auth.uid);
       allow create: if signedIn() && request.resource.data.userUid == request.auth.uid;

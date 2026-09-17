@@ -19,9 +19,11 @@ import {
   query,
   where,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch,
+  increment
 } from 'firebase/firestore';
-import { SubscriberCard, Appointment, UserAccount, ClientProfileData, BarberAvailability } from '../types';
+import { AttendanceRecord, SubscriberCard, Appointment, UserAccount, ClientProfileData, BarberAvailability } from '../types';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -346,6 +348,38 @@ export async function updateSubscriberInCloud(id: string, updates: Partial<Subsc
     await updateDoc(docRef, { ...sanitized, updatedAt: new Date().toISOString() });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `subscribers/${id}`);
+  }
+}
+
+/**
+ * Registra um atendimento realizado e debita o saldo do assinante.
+ *
+ * As duas escritas vão num writeBatch porque são indissociáveis: um registro sem
+ * o débito pagaria repasse de um atendimento que o cliente não consumiu, e um
+ * débito sem registro sumiria com o repasse do barbeiro. O batch é atômico — ou
+ * as duas acontecem, ou nenhuma.
+ *
+ * `increment` em vez de um valor calculado no cliente evita perder uma baixa se
+ * dois admins derem check-in ao mesmo tempo.
+ */
+export async function registerAttendanceInCloud(
+  attendance: Omit<AttendanceRecord, 'id'>,
+): Promise<string> {
+  const attendanceRef = doc(collection(db, 'attendances'));
+  const subscriberRef = doc(db, 'subscribers', attendance.subscriberId);
+
+  try {
+    const batch = writeBatch(db);
+    batch.set(attendanceRef, { ...attendance, id: attendanceRef.id });
+    batch.update(subscriberRef, {
+      usedSessions: increment(1),
+      updatedAt: new Date().toISOString(),
+    });
+    await batch.commit();
+    return attendanceRef.id;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `attendances/${attendanceRef.id}`);
+    return attendanceRef.id;
   }
 }
 

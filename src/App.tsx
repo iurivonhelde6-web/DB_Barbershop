@@ -18,8 +18,9 @@ import { WhatsAppSupportModal } from './components/WhatsAppSupportModal';
 import { RegisterClientModal } from './components/RegisterClientModal';
 import { SplashScreen } from './components/SplashScreen';
 import { AdminNotificationToast, AdminNotification } from './components/AdminNotificationToast';
-import { MOCK_SUBSCRIBERS, INITIAL_APPOINTMENTS } from './data/barberData';
-import { SubscriberCard, UserAccount, Appointment, ClientProfileData } from './types';
+import { MOCK_SUBSCRIBERS, INITIAL_APPOINTMENTS, PLANS_LIST } from './data/barberData';
+import { Barber, SubscriberCard, UserAccount, Appointment, ClientProfileData } from './types';
+import { buildAttendanceRecord } from './utils/attendance';
 import { Scissors, ShieldCheck, Heart, MessageSquare } from 'lucide-react';
 import { 
   auth, 
@@ -29,6 +30,7 @@ import {
   addSubscriberToCloud,
   updateSubscriberInCloud,
   deleteSubscriberFromCloud,
+  registerAttendanceInCloud,
   addAppointmentToCloud,
   deleteAppointmentFromCloud,
   logoutUser,
@@ -209,6 +211,21 @@ export default function App() {
     }
   };
 
+  /**
+   * Check-in do balcão: grava o atendimento realizado e debita o saldo numa
+   * escrita atômica. Sem atualização otimista de propósito — o onSnapshot
+   * reflete o novo saldo, e o erro sobe para a tela exibir a falha.
+   */
+  const handleRegisterAttendance = async (sub: SubscriberCard, barber: Barber) => {
+    const attendance = buildAttendanceRecord({
+      subscriber: sub,
+      barber,
+      plans: PLANS_LIST,
+      registeredBy: firebaseUser?.uid || '',
+    });
+    await registerAttendanceInCloud(attendance);
+  };
+
   const handleDeleteSubscriber = async (subId: string) => {
     // Optimistic UI update - delete immediately from local state
     setSubscribers((prev) => prev.filter((s) => s.id !== subId));
@@ -368,6 +385,7 @@ export default function App() {
               onUpdateSubscriber={handleUpdateSubscriber}
               onAddNewSubscriberClick={() => setIsRegisterModalOpen(true)}
               currentUser={currentUser}
+              onRegisterAttendance={handleRegisterAttendance}
               onDeleteSubscriber={handleDeleteSubscriber}
             />
           )}

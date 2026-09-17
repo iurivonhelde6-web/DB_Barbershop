@@ -93,6 +93,41 @@ export interface SubscriberCard {
   paymentHistory?: PaymentInvoice[];
 }
 
+/**
+ * Atendimento efetivamente realizado (check-in confirmado no balcão) — a base do
+ * repasse semanal ao barbeiro. Não confundir com `Appointment`, que é agendamento
+ * futuro e pode nunca acontecer.
+ *
+ * Valor e comissão são gravados já calculados, e não apenas referenciados pelo
+ * plano: se a tabela de preços mudar, o histórico de repasses não pode se
+ * reescrever retroativamente.
+ */
+export interface AttendanceRecord {
+  id: string;
+  barberId: string;
+  barberName: string;
+  subscriberId: string;
+  clientName: string;
+  cardCode?: string;
+  /** uid do cliente, para ele poder consultar o próprio histórico */
+  userUid?: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:MM
+  createdAt: string; // ISO
+  planName: string;
+  serviceName: string;
+  /** Valor de um atendimento dentro do plano, no momento do registro */
+  attendanceValue: number;
+  /** Quanto o barbeiro recebe por este atendimento */
+  barberCommission: number;
+  /** Percentual aplicado, guardado para auditoria do repasse */
+  commissionPercentage: number;
+  /** uid do admin que confirmou o atendimento */
+  registeredBy: string;
+  /** true quando o plano do assinante não foi encontrado na tabela e os valores foram derivados */
+  derivedValues?: boolean;
+}
+
 export interface PaymentInvoice {
   id: string;
   invoiceCode: string;

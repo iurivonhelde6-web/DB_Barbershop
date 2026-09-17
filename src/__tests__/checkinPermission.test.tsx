@@ -31,6 +31,7 @@ const render = (currentUser: UserAccount) =>
     <ControlCardValidation
       subscribers={[subscriber]}
       onUpdateSubscriber={() => {}}
+      onRegisterAttendance={async () => {}}
       onAddNewSubscriberClick={() => {}}
       currentUser={currentUser}
     />,
