@@ -289,6 +289,54 @@ export function subscribeToAppointments(callback: (appointments: Appointment[]) 
   return () => unsubscribe?.();
 }
 
+/**
+ * Atendimentos realizados. O admin acompanha todos (base do repasse); o cliente,
+ * apenas os próprios — a regra do Firestore recusaria uma consulta sem esse filtro.
+ */
+export function subscribeToAttendances(callback: (attendances: AttendanceRecord[]) => void) {
+  let unsubscribe: (() => void) | undefined;
+
+  void (async () => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) { callback([]); return; }
+
+      const isAdmin = await hasAdminClaim(currentUser);
+      const colRef = collection(db, 'attendances');
+      const source = isAdmin ? colRef : query(colRef, where('userUid', '==', currentUser.uid));
+
+      unsubscribe = onSnapshot(source, (snapshot) => {
+        const list: AttendanceRecord[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          list.push({
+            id: docSnap.id,
+            barberId: data.barberId || '', barberName: data.barberName || '',
+            subscriberId: data.subscriberId || '', clientName: data.clientName || '',
+            cardCode: data.cardCode || '', userUid: data.userUid || '',
+            date: data.date || '', time: data.time || '', createdAt: data.createdAt || '',
+            planName: data.planName || '', serviceName: data.serviceName || '',
+            attendanceValue: Number(data.attendanceValue) || 0,
+            barberCommission: Number(data.barberCommission) || 0,
+            commissionPercentage: Number(data.commissionPercentage) || 0,
+            registeredBy: data.registeredBy || '',
+            derivedValues: data.derivedValues === true,
+          });
+        });
+        callback(list);
+      }, (err) => {
+        console.warn('Aviso na subscrição de atendimentos:', err?.message || err);
+        callback([]);
+      });
+    } catch (err) {
+      console.warn('Erro ao preparar subscrição de atendimentos:', err);
+      callback([]);
+    }
+  })();
+
+  return () => unsubscribe?.();
+}
+
 // ─── Firestore Error Handling ─────────────────────────────────────────────────
 export enum OperationType {
   CREATE = 'create', UPDATE = 'update', DELETE = 'delete',

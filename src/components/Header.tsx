@@ -1,11 +1,11 @@
 import React from 'react';
-import { ShieldCheck, Sparkles, CreditCard, FileText, Bot, Layers, Lock, Calendar, MessageSquare } from 'lucide-react';
+import { ShieldCheck, Sparkles, CreditCard, FileText, Bot, Layers, Lock, Calendar, MessageSquare, Wallet } from 'lucide-react';
 import { UserAccount } from '../types';
 import { DbLogo } from './DbLogo';
 
 interface HeaderProps {
-  activeTab: 'plans' | 'calculator' | 'checkin' | 'rules' | 'ai';
-  setActiveTab: (tab: 'plans' | 'calculator' | 'checkin' | 'rules' | 'ai') => void;
+  activeTab: 'plans' | 'calculator' | 'checkin' | 'rules' | 'ai' | 'payouts';
+  setActiveTab: (tab: 'plans' | 'calculator' | 'checkin' | 'rules' | 'ai' | 'payouts') => void;
   activeSubscribersCount: number;
   currentUser: UserAccount | null;
   onOpenLogin: () => void;
@@ -199,6 +199,21 @@ export const Header: React.FC<HeaderProps> = ({
             <ShieldCheck className="w-4 h-4" />
             {isClient ? 'Meu Cartão & Saldo' : 'Check-in & Cartão'}
           </button>
+
+          {/* Repasse semanal aos barbeiros — informação de gestão, só para admin */}
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('payouts')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-[11px] uppercase tracking-widest font-bold transition-all whitespace-nowrap ${
+                activeTab === 'payouts'
+                  ? 'bg-[#7d9864] text-black shadow-sm'
+                  : 'text-stone-400 hover:text-white hover:bg-[#151515]'
+              }`}
+            >
+              <Wallet className="w-4 h-4" />
+              Repasses
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('rules')}

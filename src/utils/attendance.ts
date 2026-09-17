@@ -92,6 +92,67 @@ export function buildAttendanceRecord({
   };
 }
 
+export interface BarberPayout {
+  barberId: string;
+  barberName: string;
+  attendances: AttendanceRecord[];
+  totalAttendances: number;
+  /** Faturamento gerado pelos atendimentos do barbeiro no período */
+  totalRevenue: number;
+  /** Quanto repassar ao barbeiro no período */
+  totalCommission: number;
+}
+
+/**
+ * Agrupa atendimentos por barbeiro para o fechamento do repasse.
+ *
+ * Ordena pelo maior repasse: quem tem mais a receber aparece primeiro, que é a
+ * ordem em que o fechamento semanal costuma ser conferido.
+ */
+export function groupAttendancesByBarber(attendances: AttendanceRecord[]): BarberPayout[] {
+  const porBarbeiro = new Map<string, BarberPayout>();
+
+  for (const att of attendances) {
+    const atual = porBarbeiro.get(att.barberId) ?? {
+      barberId: att.barberId,
+      barberName: att.barberName,
+      attendances: [],
+      totalAttendances: 0,
+      totalRevenue: 0,
+      totalCommission: 0,
+    };
+
+    atual.attendances.push(att);
+    atual.totalAttendances += 1;
+    atual.totalRevenue = round2(atual.totalRevenue + att.attendanceValue);
+    atual.totalCommission = round2(atual.totalCommission + att.barberCommission);
+    porBarbeiro.set(att.barberId, atual);
+  }
+
+  const grupos = [...porBarbeiro.values()];
+  for (const grupo of grupos) {
+    // Mais recente primeiro dentro de cada barbeiro
+    grupo.attendances.sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
+  }
+  return grupos.sort((a, b) => b.totalCommission - a.totalCommission);
+}
+
+/** Total a repassar somando todos os barbeiros do período. */
+export function sumPayouts(payouts: BarberPayout[]): {
+  totalCommission: number;
+  totalRevenue: number;
+  totalAttendances: number;
+} {
+  return payouts.reduce(
+    (acc, p) => ({
+      totalCommission: round2(acc.totalCommission + p.totalCommission),
+      totalRevenue: round2(acc.totalRevenue + p.totalRevenue),
+      totalAttendances: acc.totalAttendances + p.totalAttendances,
+    }),
+    { totalCommission: 0, totalRevenue: 0, totalAttendances: 0 },
+  );
+}
+
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }

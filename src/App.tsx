@@ -18,8 +18,9 @@ import { WhatsAppSupportModal } from './components/WhatsAppSupportModal';
 import { RegisterClientModal } from './components/RegisterClientModal';
 import { SplashScreen } from './components/SplashScreen';
 import { AdminNotificationToast, AdminNotification } from './components/AdminNotificationToast';
+import { BarberPayouts } from './components/BarberPayouts';
 import { MOCK_SUBSCRIBERS, INITIAL_APPOINTMENTS, PLANS_LIST } from './data/barberData';
-import { Barber, SubscriberCard, UserAccount, Appointment, ClientProfileData } from './types';
+import { AttendanceRecord, Barber, SubscriberCard, UserAccount, Appointment, ClientProfileData } from './types';
 import { buildAttendanceRecord } from './utils/attendance';
 import { Scissors, ShieldCheck, Heart, MessageSquare } from 'lucide-react';
 import { 
@@ -27,6 +28,7 @@ import {
   ensureUserProfile, 
   subscribeToSubscribers, 
   subscribeToAppointments,
+  subscribeToAttendances,
   addSubscriberToCloud,
   updateSubscriberInCloud,
   deleteSubscriberFromCloud,
@@ -56,7 +58,7 @@ function needsProfileCompletion(user: UserAccount | null): boolean {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'plans' | 'calculator' | 'checkin' | 'rules' | 'ai'>('plans');
+  const [activeTab, setActiveTab] = useState<'plans' | 'calculator' | 'checkin' | 'rules' | 'ai' | 'payouts'>('plans');
 
   // Fluxo obrigatório de entrada: Splash → Login → Cadastro (opcional) → App
   const [appPhase, setAppPhase] = useState<AppPhase>('splash');
@@ -68,6 +70,8 @@ export default function App() {
   const [subscribers, setSubscribers] = useState<SubscriberCard[]>([]);
   // Real-time Cloud Appointments State
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  // Atendimentos realizados — base do repasse por barbeiro
+  const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState<boolean>(false);
@@ -147,9 +151,14 @@ export default function App() {
       }
     });
 
+    const unsubAttendances = subscribeToAttendances((cloudAttendances) => {
+      setAttendances(cloudAttendances);
+    });
+
     return () => {
       unsubSubscribers();
       unsubAppointments();
+      unsubAttendances();
     };
   }, [firebaseUser?.uid]);
 
@@ -388,6 +397,18 @@ export default function App() {
               onRegisterAttendance={handleRegisterAttendance}
               onDeleteSubscriber={handleDeleteSubscriber}
             />
+          )}
+
+          {activeTab === 'payouts' && (
+            currentUser?.role === 'admin' ? (
+              <BarberPayouts attendances={attendances} />
+            ) : (
+              <RestrictedFinancialView
+                currentUser={currentUser}
+                onOpenAdminLogin={() => setIsAccountModalOpen(true)}
+                onGoToPlans={() => setActiveTab('plans')}
+              />
+            )
           )}
 
           {activeTab === 'rules' && <ContractRules />}
