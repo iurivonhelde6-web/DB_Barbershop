@@ -335,8 +335,15 @@ export async function addSubscriberToCloud(sub: Omit<SubscriberCard, 'id'> & { i
 
 export async function updateSubscriberInCloud(id: string, updates: Partial<SubscriberCard>): Promise<void> {
   const docRef = doc(db, 'subscribers', id);
+  // O SDK do Firestore rejeita `undefined` em qualquer campo, e o próprio listener acima
+  // produz esse valor para todo campo opcional ausente no documento (stripePriceId,
+  // cardLast4, etc.). Sem esta limpeza, gravar um objeto vindo do state falha com
+  // invalid-argument antes mesmo de chegar nas regras de segurança.
+  const sanitized = Object.fromEntries(
+    Object.entries(updates).filter(([, value]) => value !== undefined),
+  );
   try {
-    await updateDoc(docRef, { ...updates, updatedAt: new Date().toISOString() });
+    await updateDoc(docRef, { ...sanitized, updatedAt: new Date().toISOString() });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `subscribers/${id}`);
   }

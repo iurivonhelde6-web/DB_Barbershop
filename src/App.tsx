@@ -189,13 +189,23 @@ export default function App() {
 
   const handleUpdateSubscriber = async (updatedSub: SubscriberCard) => {
     // Optimistic UI update
+    const previousSub = subscribers.find((s) => s.id === updatedSub.id);
     setSubscribers((prev) =>
       prev.map((s) => (s.id === updatedSub.id ? updatedSub : s))
     );
     try {
       await updateSubscriberInCloud(updatedSub.id, updatedSub);
     } catch (e) {
+      // Desfaz a atualização otimista e repassa o erro: engolir aqui fazia a tela
+      // exibir um atendimento que o banco nunca recebeu, e o admin só descobria
+      // ao recarregar a página.
       console.error('Erro ao atualizar no Firestore:', e);
+      if (previousSub) {
+        setSubscribers((prev) =>
+          prev.map((s) => (s.id === updatedSub.id ? previousSub : s))
+        );
+      }
+      throw e;
     }
   };
 

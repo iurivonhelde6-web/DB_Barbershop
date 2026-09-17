@@ -32,7 +32,7 @@ import {
 
 interface ControlCardValidationProps {
   subscribers: SubscriberCard[];
-  onUpdateSubscriber: (updatedSub: SubscriberCard) => void;
+  onUpdateSubscriber: (updatedSub: SubscriberCard) => void | Promise<void>;
   onAddNewSubscriberClick: () => void;
   currentUser?: UserAccount | null;
   onDeleteSubscriber?: (subId: string) => void;
@@ -66,6 +66,8 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
   const [selectedSubId, setSelectedSubId] = useState<string>('');
   const [isNoCardAlertOpen, setIsNoCardAlertOpen] = useState<boolean>(false);
   const [checkinSuccessMsg, setCheckinSuccessMsg] = useState<string | null>(null);
+  const [checkinErrorMsg, setCheckinErrorMsg] = useState<string | null>(null);
+  const [isRegisteringAttendance, setIsRegisteringAttendance] = useState<boolean>(false);
 
   // Admin Delete Confirmation State
   const [subToDelete, setSubToDelete] = useState<SubscriberCard | null>(null);
@@ -162,7 +164,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
     return matchesTerm;
   });
 
-  const handleRegisterAttendance = () => {
+  const handleRegisterAttendance = async () => {
     if (!selectedSub) return;
 
     if (selectedSub.status === 'PAYMENT_PENDING' || selectedSub.paymentStatus === 'PENDING') {
@@ -181,12 +183,24 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
       usedSessions: selectedSub.usedSessions + 1,
     };
 
-    onUpdateSubscriber(updated);
-    setCheckinSuccessMsg(
-      `✅ Atendimento registrado com sucesso! Restam ${updated.totalSessions - updated.usedSessions} atendimentos no plano.`
-    );
-
-    setTimeout(() => setCheckinSuccessMsg(null), 5000);
+    // Só declara sucesso depois que a gravação confirma. Anunciar antes fazia o
+    // atendimento "sumir" no recarregamento, sem o admin perceber no balcão.
+    setIsRegisteringAttendance(true);
+    setCheckinErrorMsg(null);
+    try {
+      await onUpdateSubscriber(updated);
+      setCheckinSuccessMsg(
+        `✅ Atendimento registrado com sucesso! Restam ${updated.totalSessions - updated.usedSessions} atendimentos no plano.`
+      );
+      setTimeout(() => setCheckinSuccessMsg(null), 5000);
+    } catch (err) {
+      console.error('[Check-in] Falha ao registrar atendimento:', err);
+      setCheckinErrorMsg(
+        `❌ Não foi possível registrar o atendimento de ${selectedSub.clientName}. Nada foi salvo — tente novamente. Se persistir, avise o suporte.`
+      );
+    } finally {
+      setIsRegisteringAttendance(false);
+    }
   };
 
   const handleCardPaymentSuccess = (paymentData: {
@@ -206,7 +220,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
     setTimeout(() => setCheckinSuccessMsg(null), 6000);
   };
 
-  const handleAdminManualPaymentConfirm = () => {
+  const handleAdminManualPaymentConfirm = async () => {
     if (!selectedSub) return;
     const amount = getSubPlanAmount(selectedSub);
     const todayStr = new Date().toLocaleDateString('pt-BR');
@@ -242,11 +256,19 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
       notes: `Quitação em dinheiro/cartão no balcão confirmada pelo Administrador em ${todayStr}.`,
     };
 
-    onUpdateSubscriber(updatedSub);
-    setCheckinSuccessMsg(
-      `🎉 Pagamento de R$ ${amount.toFixed(2)} confirmado pelo Administrador! Carteirinha de ${selectedSub.clientName} ativada e liberada.`
-    );
-    setTimeout(() => setCheckinSuccessMsg(null), 6000);
+    setCheckinErrorMsg(null);
+    try {
+      await onUpdateSubscriber(updatedSub);
+      setCheckinSuccessMsg(
+        `🎉 Pagamento de R$ ${amount.toFixed(2)} confirmado pelo Administrador! Carteirinha de ${selectedSub.clientName} ativada e liberada.`
+      );
+      setTimeout(() => setCheckinSuccessMsg(null), 6000);
+    } catch (err) {
+      console.error('[Quitação manual] Falha ao gravar:', err);
+      setCheckinErrorMsg(
+        `❌ Não foi possível confirmar a quitação de ${selectedSub.clientName}. Nada foi salvo — tente novamente.`
+      );
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -527,6 +549,23 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
               </div>
             )}
 
+            {/* Falha de Gravação */}
+            {checkinErrorMsg && (
+              <div className="bg-red-950/80 border border-red-500/60 p-4 rounded text-xs text-red-100 font-bold flex items-start gap-2 animate-fade-in shadow-lg">
+                <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span>{checkinErrorMsg}</span>
+                </div>
+                <button
+                  onClick={() => setCheckinErrorMsg(null)}
+                  className="text-red-300 hover:text-white transition shrink-0"
+                  title="Fechar"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {/* Delete Toast */}
             {deleteSuccessMsg && (
               <div className="bg-red-950/40 border border-red-500/50 p-4 rounded text-xs text-red-200 font-bold flex items-center gap-2 animate-fade-in shadow-lg">
@@ -720,11 +759,11 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                   {isAdmin && (
                     <button
                       onClick={handleRegisterAttendance}
-                      disabled={remainingSessions <= 0 || isExpired}
+                      disabled={remainingSessions <= 0 || isExpired || isRegisteringAttendance}
                       className="flex-1 sm:flex-none px-4 py-2.5 rounded bg-[#94a288] hover:bg-[#6b863a] disabled:opacity-50 text-black text-[10px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg"
                     >
                       <CheckCircle2 className="w-4 h-4 text-black" />
-                      Registrar Atendimento (-1 ATD)
+                      {isRegisteringAttendance ? 'Registrando...' : 'Registrar Atendimento (-1 ATD)'}
                     </button>
                   )}
                 </div>
