@@ -714,14 +714,19 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                     Imprimir Cartão
                   </button>
 
-                  <button
-                    onClick={handleRegisterAttendance}
-                    disabled={remainingSessions <= 0 || isExpired}
-                    className="flex-1 sm:flex-none px-4 py-2.5 rounded bg-[#94a288] hover:bg-[#6b863a] disabled:opacity-50 text-black text-[10px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg"
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-black" />
-                    Registrar Atendimento (-1 ATD)
-                  </button>
+                  {/* Baixa de atendimento é ato do balcão: só o admin dá check-in.
+                      A regra do Firestore barra a escrita de qualquer forma — este
+                      gate existe para o cliente não ver um botão que não pode usar. */}
+                  {isAdmin && (
+                    <button
+                      onClick={handleRegisterAttendance}
+                      disabled={remainingSessions <= 0 || isExpired}
+                      className="flex-1 sm:flex-none px-4 py-2.5 rounded bg-[#94a288] hover:bg-[#6b863a] disabled:opacity-50 text-black text-[10px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-black" />
+                      Registrar Atendimento (-1 ATD)
+                    </button>
+                  )}
                 </div>
               </div>
 
