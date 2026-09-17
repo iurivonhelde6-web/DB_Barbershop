@@ -79,11 +79,13 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Stats Badge & Action - Desktop */}
           <div className="hidden lg:flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-[#151515] border border-[#94a288]/30 text-xs">
-              <div className="w-2 h-2 rounded-full bg-[#94a288] animate-ping" />
-              <span className="text-stone-400 text-[11px] uppercase tracking-wider">Assinantes Ativos:</span>
-              <strong className="text-[#3db196] font-bold">{activeSubscribersCount} Membros</strong>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-[#151515] border border-[#94a288]/30 text-xs">
+                <div className="w-2 h-2 rounded-full bg-[#94a288] animate-ping" />
+                <span className="text-stone-400 text-[11px] uppercase tracking-wider">Assinantes Ativos:</span>
+                <strong className="text-[#3db196] font-bold">{activeSubscribersCount} Membros</strong>
+              </div>
+            )}
 
             <button
               onClick={onOpenWhatsApp}
