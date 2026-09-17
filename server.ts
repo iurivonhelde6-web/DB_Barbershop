@@ -430,8 +430,14 @@ Informações de Planos & Regras da DB Barbershop:
     const replyText = response.text || 'Desculpe, não consegui processar a resposta no momento.';
     return res.json({ reply: replyText, status: 'success' });
   } catch (err: any) {
-    console.error('Erro na chamada Gemini:', err);
-    return res.status(500).json({ error: 'Erro interno ao consultar assistente.', details: err.message });
+    // Log completo sempre, para investigação (Vercel Runtime Logs). O detalhe só
+    // volta na resposta para admin — para o cliente final, mensagem genérica.
+    console.error('[Gemini] Falha ao consultar a IA:', err?.message || err, err?.stack || '');
+    const isAdminCaller = (req as any).firebaseUser?.admin === true;
+    return res.status(500).json({
+      error: 'Erro interno ao consultar assistente.',
+      ...(isAdminCaller ? { details: err?.message || String(err) } : {}),
+    });
   }
 });
 

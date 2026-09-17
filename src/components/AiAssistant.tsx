@@ -92,10 +92,22 @@ export const AiAssistant: React.FC = () => {
         return;
       }
 
+      // response.ok === false aqui é falha real do servidor (ex.: erro na API do
+      // Gemini) — mostra o motivo em vez de cair sempre na mesma frase genérica,
+      // que é o que tornava esse tipo de falha impossível de diagnosticar pela UI.
+      // `data.details` só existe na resposta quando quem perguntou é admin.
+      const fallbackText = !response.ok
+        ? sanitizeText(
+            data.details
+              ? `Falha ao consultar a IA: ${data.details}`
+              : data.error || 'Não foi possível consultar a IA agora. Tente novamente em instantes.',
+          )
+        : sanitizeText(data.reply || 'Desculpe, não recebi uma resposta válida da IA. Tente novamente.');
+
       const assistantMsg: ChatMessage = {
         id: `ast-${Date.now()}`,
         sender: 'assistant',
-        text: sanitizeText(data.reply || 'Desculpe, ocorreu uma falha na resposta da consulta.'),
+        text: fallbackText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
