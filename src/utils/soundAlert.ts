@@ -1,5 +1,5 @@
 /**
- * Audio Alert Utility for DED BLACK BARBERSHOP Admin System
+ * Audio Alert Utility for DB BARBERSHOP Admin System
  * Uses Web Audio API to produce crisp, high-quality notification alerts
  * without relying on external MP3/WAV files.
  */

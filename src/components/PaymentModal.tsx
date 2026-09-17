@@ -117,7 +117,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <h3 className="font-black text-base text-[#FDFDFD] tracking-tight flex items-center gap-2">
                 <span>Pagamento e Liberação</span>
                 <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] uppercase font-extrabold border border-amber-500/30">
-                  Ded Black
+                  DB Barbershop
                 </span>
               </h3>
               <p className="text-xs text-[#A4A9A5]">Checkout Seguro &bull; {planName}</p>

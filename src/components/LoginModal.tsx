@@ -106,7 +106,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <DbLogo className={isPage ? 'w-12 h-12' : 'w-10 h-10'} />
             <div>
               <h3 className="text-lg font-serif font-bold text-white italic">
-                {isPage ? 'Bem-vindo à Ded Black Barbershop' : 'Autenticação Ded Black Barbershop'}
+                {isPage ? 'Bem-vindo à DB Barbershop' : 'Autenticação DB Barbershop'}
               </h3>
               <p className="text-[11px] text-stone-400">
                 {isPage
@@ -311,7 +311,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Footer */}
         <div className="bg-[#0a0a0a] px-6 py-3 border-t border-white/5 text-[10px] text-stone-500 flex items-center justify-between">
-          <span>Ded Black Barbershop &bull; Autenticação Google</span>
+          <span>DB Barbershop &bull; Autenticação Google</span>
           <span className="font-mono text-emerald-400">Nuvem Firestore Ativa</span>
         </div>
       </div>

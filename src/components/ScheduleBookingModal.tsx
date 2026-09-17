@@ -248,7 +248,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
     cardCode?: string;
     notes?: string;
   }) => {
-    return `💈 *BARBEARIA DED BLACK - CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\n` +
+    return `💈 *DB BARBERSHOP - CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\n` +
       `👤 *Cliente:* ${apt.clientName}\n` +
       `✂️ *Barbeiro Escolhido:* ${apt.barberName}\n` +
       `⏰ *Horário:* ${apt.time}\n` +
@@ -256,7 +256,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
       `💈 *Serviço:* ${apt.serviceName}\n` +
       (apt.cardCode ? `💳 *Cartão D•B:* ${apt.cardCode}\n` : '') +
       (apt.notes ? `💰 *Observação:* ${apt.notes}\n` : '') +
-      `\n📍 *Endereço:* Barbearia Ded Black - Unidade Principal\n` +
+      `\n📍 *Endereço:* DB Barbershop - Unidade Principal\n` +
       `⚠️ *Tolerância:* 10 minutos improrrogáveis.`;
   };
 
@@ -329,7 +329,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
             {/* PRE-FORMATTED MESSAGE DISPLAY BOX */}
             <div className="bg-[#0a0a0a] border border-[#94a288]/40 rounded-xl p-4 font-mono text-xs space-y-2 text-stone-200 leading-relaxed shadow-inner">
               <div className="text-amber-400 font-bold text-center border-b border-white/10 pb-2 mb-2">
-                💈 BARBEARIA DED BLACK - AGENDAMENTO CONFIRMADO 💈
+                💈 DB BARBERSHOP - AGENDAMENTO CONFIRMADO 💈
               </div>
 
               {(() => {
@@ -365,7 +365,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
                       </p>
                     )}
                     <div className="border-t border-white/10 pt-2 mt-2 text-[10px] text-stone-400 italic">
-                      📍 Endereço: Barbearia Ded Black - Unidade Principal<br />
+                      📍 Endereço: DB Barbershop - Unidade Principal<br />
                       ⚠️ Tolerância máxima de atraso: 10 minutos.
                     </div>
                   </>
@@ -886,7 +886,7 @@ export const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
 
         {/* Modal Footer */}
         <div className="bg-[#0a0a0a] px-6 py-3 border-t border-white/5 text-[10px] text-stone-500 flex items-center justify-between">
-          <span>Barbearia Ded Black &bull; Tolerância Improrrogável: 10 min</span>
+          <span>DB Barbershop &bull; Tolerância Improrrogável: 10 min</span>
           <span className="font-mono">Central de Reservas</span>
         </div>
       </div>

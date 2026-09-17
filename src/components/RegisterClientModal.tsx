@@ -273,7 +273,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
                   Bem-vindo(a), {createdSub.clientName}!
                 </h4>
                 <p className="text-xs text-stone-300 mt-1 max-w-md mx-auto">
-                  Seu cadastro foi realizado na Ded Black Barbershop. Você já pode acessar seu painel e escolher um plano quando desejar.
+                  Seu cadastro foi realizado na DB Barbershop. Você já pode acessar seu painel e escolher um plano quando desejar.
                 </p>
               </div>
 
@@ -527,7 +527,7 @@ export const RegisterClientModal: React.FC<RegisterClientModalProps> = ({
 
         {/* Footer */}
         <div className="bg-[#0a0a0a] px-6 py-3 border-t border-white/5 text-[10px] text-stone-500 flex items-center justify-between shrink-0">
-          <span>Ded Black Barbershop &bull; Cadastro Seguro de Clientes</span>
+          <span>DB Barbershop &bull; Cadastro Seguro de Clientes</span>
           <span className="font-mono">LGPD Compliance</span>
         </div>
       </div>

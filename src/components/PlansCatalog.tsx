@@ -267,7 +267,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#94a288]/20 text-[#94a288] text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border border-[#235347]/60">
               <Award className="w-3.5 h-3.5 text-[#8da479]" />
-              Clube de Assinaturas Ded Black
+              Clube de Assinaturas DB Barbershop
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif italic text-white leading-tight">
               Planos de <span className="text-[#749756]">Membro</span>
@@ -395,7 +395,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                 Simulador de Economia para Clientes
               </span>
               <h3 className="text-xl sm:text-2xl font-serif italic text-white">
-                Quanto você economiza sendo Membro Ded Black?
+                Quanto você economiza sendo Membro DB Barbershop?
               </h3>
               <p className="text-xs text-stone-300 mt-1 opacity-80">
                 Ajuste sua frequência mensal e compare o custo Avulso com o valor do Plano de Assinatura.
@@ -444,7 +444,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
             {/* Results Display Box */}
             <div className="w-full lg:w-auto bg-[#0a0a0a] rounded-lg p-5 border border-[#94a288]/40 flex flex-col sm:flex-row lg:flex-col items-center justify-between gap-4 min-w-[280px]">
               <div className="text-center sm:text-left lg:text-center w-full">
-                <span className="text-[10px] uppercase tracking-wider text-stone-400 block font-bold">Custo Avulso vs. Plano Ded Black</span>
+                <span className="text-[10px] uppercase tracking-wider text-stone-400 block font-bold">Custo Avulso vs. Plano DB Barbershop</span>
                 <div className="flex items-baseline justify-center sm:justify-start lg:justify-center gap-2 mt-1">
                   <span className="line-through text-stone-500 text-xs">R$ {totalAvulsoCost.toFixed(2)}</span>
                   <span className="text-2xl font-serif text-[#94a288] font-bold">
@@ -486,7 +486,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
             </div>
 
             <div className="bg-[#94a288]/10 border border-[#94a288]/30 px-3.5 py-2 rounded text-right">
-              <span className="text-[10px] uppercase tracking-wider text-stone-400 block font-bold">Dica Ded Black</span>
+              <span className="text-[10px] uppercase tracking-wider text-stone-400 block font-bold">Dica DB Barbershop</span>
               <span className="text-xs text-[#e6e7e5] font-bold">Membros economizam até 40% por visita!</span>
             </div>
           </div>
@@ -756,7 +756,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
               <div>
                 <div className="flex items-center gap-2 text-[#94a288] text-[10px] font-bold uppercase tracking-widest mb-1">
                   <ShieldCheck className="w-4 h-4" />
-                  Ativação de Assinatura Ded Black
+                  Ativação de Assinatura DB Barbershop
                 </div>
                 <h3 className="text-xl font-serif italic text-white">
                   Aderir ao {selectedPlanForSub.tierLabel}

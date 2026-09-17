@@ -32,7 +32,7 @@ export const RestrictedFinancialView: React.FC<RestrictedFinancialViewProps> = (
             Painel Financeiro &amp; Indicadores
           </h2>
           <p className="text-xs text-stone-400 leading-relaxed pt-1">
-            Olá, <strong className="text-white">{currentUser?.name || 'Cliente'}</strong>! O painel de faturamento mensal, margens por atendimento, comissões de barbeiros e projeção de receita são restritos à administração da <strong className="text-[#94a288]">Ded Black Barbershop</strong>.
+            Olá, <strong className="text-white">{currentUser?.name || 'Cliente'}</strong>! O painel de faturamento mensal, margens por atendimento, comissões de barbeiros e projeção de receita são restritos à administração da <strong className="text-[#94a288]">DB Barbershop</strong>.
           </p>
         </div>
 

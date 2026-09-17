@@ -70,7 +70,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished, logoSrc 
           {logoSrc ? (
             <img
               src={logoSrc}
-              alt="Ded Black Barbershop"
+              alt="DB Barbershop"
               className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover select-none drop-shadow-[0_0_35px_rgba(148,162,136,0.35)]"
             />
           ) : (
@@ -86,7 +86,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished, logoSrc 
           className="space-y-1"
         >
           <h1 className="text-3xl sm:text-4xl font-serif italic tracking-[0.2em] text-white">
-            DED BLACK
+            DB
           </h1>
           <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.45em] text-[#94a288] font-bold">
             Barbershop &bull; DB Club

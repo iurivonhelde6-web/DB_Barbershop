@@ -128,7 +128,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
       validationStatus: isPaid ? 'VALIDATED' : 'UNDER_REVIEW',
       transactionId: sub.transactionId || (isPaid ? `TXN-${sub.cardCode}-PIX` : `PENDING-${sub.cardCode}`),
       notes: isPaid
-        ? 'Fatura quitada e validada no sistema Ded Black.'
+        ? 'Fatura quitada e validada no sistema DB Barbershop.'
         : 'Fatura aguardando confirmação de pagamento para liberação da carteirinha.',
     };
 
@@ -607,7 +607,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                         🔒 Carteirinha Bloqueada - Aguardando Pagamento
                       </h4>
                       <p className="text-xs text-stone-200 mt-1 leading-relaxed">
-                        Conforme as regras da Ded Black, <strong>o cliente só poderá fazer e utilizar a carteirinha digital caso pague o plano que escolher assinar</strong>.
+                        Conforme as regras da DB Barbershop, <strong>o cliente só poderá fazer e utilizar a carteirinha digital caso pague o plano que escolher assinar</strong>.
                         O valor a ser quitado é de <strong className="text-amber-400 font-mono text-sm">R$ {getSubPlanAmount(selectedSub).toFixed(2)}</strong> ({selectedSub.planName}).
                       </p>
                     </div>
@@ -927,7 +927,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                 Atenção: Ausência do Cartão de Controle
               </h3>
               <p className="text-xs text-stone-300 mt-2 leading-relaxed opacity-80">
-                Conforme as cláusulas <strong>6</strong> e <strong>13</strong> do contrato oficial Ded Black:
+                Conforme as cláusulas <strong>6</strong> e <strong>13</strong> do contrato oficial DB Barbershop:
               </p>
               <div className="bg-[#0a0a0a] p-3 rounded border border-white/5 text-yellow-300 text-xs font-semibold my-3 text-left">
                 "Caso o cliente venha cortar sem o Cartão de Controle (físico ou digital), o serviço DEVERÁ ser cobrado pelo valor AVULSO da tabela no dia do atendimento."
@@ -952,7 +952,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
           <div className="bg-[#151515] border border-[#94a288]/40 rounded max-w-lg w-full p-6 shadow-2xl space-y-6">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="text-lg font-serif italic text-white">
-                Cartão Físico / Digital Ded Black
+                Cartão Físico / Digital DB Barbershop
               </h3>
               <button
                 onClick={() => setIsPrintModalOpen(false)}
@@ -967,7 +967,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
               <div className="flex justify-between items-center border-b border-white/5 pb-3">
                 <div className="flex items-center gap-2">
                   <Scissors className="w-5 h-5 text-[#94a288]" />
-                  <span className="font-bold text-sm tracking-widest font-serif text-white uppercase">DED BLACK BARBERSHOP</span>
+                  <span className="font-bold text-sm tracking-widest font-serif text-white uppercase">DB BARBERSHOP</span>
                 </div>
                 <span className="text-[10px] font-mono text-[#94a288] bg-[#151515] px-2 py-0.5 rounded border border-[#94a288]/40">
                   {selectedSub.cardCode}
@@ -1114,7 +1114,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                     Comprovante Oficial de Quitação
                   </h3>
                   <p className="text-[10px] text-stone-400">
-                    DED BLACK BARBERSHOP &bull; SISTEMA DE SUBSCRIÇÃO
+                    DB BARBERSHOP &bull; SISTEMA DE SUBSCRIÇÃO
                   </p>
                 </div>
               </div>
@@ -1225,7 +1225,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
           <div className="border-2 border-black p-5 space-y-4">
             {/* Header */}
             <div className="text-center border-b-2 border-black pb-3">
-              <h2 className="text-base font-extrabold tracking-wider uppercase">DED BLACK BARBERSHOP</h2>
+              <h2 className="text-base font-extrabold tracking-wider uppercase">DB BARBERSHOP</h2>
               <p className="text-[11px] font-bold uppercase text-stone-800">Comprovante de Pagamento & Quitação</p>
               <p className="text-[9px] text-stone-600 mt-1">D•B Club de Membros | CNPJ: 48.921.340/0001-89</p>
             </div>
@@ -1297,7 +1297,7 @@ export const ControlCardValidation: React.FC<ControlCardValidationProps> = ({
                 DB-AUTH-{receiptToPrint.invoice.invoiceCode}-{receiptToPrint.invoice.transactionId.slice(-8)}
               </p>
               <p className="text-[8px] italic pt-1">
-                Este comprovante atesta a quitação de mensalidade no sistema Ded Black Barbershop.
+                Este comprovante atesta a quitação de mensalidade no sistema DB Barbershop.
               </p>
               <p className="text-[8px] text-stone-500">
                 Documento impresso em: {new Date().toLocaleString('pt-BR')}

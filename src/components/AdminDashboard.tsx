@@ -932,7 +932,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                   // Prepara texto legível para envio via WhatsApp
                   const whatsappMsg = encodeURIComponent(
-                    `Olá, ${sub.clientName}! 💈\n\nSua assinatura do plano *${sub.planName}* na *Ded Black Barbershop* ${
+                    `Olá, ${sub.clientName}! 💈\n\nSua assinatura do plano *${sub.planName}* na *DB Barbershop* ${
                       daysRemaining === 0
                         ? 'vence *HOJE*'
                         : daysRemaining > 0
@@ -1415,7 +1415,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="flex items-center justify-end gap-2">
                               <a
                                 href={`https://wa.me/55${apt.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                                  `Olá ${apt.clientName}, confirmando seu agendamento na Ded Black Barbershop para ${apt.date} às ${apt.time} com o barbeiro ${apt.barberName}.`
+                                  `Olá ${apt.clientName}, confirmando seu agendamento na DB Barbershop para ${apt.date} às ${apt.time} com o barbeiro ${apt.barberName}.`
                                 )}`}
                                 target="_blank"
                                 rel="noopener noreferrer"

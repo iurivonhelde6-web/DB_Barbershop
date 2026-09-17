@@ -291,7 +291,7 @@ async function exportFirestoreDataToJSON(): Promise<{
     const latestPath = path.join(BACKUP_DIR, 'latest-backup.json');
 
     const backupPayload = {
-      app: 'Ded Black Barbershop - Backup de Segurança Extra', backupTimestamp: timestampStr,
+      app: 'DB Barbershop - Backup de Segurança Extra', backupTimestamp: timestampStr,
       generatedAtFormatted: now.toLocaleString('pt-BR'),
       counts: { subscribers: subscribersList.length, appointments: appointmentsList.length, users: usersList.length },
       subscribers: subscribersList, appointments: appointmentsList, users: usersList,
@@ -389,15 +389,15 @@ app.post('/api/chat', rateLimiterMiddleware, authCheckMiddleware, async (req, re
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return res.json({ reply: 'Olá! Sou o assistente da Barbearia Ded Black. O plano FLEX PREMIUM é o mais completo para quem busca total liberdade entre corte na tesoura, disfarce e barba! Se precisar simular economias ou conferir as regras de comissão, utilize nossos simuladores interativos nas abas acima.' });
+      return res.json({ reply: 'Olá! Sou o assistente da DB Barbershop. O plano FLEX PREMIUM é o mais completo para quem busca total liberdade entre corte na tesoura, disfarce e barba! Se precisar simular economias ou conferir as regras de comissão, utilize nossos simuladores interativos nas abas acima.' });
     }
 
     const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
 
-    const systemInstruction = `Você é o Consultor Especialista de Planos, Visagismo Masculino e Negócios da Barbearia Ded Black (D•B BARBERSHOP).
+    const systemInstruction = `Você é o Consultor Especialista de Planos, Visagismo Masculino e Negócios da DB Barbershop.
 Você é educado, profissional, atencioso e especialista em visagismo de barba, tipos de rosto, estilos de corte, produtos da marca e regras do contrato/assinaturas (BASIC, PLUS, SELECT, FAMILY, FLEX PREMIUM).
 
-Linha de Produtos Oficiais da Barbearia Ded Black:
+Linha de Produtos Oficiais da DB Barbershop:
 1. Óleo Hidratante de Barba D•B (Nutrição com óleos nobres, brilho natural e perfume exclusivo).
 2. Balm Alinhador de Barba D•B (Maciez, controle do frizz e hidratação da pele sob a barba).
 3. Shampoo Especial de Barba D•B (Higienização profunda, refrescância e desobstrução dos poros).
@@ -411,7 +411,7 @@ Guia de Visagismo de Barba por Tipo de Rosto:
 - Rosto Triangular: Estilos com volume nas laterais e queixo preenchido para equilibrar a parte inferior.
 - Rosto Diamante: Barba com bom volume no queixo e mandíbula para suavizar maçãs proeminentes.
 
-Informações de Planos & Regras da Ded Black:
+Informações de Planos & Regras da DB Barbershop:
 - Planos disponíveis: BASIC MEMBER, PLUS MEMBER, SELECT MEMBER ⭐, FAMILY, FLEX PREMIUM ⚫.
 - Principais Regras:
   1. Atendimentos não utilizados NÃO acumulam.
@@ -467,7 +467,7 @@ if (!process.env.VERCEL) {
     }
 
     server.listen(PORT, '0.0.0.0', () => {
-      console.log(`[Ded Black App] Servidor rodando em http://localhost:${PORT}`);
+      console.log(`[DB Barbershop App] Servidor rodando em http://localhost:${PORT}`);
     });
   })();
 }

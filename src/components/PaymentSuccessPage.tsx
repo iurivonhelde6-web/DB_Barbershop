@@ -114,7 +114,7 @@ export const PaymentSuccessPage: React.FC = () => {
               href="/"
               className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2"
             >
-              <span>Voltar para o Ded Black</span>
+              <span>Voltar para o DB Barbershop</span>
               <ArrowRight className="w-4 h-4" />
             </a>
           </>
@@ -135,7 +135,7 @@ export const PaymentSuccessPage: React.FC = () => {
               href="/"
               className="w-full py-3 px-4 rounded-xl bg-[#202020] hover:bg-[#282828] text-stone-200 font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2"
             >
-              <span>Voltar para o Ded Black</span>
+              <span>Voltar para o DB Barbershop</span>
             </a>
           </>
         )}
@@ -155,7 +155,7 @@ export const PaymentSuccessPage: React.FC = () => {
               href="/"
               className="w-full py-3 px-4 rounded-xl bg-[#202020] hover:bg-[#282828] text-stone-200 font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2"
             >
-              <span>Voltar para o Ded Black</span>
+              <span>Voltar para o DB Barbershop</span>
             </a>
           </>
         )}

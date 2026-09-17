@@ -25,7 +25,7 @@ export const WhatsAppSupportModal: React.FC<WhatsAppSupportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const defaultMessage = `Olá, Admin Ded Black! Meu nome é ${currentUser?.name || 'Cliente D•B'}${
+  const defaultMessage = `Olá, Admin DB Barbershop! Meu nome é ${currentUser?.name || 'Cliente D•B'}${
     currentUser?.cardCode ? ` (Cartão: ${currentUser.cardCode})` : ''
   }.\n\nAssunto: ${subject}.${customText ? `\n\nMensagem: ${customText}` : ''}`;
 
@@ -141,7 +141,7 @@ export const WhatsAppSupportModal: React.FC<WhatsAppSupportModalProps> = ({
 
         {/* Footer */}
         <div className="bg-[#0a0a0a] px-6 py-2.5 border-t border-white/5 text-[10px] text-stone-500 flex items-center justify-between">
-          <span>Ded Black Barbershop &bull; Suporte Oficial do Admin</span>
+          <span>DB Barbershop &bull; Suporte Oficial do Admin</span>
           <span className="font-mono text-emerald-400 font-bold">{ADMIN_WHATSAPP_DISPLAY}</span>
         </div>
       </div>

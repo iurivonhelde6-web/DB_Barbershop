@@ -439,7 +439,7 @@ export default function App() {
             </div>
             <div>
               <p className="font-extrabold text-stone-200 font-serif tracking-wider">
-                BARBEARIA DED BLACK &bull; D•B BARBERSHOP
+                DB BARBERSHOP
               </p>
               <p className="text-[10px] text-stone-500">
                 Sistema de Assinaturas &amp; Gestão de Atendimentos

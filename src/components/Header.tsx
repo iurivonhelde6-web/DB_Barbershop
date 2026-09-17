@@ -32,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-[#94a288] animate-pulse shrink-0" />
           <span className="text-[10px] sm:text-[11px] truncate max-w-[180px] xs:max-w-none">
-            DED BLACK BARBERSHOP &bull; DB CLUB
+            DB BARBERSHOP &bull; DB CLUB
           </span>
         </div>
 
@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-serif italic tracking-widest text-white">
-                  DED BLACK
+                  DB
                 </h1>
                 <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-[#3f522e] text-black">
                   BARBERSHOP

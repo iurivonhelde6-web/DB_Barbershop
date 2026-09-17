@@ -9,7 +9,7 @@ export const AiAssistant: React.FC = () => {
     {
       id: 'msg-1',
       sender: 'assistant',
-      text: 'Olá! Seja muito bem-vindo à Barbearia Ded Black (D•B Barbershop). Sou seu assistente virtual! Como posso te ajudar hoje? Fique à vontade para perguntar sobre nossos serviços, dicas de visagismo e barba, agendamentos ou produtos da nossa marca.',
+      text: 'Olá! Seja muito bem-vindo à DB Barbershop. Sou seu assistente virtual! Como posso te ajudar hoje? Fique à vontade para perguntar sobre nossos serviços, dicas de visagismo e barba, agendamentos ou produtos da nossa marca.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -36,7 +36,7 @@ export const AiAssistant: React.FC = () => {
 
   const handleSelectFaceShape = (shapeLabel: string) => {
     setSelectedFaceShape(shapeLabel);
-    const customPrompt = `Gostaria de Dicas de Barba! Meu formato de rosto é ${shapeLabel}. Quais estilos de barba (corte, desenho e comprimento) combinam melhor com a minha estrutura facial e quais produtos da marca Barbearia Ded Black devo usar para manter a barba impecável?`;
+    const customPrompt = `Gostaria de Dicas de Barba! Meu formato de rosto é ${shapeLabel}. Quais estilos de barba (corte, desenho e comprimento) combinam melhor com a minha estrutura facial e quais produtos da marca DB Barbershop devo usar para manter a barba impecável?`;
     handleSendMessage(customPrompt);
   };
 
@@ -123,10 +123,10 @@ export const AiAssistant: React.FC = () => {
       <div className="border-b border-[#94a288]/30 pb-5">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#94a288]/20 text-[#94a288] text-[10px] font-bold uppercase tracking-[0.3em] mb-2 border border-[#94a288]/40">
           <Bot className="w-3.5 h-3.5 text-[#94a288]" />
-          Atendimento Inteligente Ded Black
+          Atendimento Inteligente DB Barbershop
         </span>
         <h2 className="text-3xl font-serif italic text-white">
-          Consultor Virtual Ded Black
+          Consultor Virtual DB Barbershop
         </h2>
         <p className="text-xs sm:text-sm text-stone-400 mt-1 opacity-80">
           Tire suas dúvidas sobre serviços, agendamentos, planos e receba dicas personalizadas de visagismo e cuidados com a barba.
@@ -141,7 +141,7 @@ export const AiAssistant: React.FC = () => {
             💈 Dicas de Barba: Análise por Tipo de Rosto
           </span>
           <span className="text-[10px] bg-[#0a0a0a] text-stone-400 px-2.5 py-1 rounded border border-white/5 font-mono">
-            IA Visagismo Ded Black
+            IA Visagismo DB Barbershop
           </span>
         </div>
         <p className="text-xs text-stone-300">
@@ -236,7 +236,7 @@ export const AiAssistant: React.FC = () => {
           {isLoading && (
             <div className="flex items-center gap-2 text-[#94a288] text-xs font-semibold p-2 uppercase tracking-wider">
               <RefreshCw className="w-4 h-4 animate-spin text-[#94a288]" />
-              <span>Consultor Ded Black analisando e gerando recomendações...</span>
+              <span>Consultor DB Barbershop analisando e gerando recomendações...</span>
             </div>
           )}
         </div>

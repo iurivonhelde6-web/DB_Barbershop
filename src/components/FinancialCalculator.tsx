@@ -209,7 +209,7 @@ export const FinancialCalculator: React.FC = () => {
       doc.setTextColor(170, 200, 100);
       doc.setFontSize(15);
       doc.setFont('helvetica', 'bold');
-      doc.text('DED BLACK BARBERSHOP', 14, 14);
+      doc.text('DB BARBERSHOP', 14, 14);
 
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(10);
@@ -357,7 +357,7 @@ export const FinancialCalculator: React.FC = () => {
       // Footer
       doc.setFontSize(8);
       doc.setTextColor(140, 140, 140);
-      doc.text('Ded Black Barbershop - Relatório Oficial de Gestão Financeira Interna.', 14, 285);
+      doc.text('DB Barbershop - Relatório Oficial de Gestão Financeira Interna.', 14, 285);
 
       doc.save(`relatorio-financeiro-dedblack-${new Date().toISOString().split('T')[0]}.pdf`);
       setPdfToast('Relatório PDF baixado com sucesso!');
