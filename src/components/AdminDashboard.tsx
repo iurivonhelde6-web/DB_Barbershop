@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -180,11 +180,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Período ativo — a lógica vive em utils/dateRange.ts para que o relatório de
   // repasses recorte exatamente a mesma semana que os KPIs desta tela.
-  const dateRange = resolveDateRange(datePreset, customStartDate, customEndDate);
+  // Memoized so `dateRange` keeps a stable reference across renders that don't
+  // change the preset/custom dates — resolveDateRange() otherwise returns a new
+  // object (with new Date instances) every call, which would defeat the
+  // useMemo dependency below and force it to recompute on every render anyway.
+  const dateRange = useMemo(
+    () => resolveDateRange(datePreset, customStartDate, customEndDate),
+    [datePreset, customStartDate, customEndDate]
+  );
   const { rangeStart, rangeEnd } = dateRange;
   const isDateInRange = (dateStr: string | undefined | null) => isDateInRange_(dateStr, dateRange);
   const activeDateLabel = describeDateRange(datePreset, dateRange, customStartDate, customEndDate);
 
+  // Heavy derived metrics (subscribers/appointments expiration, revenue, 6-month
+  // history) are memoized because they scan the full data set with date parsing;
+  // without this they re-ran on every render, including unrelated filter clicks,
+  // causing a long main-thread block (INP) before the click's visual feedback painted.
+  const {
+    activeSubscribers,
+    totalActiveCount,
+    monthlyRecurringRevenue,
+    dateFilteredAppointments,
+    totalAppointmentsCount,
+    confirmedAppointments,
+    completedAppointments,
+    estimatedAvulsoRevenue,
+    totalEstimatedRevenue,
+    expiringSubscribersList,
+    last6MonthsData,
+    total6MonthsRevenue,
+    avgMonthlyRevenue,
+  } = useMemo(() => {
   // 1. Calculate Active Subscribers Metrics
   const activeSubscribers = subscribers.filter((s) => s.status === 'ACTIVE');
   const totalActiveCount = activeSubscribers.length;
@@ -413,37 +439,99 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const total6MonthsRevenue = last6MonthsData.reduce((sum, item) => sum + item.receita, 0);
   const avgMonthlyRevenue = total6MonthsRevenue / 6;
 
-  // 4. Filtered Appointments List (combining Date Range + Barber + Status + Search)
-  const filteredAppointments = dateFilteredAppointments.filter((apt) => {
-    const matchesFilter =
-      appointmentFilter === 'ALL' ||
-      (appointmentFilter === 'CONFIRMED' && (apt.status === 'CONFIRMED' || !apt.status)) ||
-      apt.status === appointmentFilter;
+  return {
+    activeSubscribers,
+    totalActiveCount,
+    monthlyRecurringRevenue,
+    dateFilteredAppointments,
+    totalAppointmentsCount,
+    confirmedAppointments,
+    completedAppointments,
+    estimatedAvulsoRevenue,
+    totalEstimatedRevenue,
+    expiringSubscribersList,
+    last6MonthsData,
+    total6MonthsRevenue,
+    avgMonthlyRevenue,
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscribers, appointments, dateRange]);
 
-    const matchesBarber =
-      selectedBarberFilter === 'ALL' ||
-      apt.barberId === selectedBarberFilter ||
-      apt.barberName === selectedBarberFilter ||
-      (apt.barberName && apt.barberName.toLowerCase().includes(selectedBarberFilter.toLowerCase()));
+  // Per-barber appointment counts used by the barber dropdown + filter chips.
+  // Previously recomputed with a fresh appointments.filter() per barber on every
+  // render (including unrelated filter clicks); memoized here since it only
+  // depends on `appointments`.
+  const barberAppointmentCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    BARBERS_LIST.forEach((b) => {
+      counts.set(
+        b.id,
+        appointments.filter(
+          (a) =>
+            a.barberId === b.id ||
+            a.barberName === b.name ||
+            (a.barberName && a.barberName.toLowerCase().includes(b.name.toLowerCase()))
+        ).length
+      );
+    });
+    return counts;
+  }, [appointments]);
 
-    const query = searchTerm.toLowerCase().trim();
-    const matchesSearch =
-      !query ||
-      apt.clientName.toLowerCase().includes(query) ||
-      apt.clientPhone.includes(query) ||
-      apt.barberName.toLowerCase().includes(query) ||
-      apt.serviceName.toLowerCase().includes(query) ||
-      (apt.cardCode && apt.cardCode.toLowerCase().includes(query));
+  // Per-barber counts for the "Escala e Desempenho" capacity grid — uses a
+  // slightly different match rule than barberAppointmentCounts above (exact
+  // name match instead of substring), so kept as its own memo to avoid
+  // altering either one's existing matching behavior.
+  const barberCapacityCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    BARBERS_LIST.forEach((barber) => {
+      counts.set(
+        barber.id,
+        appointments.filter(
+          (a) => a.barberName.toLowerCase() === barber.name.toLowerCase() || a.barberId === barber.id
+        ).length
+      );
+    });
+    return counts;
+  }, [appointments]);
 
-    return matchesFilter && matchesBarber && matchesSearch;
-  });
+  // Lightweight, filter-dependent view of the appointments list — kept separate
+  // from the heavy memo above so a filter/search click only re-runs this cheap
+  // filter+sort pass instead of the full expiration/revenue recomputation.
+  const { filteredAppointments, sortedAppointments } = useMemo(() => {
+    // 4. Filtered Appointments List (combining Date Range + Barber + Status + Search)
+    const filteredAppointments = dateFilteredAppointments.filter((apt) => {
+      const matchesFilter =
+        appointmentFilter === 'ALL' ||
+        (appointmentFilter === 'CONFIRMED' && (apt.status === 'CONFIRMED' || !apt.status)) ||
+        apt.status === appointmentFilter;
 
-  // Sort upcoming appointments by date & time
-  const sortedAppointments = [...filteredAppointments].sort((a, b) => {
-    const dateA = `${a.date} ${a.time}`;
-    const dateB = `${b.date} ${b.time}`;
-    return dateA.localeCompare(dateB);
-  });
+      const matchesBarber =
+        selectedBarberFilter === 'ALL' ||
+        apt.barberId === selectedBarberFilter ||
+        apt.barberName === selectedBarberFilter ||
+        (apt.barberName && apt.barberName.toLowerCase().includes(selectedBarberFilter.toLowerCase()));
+
+      const query = searchTerm.toLowerCase().trim();
+      const matchesSearch =
+        !query ||
+        apt.clientName.toLowerCase().includes(query) ||
+        apt.clientPhone.includes(query) ||
+        apt.barberName.toLowerCase().includes(query) ||
+        apt.serviceName.toLowerCase().includes(query) ||
+        (apt.cardCode && apt.cardCode.toLowerCase().includes(query));
+
+      return matchesFilter && matchesBarber && matchesSearch;
+    });
+
+    // Sort upcoming appointments by date & time
+    const sortedAppointments = [...filteredAppointments].sort((a, b) => {
+      const dateA = `${a.date} ${a.time}`;
+      const dateB = `${b.date} ${b.time}`;
+      return dateA.localeCompare(dateB);
+    });
+
+    return { filteredAppointments, sortedAppointments };
+  }, [dateFilteredAppointments, appointmentFilter, selectedBarberFilter, searchTerm]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 text-[#FDFDFD]">
@@ -1161,12 +1249,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <option value="ALL">💈 Todos os Barbeiros ({appointments.length})</option>
                   {BARBERS_LIST.map((b) => {
-                    const barberCount = appointments.filter(
-                      (a) =>
-                        a.barberId === b.id ||
-                        a.barberName === b.name ||
-                        (a.barberName && a.barberName.toLowerCase().includes(b.name.toLowerCase()))
-                    ).length;
+                    const barberCount = barberAppointmentCounts.get(b.id) ?? 0;
                     return (
                       <option key={b.id} value={b.name}>
                         {b.avatar} {b.name} ({barberCount} agendamento{barberCount !== 1 ? 's' : ''})
@@ -1193,12 +1276,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     selectedBarberFilter === b.name ||
                     selectedBarberFilter === b.id ||
                     (selectedBarberFilter !== 'ALL' && b.name.toLowerCase().includes(selectedBarberFilter.toLowerCase()));
-                  const count = appointments.filter(
-                    (a) =>
-                      a.barberId === b.id ||
-                      a.barberName === b.name ||
-                      (a.barberName && a.barberName.toLowerCase().includes(b.name.toLowerCase()))
-                  ).length;
+                  const count = barberAppointmentCounts.get(b.id) ?? 0;
 
                   return (
                     <button
@@ -1341,9 +1419,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {BARBERS_LIST.map((barber) => {
-                const barberApts = appointments.filter(
-                  (a) => a.barberName.toLowerCase() === barber.name.toLowerCase() || a.barberId === barber.id
-                );
+                const barberAptsCount = barberCapacityCounts.get(barber.id) ?? 0;
                 return (
                   <div
                     key={barber.id}
@@ -1361,7 +1437,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <div className="text-right">
                       <div className="text-sm font-extrabold text-amber-400 font-mono">
-                        {barberApts.length}
+                        {barberAptsCount}
                       </div>
                       <div className="text-[9px] text-stone-500 uppercase font-semibold">Agendamentos</div>
                     </div>
