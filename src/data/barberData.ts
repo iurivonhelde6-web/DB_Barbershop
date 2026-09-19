@@ -120,13 +120,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'corte-simples',
     serviceName: 'Corte Simples',
     numAtendimentos: 3,
-    totalPrice: 52.50,
-    pricePerAtd: 17.50,
-    costPerAtd: 17.50,
-    barberSplitPerAtd: 9.63,
-    houseMarginPerAtd: 7.88,
-    totalBarberCommission: 28.88, // 55%
-    totalHouseMargin: 23.63,      // 45%
+    totalPrice: 53,
+    pricePerAtd: 17.67,
+    costPerAtd: 17.67,
+    barberSplitPerAtd: 9.72,
+    houseMarginPerAtd: 7.95,
+    totalBarberCommission: 29.15, // 55%
+    totalHouseMargin: 23.85,      // 45%
     badgeTag: '🟢 Basic 3 ATD',
     recommendedFor: '3 atendimentos no mês.',
   },
@@ -205,13 +205,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'corte-simples',
     serviceName: 'Corte Simples',
     numAtendimentos: 4,
-    totalPrice: 64.00,
-    pricePerAtd: 16.00,
-    costPerAtd: 16.00,
-    barberSplitPerAtd: 8.80,
-    houseMarginPerAtd: 7.20,
-    totalBarberCommission: 35.20, // 55%
-    totalHouseMargin: 28.80,      // 45%
+    totalPrice: 70,
+    pricePerAtd: 17.50,
+    costPerAtd: 17.50,
+    barberSplitPerAtd: 9.63,
+    houseMarginPerAtd: 7.88,
+    totalBarberCommission: 38.50, // 55%
+    totalHouseMargin: 31.50,      // 45%
     familyMembers: 2,
     badgeTag: '👨‍👦 Família 4 ATD',
     recommendedFor: 'Atendimentos compartilhados.',
@@ -223,13 +223,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'corte-simples',
     serviceName: 'Corte Simples',
     numAtendimentos: 8,
-    totalPrice: 112.00,
-    pricePerAtd: 14.00,
-    costPerAtd: 14.00,
-    barberSplitPerAtd: 8.40,
-    houseMarginPerAtd: 5.60,
-    totalBarberCommission: 67.20, // 60%
-    totalHouseMargin: 44.80,      // 40%
+    totalPrice: 120,
+    pricePerAtd: 15.00,
+    costPerAtd: 15.00,
+    barberSplitPerAtd: 9.00,
+    houseMarginPerAtd: 6.00,
+    totalBarberCommission: 72.00, // 60%
+    totalHouseMargin: 48.00,      // 40%
     familyMembers: 4,
     badgeTag: '👨‍👩‍👧‍👦 Família 8 ATD',
     recommendedFor: 'Até 4 familiares da mesma casa.',
@@ -323,13 +323,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'disfarce-maquina',
     serviceName: 'Disfarce Só Máquina',
     numAtendimentos: 4,
-    totalPrice: 128.00,
-    pricePerAtd: 32.00,
-    costPerAtd: 32.00,
-    barberSplitPerAtd: 17.60,
-    houseMarginPerAtd: 14.40,
-    totalBarberCommission: 70.40, // 55%
-    totalHouseMargin: 57.60,      // 45%
+    totalPrice: 140,
+    pricePerAtd: 35.00,
+    costPerAtd: 35.00,
+    barberSplitPerAtd: 19.25,
+    houseMarginPerAtd: 15.75,
+    totalBarberCommission: 77.00, // 55%
+    totalHouseMargin: 63.00,      // 45%
     familyMembers: 2,
     badgeTag: '👨‍👩‍👧‍👦 Family 4 ATD',
   },
@@ -340,13 +340,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'disfarce-maquina',
     serviceName: 'Disfarce Só Máquina',
     numAtendimentos: 8,
-    totalPrice: 224.00,
-    pricePerAtd: 28.00,
-    costPerAtd: 28.00,
-    barberSplitPerAtd: 16.80,
-    houseMarginPerAtd: 11.20,
-    totalBarberCommission: 134.40, // 60%
-    totalHouseMargin: 89.60,       // 40%
+    totalPrice: 240,
+    pricePerAtd: 30.00,
+    costPerAtd: 30.00,
+    barberSplitPerAtd: 18.00,
+    houseMarginPerAtd: 12.00,
+    totalBarberCommission: 144.00, // 60%
+    totalHouseMargin: 96.00,       // 40%
     familyMembers: 4,
     badgeTag: '👨‍👩‍👧‍👦 Family 8 ATD',
   },
@@ -359,13 +359,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'disfarce-tesoura-maquina',
     serviceName: 'Disfarce Máquina e Tesoura ✂️',
     numAtendimentos: 3,
-    totalPrice: 118.12,
-    pricePerAtd: 39.37,
-    costPerAtd: 39.37,
-    barberSplitPerAtd: 21.66,
-    houseMarginPerAtd: 17.72,
-    totalBarberCommission: 64.97, // 55%
-    totalHouseMargin: 53.15,      // 45%
+    totalPrice: 118,
+    pricePerAtd: 39.33,
+    costPerAtd: 39.33,
+    barberSplitPerAtd: 21.63,
+    houseMarginPerAtd: 17.70,
+    totalBarberCommission: 64.90, // 55%
+    totalHouseMargin: 53.10,      // 45%
     badgeTag: '🟢 Básico Tesoura 3',
   },
   {
@@ -391,13 +391,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'disfarce-tesoura-maquina',
     serviceName: 'Disfarce Máquina e Tesoura ✂️',
     numAtendimentos: 5,
-    totalPrice: 168.75,
-    pricePerAtd: 33.75,
-    costPerAtd: 33.75,
-    barberSplitPerAtd: 19.41,
-    houseMarginPerAtd: 14.34,
-    totalBarberCommission: 97.03, // 57,5%
-    totalHouseMargin: 71.72,      // 42,5%
+    totalPrice: 169,
+    pricePerAtd: 33.80,
+    costPerAtd: 33.80,
+    barberSplitPerAtd: 19.44,
+    houseMarginPerAtd: 14.37,
+    totalBarberCommission: 97.18, // 57,5%
+    totalHouseMargin: 71.83,      // 42,5%
     badgeTag: '🔵 Plus Tesoura 5',
   },
   {
@@ -407,13 +407,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'disfarce-tesoura-maquina',
     serviceName: 'Disfarce Máquina e Tesoura ✂️',
     numAtendimentos: 6,
-    totalPrice: 195.75,
-    pricePerAtd: 32.63,
-    costPerAtd: 32.63,
-    barberSplitPerAtd: 18.76,
-    houseMarginPerAtd: 13.87,
-    totalBarberCommission: 112.56, // 57,5%
-    totalHouseMargin: 83.19,       // 42,5%
+    totalPrice: 196,
+    pricePerAtd: 32.67,
+    costPerAtd: 32.67,
+    barberSplitPerAtd: 18.78,
+    houseMarginPerAtd: 13.88,
+    totalBarberCommission: 112.70, // 57,5%
+    totalHouseMargin: 83.30,       // 42,5%
     badgeTag: '🔵 Plus Tesoura 6',
   },
   {
@@ -439,13 +439,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'disfarce-tesoura-maquina',
     serviceName: 'Disfarce Máquina e Tesoura ✂️',
     numAtendimentos: 4,
-    totalPrice: 144.00,
-    pricePerAtd: 36.00,
-    costPerAtd: 36.00,
-    barberSplitPerAtd: 19.80,
-    houseMarginPerAtd: 16.20,
-    totalBarberCommission: 79.20, // 55%
-    totalHouseMargin: 64.80,      // 45%
+    totalPrice: 158,
+    pricePerAtd: 39.50,
+    costPerAtd: 39.50,
+    barberSplitPerAtd: 21.73,
+    houseMarginPerAtd: 17.78,
+    totalBarberCommission: 86.90, // 55%
+    totalHouseMargin: 71.10,      // 45%
     familyMembers: 2,
     badgeTag: '👨‍👩‍👧‍👦 Family 4 ATD',
   },
@@ -456,13 +456,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'disfarce-tesoura-maquina',
     serviceName: 'Disfarce Máquina e Tesoura ✂️',
     numAtendimentos: 8,
-    totalPrice: 252.00,
-    pricePerAtd: 31.50,
-    costPerAtd: 31.50,
-    barberSplitPerAtd: 18.90,
-    houseMarginPerAtd: 12.60,
-    totalBarberCommission: 151.20, // 60%
-    totalHouseMargin: 100.80,      // 40%
+    totalPrice: 270,
+    pricePerAtd: 33.75,
+    costPerAtd: 33.75,
+    barberSplitPerAtd: 20.25,
+    houseMarginPerAtd: 13.50,
+    totalBarberCommission: 162.00, // 60%
+    totalHouseMargin: 108.00,      // 40%
     familyMembers: 4,
     badgeTag: '👨‍👩‍👧‍👦 Family 8 ATD',
   },
@@ -475,13 +475,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'so-tesoura',
     serviceName: 'Corte Tesoura ✂️',
     numAtendimentos: 3,
-    totalPrice: 131.25,
-    pricePerAtd: 43.75,
-    costPerAtd: 43.75,
-    barberSplitPerAtd: 24.06,
-    houseMarginPerAtd: 19.69,
-    totalBarberCommission: 72.19, // 55%
-    totalHouseMargin: 59.06,      // 45%
+    totalPrice: 131,
+    pricePerAtd: 43.67,
+    costPerAtd: 43.67,
+    barberSplitPerAtd: 24.02,
+    houseMarginPerAtd: 19.65,
+    totalBarberCommission: 72.05, // 55%
+    totalHouseMargin: 58.95,      // 45%
     badgeTag: '🟢 Só Tesoura 3 ATD',
   },
   {
@@ -507,13 +507,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'so-tesoura',
     serviceName: 'Corte Tesoura ✂️',
     numAtendimentos: 5,
-    totalPrice: 187.50,
-    pricePerAtd: 37.50,
-    costPerAtd: 37.50,
-    barberSplitPerAtd: 21.56,
-    houseMarginPerAtd: 15.94,
-    totalBarberCommission: 107.81, // 57,5%
-    totalHouseMargin: 79.69,       // 42,5%
+    totalPrice: 188,
+    pricePerAtd: 37.60,
+    costPerAtd: 37.60,
+    barberSplitPerAtd: 21.62,
+    houseMarginPerAtd: 15.98,
+    totalBarberCommission: 108.10, // 57,5%
+    totalHouseMargin: 79.90,       // 42,5%
     badgeTag: '🔵 Plus Tesoura 5 ATD',
   },
   {
@@ -523,13 +523,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'so-tesoura',
     serviceName: 'Corte Tesoura ✂️',
     numAtendimentos: 6,
-    totalPrice: 217.50,
-    pricePerAtd: 36.25,
-    costPerAtd: 36.25,
-    barberSplitPerAtd: 20.84,
-    houseMarginPerAtd: 15.41,
-    totalBarberCommission: 125.06, // 57,5%
-    totalHouseMargin: 92.44,       // 42,5%
+    totalPrice: 218,
+    pricePerAtd: 36.33,
+    costPerAtd: 36.33,
+    barberSplitPerAtd: 20.89,
+    houseMarginPerAtd: 15.44,
+    totalBarberCommission: 125.35, // 57,5%
+    totalHouseMargin: 92.65,       // 42,5%
     badgeTag: '🔵 Plus Tesoura 6 ATD',
   },
   {
@@ -555,13 +555,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'so-tesoura',
     serviceName: 'Corte Tesoura ✂️',
     numAtendimentos: 4,
-    totalPrice: 160.00,
-    pricePerAtd: 40.00,
-    costPerAtd: 40.00,
-    barberSplitPerAtd: 22.00,
-    houseMarginPerAtd: 18.00,
-    totalBarberCommission: 88.00, // 55%
-    totalHouseMargin: 72.00,      // 45%
+    totalPrice: 176,
+    pricePerAtd: 44.00,
+    costPerAtd: 44.00,
+    barberSplitPerAtd: 24.20,
+    houseMarginPerAtd: 19.80,
+    totalBarberCommission: 96.80, // 55%
+    totalHouseMargin: 79.20,      // 45%
     familyMembers: 2,
     badgeTag: '👨‍👩‍👧‍👦 Family 4 ATD',
   },
@@ -572,13 +572,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'so-tesoura',
     serviceName: 'Corte Tesoura ✂️',
     numAtendimentos: 8,
-    totalPrice: 280.00,
-    pricePerAtd: 35.00,
-    costPerAtd: 35.00,
-    barberSplitPerAtd: 21.00,
-    houseMarginPerAtd: 14.00,
-    totalBarberCommission: 168.00, // 60%
-    totalHouseMargin: 112.00,      // 40%
+    totalPrice: 300,
+    pricePerAtd: 37.50,
+    costPerAtd: 37.50,
+    barberSplitPerAtd: 22.50,
+    houseMarginPerAtd: 15.00,
+    totalBarberCommission: 180.00, // 60%
+    totalHouseMargin: 120.00,      // 40%
     familyMembers: 4,
     badgeTag: '👨‍👩‍👧‍👦 Family 8 ATD',
   },
@@ -591,13 +591,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-simples',
     serviceName: 'Barba Simples',
     numAtendimentos: 3,
-    totalPrice: 65.62,
-    pricePerAtd: 21.87,
-    costPerAtd: 21.87,
-    barberSplitPerAtd: 12.03,
-    houseMarginPerAtd: 9.84,
-    totalBarberCommission: 36.09, // 55%
-    totalHouseMargin: 29.53,      // 45%
+    totalPrice: 66,
+    pricePerAtd: 22.00,
+    costPerAtd: 22.00,
+    barberSplitPerAtd: 12.10,
+    houseMarginPerAtd: 9.90,
+    totalBarberCommission: 36.30, // 55%
+    totalHouseMargin: 29.70,      // 45%
     badgeTag: '🟢 Barba 3 ATD',
   },
   {
@@ -623,13 +623,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-simples',
     serviceName: 'Barba Simples',
     numAtendimentos: 5,
-    totalPrice: 93.75,
-    pricePerAtd: 18.75,
-    costPerAtd: 18.75,
-    barberSplitPerAtd: 10.78,
-    houseMarginPerAtd: 7.97,
-    totalBarberCommission: 53.91, // 57,5%
-    totalHouseMargin: 39.84,      // 42,5%
+    totalPrice: 94,
+    pricePerAtd: 18.80,
+    costPerAtd: 18.80,
+    barberSplitPerAtd: 10.81,
+    houseMarginPerAtd: 7.99,
+    totalBarberCommission: 54.05, // 57,5%
+    totalHouseMargin: 39.95,      // 42,5%
     badgeTag: '🔵 Barba 5 ATD',
   },
   {
@@ -639,13 +639,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-simples',
     serviceName: 'Barba Simples',
     numAtendimentos: 6,
-    totalPrice: 108.75,
-    pricePerAtd: 18.13,
-    costPerAtd: 18.13,
-    barberSplitPerAtd: 10.42,
-    houseMarginPerAtd: 7.70,
-    totalBarberCommission: 62.53, // 57,5%
-    totalHouseMargin: 46.22,      // 42,5%
+    totalPrice: 109,
+    pricePerAtd: 18.17,
+    costPerAtd: 18.17,
+    barberSplitPerAtd: 10.45,
+    houseMarginPerAtd: 7.72,
+    totalBarberCommission: 62.68, // 57,5%
+    totalHouseMargin: 46.33,      // 42,5%
     badgeTag: '🔵 Barba 6 ATD',
   },
   {
@@ -671,13 +671,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-simples',
     serviceName: 'Barba Simples',
     numAtendimentos: 4,
-    totalPrice: 80.00,
-    pricePerAtd: 20.00,
-    costPerAtd: 20.00,
-    barberSplitPerAtd: 11.00,
-    houseMarginPerAtd: 9.00,
-    totalBarberCommission: 44.00, // 55%
-    totalHouseMargin: 36.00,      // 45%
+    totalPrice: 88,
+    pricePerAtd: 22.00,
+    costPerAtd: 22.00,
+    barberSplitPerAtd: 12.10,
+    houseMarginPerAtd: 9.90,
+    totalBarberCommission: 48.40, // 55%
+    totalHouseMargin: 39.60,      // 45%
     familyMembers: 2,
     badgeTag: '👨‍👩‍👧‍👦 Family 4 ATD',
   },
@@ -688,13 +688,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-simples',
     serviceName: 'Barba Simples',
     numAtendimentos: 8,
-    totalPrice: 140.00,
-    pricePerAtd: 17.50,
-    costPerAtd: 17.50,
-    barberSplitPerAtd: 10.50,
-    houseMarginPerAtd: 7.00,
-    totalBarberCommission: 84.00, // 60%
-    totalHouseMargin: 56.00,      // 40%
+    totalPrice: 150,
+    pricePerAtd: 18.75,
+    costPerAtd: 18.75,
+    barberSplitPerAtd: 11.25,
+    houseMarginPerAtd: 7.50,
+    totalBarberCommission: 90.00, // 60%
+    totalHouseMargin: 60.00,      // 40%
     familyMembers: 4,
     badgeTag: '👨‍👩‍👧‍👦 Family 8 ATD',
   },
@@ -707,13 +707,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-modelada',
     serviceName: 'Barba Modelada',
     numAtendimentos: 3,
-    totalPrice: 91.88,
-    pricePerAtd: 30.63,
-    costPerAtd: 30.63,
-    barberSplitPerAtd: 16.84,
-    houseMarginPerAtd: 13.78,
-    totalBarberCommission: 50.53, // 55%
-    totalHouseMargin: 41.35,      // 45%
+    totalPrice: 92,
+    pricePerAtd: 30.67,
+    costPerAtd: 30.67,
+    barberSplitPerAtd: 16.87,
+    houseMarginPerAtd: 13.80,
+    totalBarberCommission: 50.60, // 55%
+    totalHouseMargin: 41.40,      // 45%
     badgeTag: '🟢 Barba Modelada 3',
   },
   {
@@ -739,13 +739,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-modelada',
     serviceName: 'Barba Modelada',
     numAtendimentos: 5,
-    totalPrice: 131.25,
-    pricePerAtd: 26.25,
-    costPerAtd: 26.25,
-    barberSplitPerAtd: 15.09,
-    houseMarginPerAtd: 11.16,
-    totalBarberCommission: 75.47, // 57,5%
-    totalHouseMargin: 55.78,      // 42,5%
+    totalPrice: 131,
+    pricePerAtd: 26.20,
+    costPerAtd: 26.20,
+    barberSplitPerAtd: 15.07,
+    houseMarginPerAtd: 11.14,
+    totalBarberCommission: 75.33, // 57,5%
+    totalHouseMargin: 55.68,      // 42,5%
     badgeTag: '🔵 Plus Barba Modelada 5',
   },
   {
@@ -755,13 +755,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-modelada',
     serviceName: 'Barba Modelada',
     numAtendimentos: 6,
-    totalPrice: 152.25,
-    pricePerAtd: 25.38,
-    costPerAtd: 25.38,
-    barberSplitPerAtd: 14.59,
-    houseMarginPerAtd: 10.79,
-    totalBarberCommission: 87.54, // 57,5%
-    totalHouseMargin: 64.71,      // 42,5%
+    totalPrice: 152,
+    pricePerAtd: 25.33,
+    costPerAtd: 25.33,
+    barberSplitPerAtd: 14.57,
+    houseMarginPerAtd: 10.77,
+    totalBarberCommission: 87.40, // 57,5%
+    totalHouseMargin: 64.60,      // 42,5%
     badgeTag: '🔵 Plus Barba Modelada 6',
   },
   {
@@ -787,13 +787,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-modelada',
     serviceName: 'Barba Modelada',
     numAtendimentos: 4,
-    totalPrice: 112.00,
-    pricePerAtd: 28.00,
-    costPerAtd: 28.00,
-    barberSplitPerAtd: 15.40,
-    houseMarginPerAtd: 12.60,
-    totalBarberCommission: 61.60, // 55%
-    totalHouseMargin: 50.40,      // 45%
+    totalPrice: 123,
+    pricePerAtd: 30.75,
+    costPerAtd: 30.75,
+    barberSplitPerAtd: 16.91,
+    houseMarginPerAtd: 13.84,
+    totalBarberCommission: 67.65, // 55%
+    totalHouseMargin: 55.35,      // 45%
     familyMembers: 2,
     badgeTag: '👨‍👩‍👧‍👦 Family 4 ATD',
   },
@@ -804,13 +804,13 @@ export const PLANS_LIST: PlanOption[] = [
     serviceId: 'barba-modelada',
     serviceName: 'Barba Modelada',
     numAtendimentos: 8,
-    totalPrice: 196.00,
-    pricePerAtd: 24.50,
-    costPerAtd: 24.50,
-    barberSplitPerAtd: 14.70,
-    houseMarginPerAtd: 9.80,
-    totalBarberCommission: 117.60, // 60%
-    totalHouseMargin: 78.40,       // 40%
+    totalPrice: 210,
+    pricePerAtd: 26.25,
+    costPerAtd: 26.25,
+    barberSplitPerAtd: 15.75,
+    houseMarginPerAtd: 10.50,
+    totalBarberCommission: 126.00, // 60%
+    totalHouseMargin: 84.00,       // 40%
     familyMembers: 4,
     badgeTag: '👨‍👩‍👧‍👦 Family 8 ATD',
   },

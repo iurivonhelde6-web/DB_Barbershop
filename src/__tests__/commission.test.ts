@@ -20,8 +20,8 @@ import {
 describe('Comissão por atendimento', () => {
   it('usa o valor oficial já rateado na tabela de planos', () => {
     const basic3 = PLANS_LIST.find((p) => p.id === 'cs-basic-3')!;
-    expect(getAttendanceValue(basic3)).toBe(17.5);
-    expect(getBarberCommissionPerAttendance(basic3)).toBe(9.63);
+    expect(getAttendanceValue(basic3)).toBe(17.67);
+    expect(getBarberCommissionPerAttendance(basic3)).toBe(9.72);
   });
 
   it('a soma das comissões por atendimento fecha com o total do plano', () => {

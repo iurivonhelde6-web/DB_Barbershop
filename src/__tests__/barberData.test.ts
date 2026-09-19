@@ -133,18 +133,18 @@ describe('PLANS_LIST — casos críticos de negócio', () => {
     });
   });
 
-  it('cs-basic-3 tem totalPrice = R$ 52,50', () => {
+  it('cs-basic-3 tem totalPrice = R$ 53,00', () => {
     const plan = PLANS_LIST.find((p) => p.id === 'cs-basic-3');
     expect(plan).toBeDefined();
-    expect(plan!.totalPrice).toBe(52.50);
+    expect(plan!.totalPrice).toBe(53);
   });
 
-  it('cs-family-4 tem mesmo totalPrice que cs-basic-4 (R$ 64,00)', () => {
+  it('cs-family-4 tem totalPrice = R$ 70,00 (reprecificado, acima do cs-basic-4)', () => {
     const basic4 = PLANS_LIST.find((p) => p.id === 'cs-basic-4');
     const family4 = PLANS_LIST.find((p) => p.id === 'cs-family-4');
     expect(basic4).toBeDefined();
     expect(family4).toBeDefined();
-    expect(family4!.totalPrice).toBe(basic4!.totalPrice);
+    expect(family4!.totalPrice).toBe(70);
   });
 
   it('cs-select-10 tem totalPrice = R$ 140,00', () => {

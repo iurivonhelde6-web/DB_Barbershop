@@ -39,8 +39,8 @@ describe('buildAttendanceRecord', () => {
     const rec = buildAttendanceRecord({
       subscriber: assinante(), barber: barbeiro, plans: PLANS_LIST, registeredBy: 'uid-admin', now,
     });
-    expect(rec.attendanceValue).toBe(17.5);   // pricePerAtd do cs-basic-3
-    expect(rec.barberCommission).toBe(9.63);  // barberSplitPerAtd
+    expect(rec.attendanceValue).toBe(17.67);  // pricePerAtd do cs-basic-3
+    expect(rec.barberCommission).toBe(9.72);  // barberSplitPerAtd
     expect(rec.commissionPercentage).toBe(55);
     expect(rec.derivedValues).toBe(false);
   });
@@ -70,7 +70,7 @@ describe('buildAttendanceRecord', () => {
       subscriber: assinante({ serviceName: 'Barba Simples' }),
       barber: barbeiro, plans: PLANS_LIST, registeredBy: 'uid-admin', now,
     });
-    expect(rec.attendanceValue).toBe(21.87); // bs-basic-3, não cs-basic-3
+    expect(rec.attendanceValue).toBe(22); // bs-basic-3, não cs-basic-3
   });
 
   it('rateia o valor pago quando o plano saiu da tabela, marcando como derivado', () => {
