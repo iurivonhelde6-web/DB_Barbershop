@@ -1181,7 +1181,9 @@ export async function renewSubscriberFromInvoice(
     const snap = await tx.get(ref);
     const existing = (snap.exists ? snap.data() : {}) as Record<string, any>;
     const history: any[] = Array.isArray(existing.paymentHistory) ? existing.paymentHistory : [];
-    if (invoice.id && history.some((inv) => inv?.transactionId === invoice.id)) return 'already_processed' as const;
+    // Só uma entrada PAID desta fatura conta: a FAILED de uma tentativa anterior usa o mesmo
+    // invoice.id, e a fatura paga na nova tentativa automática tem que renovar.
+    if (invoice.id && history.some((inv) => inv?.transactionId === invoice.id && inv?.status === 'PAID')) return 'already_processed' as const;
 
     const today = todayInSaoPaulo(now);
     const paidInvoice = {
@@ -1200,6 +1202,41 @@ export async function renewSubscriberFromInvoice(
       paymentHistory: [paidInvoice, ...history], updatedAt: now.toISOString(),
     }, { merge: true });
     return 'renewed' as const;
+  });
+}
+
+/**
+ * invoice.payment_failed: marca o assinante como PAYMENT_PENDING/FAILED e registra a falha no
+ * histórico — os mesmos campos de antes, agora em transação (sem gravar de volta um
+ * {...match.data} lido fora dela, que apagaria um check-in feito no meio) e uma única vez por
+ * fatura: a reentrega do mesmo evento não empilha outra linha FAILED.
+ */
+export async function recordInvoicePaymentFailed(
+  db: AdminFirestore,
+  subscriberId: string,
+  invoice: Stripe.Invoice,
+  now: Date = new Date(),
+): Promise<'recorded' | 'already_processed'> {
+  const ref = db.collection('subscribers').doc(subscriberId);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const existing = (snap.exists ? snap.data() : {}) as Record<string, any>;
+    const history: any[] = Array.isArray(existing.paymentHistory) ? existing.paymentHistory : [];
+    if (invoice.id && history.some((inv) => inv?.transactionId === invoice.id && inv?.status === 'FAILED')) return 'already_processed' as const;
+
+    const failedInvoice = {
+      id: `INV-STRIPE-FAIL-${Date.now()}`, invoiceCode: `STRIPE-FAIL-${invoice.id?.slice(-8).toUpperCase() || Date.now()}`,
+      planName: existing.planName || 'Assinatura Recorrente', amount: (invoice.amount_due || 0) / 100,
+      paymentMethod: 'CREDIT_CARD' as const, paymentDate: now.toLocaleString('pt-BR'),
+      period: 'Tentativa de Cobrança', status: 'FAILED' as const, validationStatus: 'EXPIRED' as const,
+      transactionId: invoice.id || `stripe-fail-${Date.now()}`,
+      notes: 'Falha na cobrança automática via Stripe. Cliente deve atualizar o cartão.',
+    };
+    tx.set(ref, {
+      status: 'PAYMENT_PENDING', paymentStatus: 'FAILED',
+      paymentHistory: [failedInvoice, ...history], updatedAt: now.toISOString(),
+    }, { merge: true });
+    return 'recorded' as const;
   });
 }
 
@@ -1944,17 +1981,12 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
             if (skipStale(match, subId)) break;
             if (!match) break;
 
-            const failedInvoice = {
-              id: `INV-STRIPE-FAIL-${Date.now()}`, invoiceCode: `STRIPE-FAIL-${invoice.id?.slice(-8).toUpperCase() || Date.now()}`,
-              planName: match.data.planName || 'Assinatura Recorrente', amount: (invoice.amount_due || 0) / 100,
-              paymentMethod: 'CREDIT_CARD' as const, paymentDate: new Date().toLocaleString('pt-BR'),
-              period: 'Tentativa de Cobrança', status: 'FAILED' as const, validationStatus: 'EXPIRED' as const,
-              transactionId: invoice.id || `stripe-fail-${Date.now()}`,
-              notes: 'Falha na cobrança automática via Stripe. Cliente deve atualizar o cartão.',
-            };
-            const history = Array.isArray(match.data.paymentHistory) ? match.data.paymentHistory : [];
-            await db.collection('subscribers').doc(match.id).set({ ...match.data, status: 'PAYMENT_PENDING', paymentStatus: 'FAILED', paymentHistory: [failedInvoice, ...history], updatedAt: new Date().toISOString() }, { merge: true });
-            console.warn(`[Stripe Webhook] invoice.payment_failed — assinante ${match.id} → PAYMENT_PENDING.`);
+            const result = await recordInvoicePaymentFailed(db, match.id, invoice);
+            if (result === 'already_processed') {
+              console.log(`[Stripe Webhook] invoice.payment_failed — fatura ${invoice.id} já registrada para ${match.id}; reentrega ignorada.`);
+            } else {
+              console.warn(`[Stripe Webhook] invoice.payment_failed — assinante ${match.id} → PAYMENT_PENDING.`);
+            }
             break;
           }
 

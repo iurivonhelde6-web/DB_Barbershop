@@ -28,6 +28,7 @@ import {
   resolvePendingCheckout,
   createCheckoutSessionOnce,
   CHECKOUT_KEY_WINDOW_MS,
+  recordInvoicePaymentFailed,
 } from '../../stripe-routes';
 import { isValidCpf, formatCpf } from '../lib/cpf';
 
@@ -807,5 +808,45 @@ describe('cartão novo — completed e invoice.paid (subscription_create) não s
     await activateSubscriberFromSession(cardSession(), cardStripe(), db);
     expect((await handleInvoicePaid(firstInvoice('subscription_cycle'), db, finder(store))).outcome).toBe('renewed');
     expect(store.get('stripe_novo')!.expirationDate).toBe('2026-12-07');
+  });
+});
+
+// ─── invoice.payment_failed ────────────────────────────────────────────────────
+describe('recordInvoicePaymentFailed — falha de cobrança do cartão', () => {
+  const NOW = new Date('2026-10-08T15:00:00Z');
+  const failed = (id = 'in_fail_1') => ({ id, amount_due: 6400 }) as unknown as Stripe.Invoice;
+
+  it('grava os mesmos campos de antes: PAYMENT_PENDING/FAILED e uma linha FAILED no histórico', async () => {
+    const { db, store } = createFakeDb({
+      sub_1: { userUid: 'uid_1', planName: 'BASIC 4 (4 ATD)', status: 'ACTIVE', paymentStatus: 'PAID', usedSessions: 2, expirationDate: '2026-10-09', paymentHistory: [] },
+    });
+    expect(await recordInvoicePaymentFailed(db, 'sub_1', failed(), NOW)).toBe('recorded');
+    const sub = store.get('sub_1')!;
+    expect(sub).toMatchObject({ status: 'PAYMENT_PENDING', paymentStatus: 'FAILED', usedSessions: 2, expirationDate: '2026-10-09' });
+    expect(sub.paymentHistory).toHaveLength(1);
+    expect(sub.paymentHistory[0]).toMatchObject({
+      planName: 'BASIC 4 (4 ATD)', amount: 64, paymentMethod: 'CREDIT_CARD', period: 'Tentativa de Cobrança',
+      status: 'FAILED', validationStatus: 'EXPIRED', transactionId: 'in_fail_1', invoiceCode: 'STRIPE-FAIL-N_FAIL_1',
+    });
+  });
+
+  it('reentrega do mesmo evento: already_processed e o cadastro fica idêntico', async () => {
+    const { db, store } = createFakeDb({ sub_1: { userUid: 'uid_1', status: 'ACTIVE', paymentHistory: [] } });
+    await recordInvoicePaymentFailed(db, 'sub_1', failed(), NOW);
+    store.get('sub_1')!.usedSessions = 1; // check-in feito depois
+    const before = structuredClone(store.get('sub_1'));
+
+    expect(await recordInvoicePaymentFailed(db, 'sub_1', failed(), NOW)).toBe('already_processed');
+    expect(store.get('sub_1')).toEqual(before);
+  });
+
+  it('fatura que falhou e depois foi paga na nova tentativa: o invoice.paid renova (a FAILED não bloqueia)', async () => {
+    const { db, store } = createFakeDb({ sub_1: { userUid: 'uid_1', status: 'ACTIVE', usedSessions: 4, expirationDate: '2026-10-09', paymentHistory: [] } });
+    await recordInvoicePaymentFailed(db, 'sub_1', failed('in_same'), NOW);
+    const paid = { id: 'in_same', amount_paid: 6400 } as unknown as Stripe.Invoice;
+    expect(await renewSubscriberFromInvoice(db, 'sub_1', paid, NOW)).toBe('renewed');
+    expect(store.get('sub_1')).toMatchObject({ status: 'ACTIVE', paymentStatus: 'PAID', usedSessions: 0, expirationDate: '2026-11-08' });
+    // E a reentrega desse invoice.paid continua ignorada.
+    expect(await renewSubscriberFromInvoice(db, 'sub_1', paid, NOW)).toBe('already_processed');
   });
 });
