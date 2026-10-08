@@ -858,27 +858,54 @@ export function buildCheckoutSessionParams(args: {
   };
 }
 
+// ─── Idempotência da criação da sessão ───────────────────────────────────────────
+// Antes o cadastro novo mandava ao Stripe um subscriberId `stripe_${Date.now()}`, que mudava
+// a cada clique, enquanto a chave o deixava de fora: no duplo clique o Stripe recebia a MESMA
+// chave com parâmetros DIFERENTES e recusava (idempotency_error → 500 para o cliente).
+// Agora nenhum valor volátil vai nos parâmetros e a chave é estável por escopo, plano,
+// método e janela de tempo.
+
+/** Janela da chave de idempotência e do id de cadastro novo. */
+export const CHECKOUT_KEY_WINDOW_MS = 10 * 60 * 1000;
+
+function checkoutWindow(now: number = Date.now()): number {
+  return Math.floor(now / CHECKOUT_KEY_WINDOW_MS);
+}
+
+function sha256(value: unknown): string {
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
 /**
- * Chave de idempotência do Stripe para a criação da sessão. Deriva do `checkoutAttemptId`
- * que o PaymentModal gera ao abrir (e reenvia num duplo clique/retry de rede) mais um hash
- * dos parâmetros: o mesmo pedido repetido devolve a MESMA sessão em vez de criar uma órfã,
- * e um pedido diferente (ex.: trocou Cartão → Pix, corrigiu o CPF) ganha chave nova — o
- * Stripe recusa reutilizar uma chave com parâmetros diferentes.
- * Sem attemptId (cliente antigo), cai num balde de 1 minuto.
+ * Escopo do checkout: o assinante na renovação; no cadastro novo, quem chama + CPF (o mesmo
+ * usuário — ou o admin no balcão — comprando para o mesmo CPF).
+ */
+export function checkoutScope(args: { subscriberId?: string; callerUid: string; cpfDigits: string }): string {
+  return args.subscriberId ? `sub:${args.subscriberId}` : `new:${args.callerUid}:${args.cpfDigits}`;
+}
+
+/**
+ * Id do cadastro novo, determinístico dentro da janela: o duplo clique gera o mesmo id e,
+ * portanto, os mesmos parâmetros. É um hash — o CPF não aparece no id.
+ */
+export function newSubscriberIdFor(args: { callerUid: string; cpfDigits: string; planId: string; now?: number }): string {
+  return `stripe_${sha256(['new-subscriber', args.callerUid, args.cpfDigits, args.planId, checkoutWindow(args.now)]).slice(0, 24)}`;
+}
+
+/**
+ * Chave de idempotência: (escopo, plano, método, janela) + hash dos parâmetros. Os mesmos
+ * dados na mesma janela → mesma chave → o Stripe devolve a MESMA sessão. Qualquer parâmetro
+ * diferente (nome corrigido, checkout anterior liberado — replacesCheckoutSessionId) gera
+ * chave nova, porque o Stripe recusa reutilizar uma chave com parâmetros diferentes.
  */
 export function buildCheckoutIdempotencyKey(args: {
-  callerUid: string;
-  attemptId?: unknown;
+  scope: string;
+  planId: string;
+  paymentMethod: CheckoutPaymentMethod;
   params: Stripe.Checkout.SessionCreateParams;
   now?: number;
 }): string {
-  const attempt = typeof args.attemptId === 'string' && /^[A-Za-z0-9-]{8,64}$/.test(args.attemptId)
-    ? args.attemptId
-    : `minute-${Math.floor((args.now ?? Date.now()) / 60000)}`;
-  const digest = createHash('sha256')
-    .update(JSON.stringify([args.callerUid, attempt, args.params]))
-    .digest('hex');
-  return `checkout-${digest}`;
+  return `checkout-${sha256([args.scope, args.planId, args.paymentMethod, checkoutWindow(args.now), args.params])}`;
 }
 
 /**
@@ -905,7 +932,8 @@ export async function resolveCheckoutTarget(args: {
   const { db, subscriberId, callerUid } = args;
 
   if (subscriberId == null || subscriberId === '') {
-    return { ok: true, subscriberId: `stripe_${Date.now()}`, isRenewal: false, isAdmin: await args.isAdmin(), existingUserUid: '', existingSubscriptionId: '', existingData: {} };
+    // O id do cadastro novo é calculado na rota (newSubscriberIdFor), depois de validar CPF e plano.
+    return { ok: true, subscriberId: '', isRenewal: false, isAdmin: await args.isAdmin(), existingUserUid: '', existingSubscriptionId: '', existingData: {} };
   }
   if (typeof subscriberId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(subscriberId)) {
     return { ok: false, status: 400, error: 'Assinante inválido.' };
@@ -1041,6 +1069,76 @@ export async function releasePendingCheckout(
     if (fresh.status === 'canceled') return 'released';
     throw err;
   }
+}
+
+export type PendingCheckoutPlan =
+  | { action: 'reuse'; sessionId: string; url: string }
+  | { action: 'paid' }
+  | { action: 'new'; replacesSessionId: string };
+
+/**
+ * Renovação: o que fazer com o checkout pendente (pendingCheckoutSessionId) antes de criar outro.
+ * - Mesmo pedido (pendingCheckoutKey == chave base deste) e a sessão ainda aberta: devolve a
+ *   MESMA sessão. É o duplo clique/retry — liberar e recriar mandaria o primeiro clique para
+ *   uma sessão morta.
+ * - Senão, libera o anterior (A4). 'paid' vira 409; nos demais casos o id do anterior vai em
+ *   replacesCheckoutSessionId, o que também muda a chave — o Stripe não devolve a sessão antiga.
+ */
+export async function resolvePendingCheckout(
+  stripe: Pick<Stripe, 'checkout' | 'paymentIntents'>,
+  existingData: Record<string, any>,
+  baseKey: string,
+): Promise<PendingCheckoutPlan> {
+  const pendingId = String(existingData?.pendingCheckoutSessionId || '');
+  if (!pendingId || isSessionRecorded(existingData, pendingId)) return { action: 'new', replacesSessionId: '' };
+
+  if (existingData?.pendingCheckoutKey && existingData.pendingCheckoutKey === baseKey) {
+    let current: Stripe.Checkout.Session | null = null;
+    try {
+      current = await stripe.checkout.sessions.retrieve(pendingId);
+    } catch (err: any) {
+      if (err?.code !== 'resource_missing') throw err;
+    }
+    if (current?.status === 'open' && current.url) return { action: 'reuse', sessionId: current.id, url: current.url };
+  }
+
+  const outcome = await releasePendingCheckout(stripe, pendingId);
+  if (outcome === 'paid') return { action: 'paid' };
+  return { action: 'new', replacesSessionId: pendingId };
+}
+
+/** Resposta devolvida pelo Stripe a partir da chave de idempotência (não é uma sessão nova). */
+function isIdempotentReplay(session: Stripe.Checkout.Session, now: number = Date.now()): boolean {
+  const headers: any = (session as any).lastResponse?.headers;
+  const flag = typeof headers?.get === 'function' ? headers.get('idempotent-replayed') : headers?.['idempotent-replayed'];
+  if (flag === 'true') return true;
+  // Reserva se o cabeçalho não vier: sessão "recém-criada" com mais de 1 minuto é um replay.
+  return typeof session.created === 'number' && now / 1000 - session.created > 60;
+}
+
+/**
+ * Cria a sessão com a chave de idempotência. No replay, o Stripe devolve a resposta ORIGINAL
+ * (status e URL de quando foi criada), mesmo que a sessão tenha expirado, sido liberada ou
+ * paga depois. Por isso confere o estado atual:
+ * - ainda aberta → é o duplo clique: devolve a mesma;
+ * - já paga → 'paid' (409, nada de cobrar de novo);
+ * - expirada/QR vencido/liberada → cria outra com chave derivada da sessão antiga.
+ */
+export async function createCheckoutSessionOnce(
+  stripe: Pick<Stripe, 'checkout' | 'paymentIntents'>,
+  params: Stripe.Checkout.SessionCreateParams,
+  idempotencyKey: string,
+): Promise<{ paid: true } | { paid: false; session: Stripe.Checkout.Session }> {
+  const session = await stripe.checkout.sessions.create(params, { idempotencyKey });
+  if (!isIdempotentReplay(session)) return { paid: false, session };
+
+  const current = await stripe.checkout.sessions.retrieve(session.id);
+  if (current.status === 'open' && current.url) return { paid: false, session: current };
+
+  const outcome = await releasePendingCheckout(stripe, session.id);
+  if (outcome === 'paid') return { paid: true };
+  const fresh = await stripe.checkout.sessions.create(params, { idempotencyKey: `${idempotencyKey}:after:${session.id}` });
+  return { paid: false, session: fresh };
 }
 
 /** Esta sessão já foi gravada pelo webhook no assinante (marcador antigo, não um pagamento novo). */
@@ -1454,7 +1552,7 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
     try {
       const {
         planName, serviceName, planAmount, clientName, clientCpf, clientPhone,
-        subscriberId, cardCode, userUid, barberId, checkoutAttemptId,
+        subscriberId, cardCode, userUid, barberId,
       } = req.body || {};
       // Default 'CREDIT_CARD' para não quebrar quem já chama a rota sem o campo.
       const rawMethod = req.body?.paymentMethod ?? 'CREDIT_CARD';
@@ -1524,19 +1622,6 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
         });
       }
 
-      // Checkout anterior deste assinante (Pix ou cartão) ainda pagável: libera antes de
-      // abrir outro. Um marcador de sessão que o webhook já gravou não conta como pendente.
-      const pendingSessionId = target.isRenewal ? String(target.existingData.pendingCheckoutSessionId || '') : '';
-      const pending = pendingSessionId && !isSessionRecorded(target.existingData, pendingSessionId)
-        ? await releasePendingCheckout(stripe, pendingSessionId)
-        : 'none';
-      if (pending === 'paid') {
-        return res.status(409).json({
-          code: 'PAYMENT_PROCESSING',
-          error: 'O pagamento anterior deste ciclo já foi feito e está sendo confirmado. Aguarde alguns minutos — não é preciso pagar de novo.',
-        });
-      }
-
       // Origem tomada do próprio request (nunca de um campo enviado pelo cliente),
       // evitando que success_url/cancel_url virem um open redirect controlado por quem chama a rota.
       const origin = `${req.protocol}://${req.get('host')}`;
@@ -1548,8 +1633,12 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
         ? target.existingUserUid
         : (target.isAdmin ? (typeof userUid === 'string' ? userUid : '') : caller.uid);
 
+      const subscriberDocId = target.isRenewal
+        ? target.subscriberId
+        : newSubscriberIdFor({ callerUid: caller.uid, cpfDigits, planId: validPlan.id });
+
       const sharedMetadata: Record<string, string> = {
-        subscriberId: target.subscriberId,
+        subscriberId: subscriberDocId,
         planoId: validPlan.id,
         planName: validPlan.tierLabel,
         serviceName: validPlan.serviceName,
@@ -1562,20 +1651,46 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
         paymentMethod,
         // Assinatura inadimplente que o webhook cancela quando este pagamento confirmar.
         replacesSubscriptionId: existingSub.action === 'replace' ? target.existingSubscriptionId : '',
-        // Checkout anterior liberado acima. Também muda a chave de idempotência: sem isso,
-        // repetir o pedido devolveria do Stripe a sessão anterior, que acabou de ser liberada.
-        replacesCheckoutSessionId: pending === 'released' ? pendingSessionId : '',
+        // Checkout anterior liberado (preenchido abaixo, se houver).
+        replacesCheckoutSessionId: '',
       };
 
-      const params = buildCheckoutSessionParams({ paymentMethod, plan: validPlan, metadata: sharedMetadata, origin });
-      // subscriberId de cadastro novo leva timestamp; fica fora da chave para que um
-      // duplo clique gere a mesma chave (e a mesma sessão).
-      const keyParams = target.isRenewal
-        ? params
-        : { ...params, metadata: { ...sharedMetadata, subscriberId: '' } };
-      const idempotencyKey = buildCheckoutIdempotencyKey({ callerUid: caller.uid, attemptId: checkoutAttemptId, params: keyParams as Stripe.Checkout.SessionCreateParams });
+      const scope = checkoutScope({ subscriberId: target.isRenewal ? target.subscriberId : '', callerUid: caller.uid, cpfDigits });
+      const keyFor = (metadata: Record<string, string>) => {
+        const params = buildCheckoutSessionParams({ paymentMethod, plan: validPlan, metadata, origin });
+        return { params, key: buildCheckoutIdempotencyKey({ scope, planId: validPlan.id, paymentMethod, params }) };
+      };
+      // Chave "base": a deste pedido sem checkout anterior liberado. É ela que identifica o
+      // duplo clique (gravada em pendingCheckoutKey).
+      const base = keyFor(sharedMetadata);
 
-      const session = await stripe.checkout.sessions.create(params, { idempotencyKey });
+      // Checkout anterior deste assinante (Pix ou cartão): reaproveita se for o mesmo pedido
+      // e ainda estiver aberto; senão libera antes de abrir outro (veja resolvePendingCheckout).
+      const pending = target.isRenewal
+        ? await resolvePendingCheckout(stripe, target.existingData, base.key)
+        : { action: 'new' as const, replacesSessionId: '' };
+      if (pending.action === 'paid') {
+        return res.status(409).json({
+          code: 'PAYMENT_PROCESSING',
+          error: 'O pagamento anterior deste ciclo já foi feito e está sendo confirmado. Aguarde alguns minutos — não é preciso pagar de novo.',
+        });
+      }
+      if (pending.action === 'reuse') {
+        return res.json({ url: pending.url, sessionId: pending.sessionId });
+      }
+
+      const request = pending.replacesSessionId
+        ? keyFor({ ...sharedMetadata, replacesCheckoutSessionId: pending.replacesSessionId })
+        : base;
+      const created = await createCheckoutSessionOnce(stripe, request.params, request.key);
+      // `'session' in` em vez de `created.paid`: sem strictNullChecks o TS não estreita pelo booleano.
+      if (!('session' in created)) {
+        return res.status(409).json({
+          code: 'PAYMENT_PROCESSING',
+          error: 'Este pagamento já foi feito e está sendo confirmado. Aguarde alguns minutos — não é preciso pagar de novo.',
+        });
+      }
+      const session = created.session;
 
       if (!session.url) {
         return res.status(502).json({ error: 'Stripe não retornou a URL da sessão de checkout.' });
@@ -1585,7 +1700,7 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
       // Cadastro novo ainda não tem documento nem ciclo pago para duplicar.
       if (target.isRenewal) {
         await db.collection('subscribers').doc(target.subscriberId).set(
-          { pendingCheckoutSessionId: session.id, updatedAt: new Date().toISOString() },
+          { pendingCheckoutSessionId: session.id, pendingCheckoutKey: base.key, updatedAt: new Date().toISOString() },
           { merge: true },
         );
       }

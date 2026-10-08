@@ -15,12 +15,6 @@ import { RENEWAL_WINDOW_DAYS, formatDateBr, isCycleAlreadyPaid, renewalOpensOn }
 
 type CheckoutPaymentMethod = 'CREDIT_CARD' | 'PIX';
 
-/** Identificador desta tentativa de checkout, reenviado em duplo clique/retry (idempotência no Stripe). */
-function newCheckoutAttemptId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-}
-
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,7 +63,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('CREDIT_CARD');
   // Editável aqui porque cadastros antigos podem ter CPF vazio ou o placeholder 000.000.000-00.
   const [cpfInput, setCpfInput] = useState(formatCpf(clientCpf || ''));
-  const [checkoutAttemptId, setCheckoutAttemptId] = useState(newCheckoutAttemptId);
   // O backend recusou porque o assinante já tem débito automático ativo no cartão.
   const [hasActiveCardSubscription, setHasActiveCardSubscription] = useState(false);
   const [isCancelingAutoRenewal, setIsCancelingAutoRenewal] = useState(false);
@@ -84,10 +77,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setPaymentMethod('CREDIT_CARD');
     } else {
       setCpfInput(formatCpf(clientCpf || ''));
-      setCheckoutAttemptId(newCheckoutAttemptId());
     }
     // Só reinicia ao abrir/fechar — um re-render do pai com o modal aberto não deve
-    // apagar o CPF digitado nem trocar a chave de idempotência no meio da tentativa.
+    // apagar o CPF digitado no meio da tentativa.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -158,7 +150,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           clientName,
           clientCpf: cpfInput.replace(/\D/g, ''),
           paymentMethod,
-          checkoutAttemptId,
           clientPhone: clientPhone || subscriberCard?.phone || '',
           subscriberId: subscriberCard?.id,
           cardCode: subscriberCard?.cardCode,

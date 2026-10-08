@@ -23,6 +23,11 @@ import {
   clearPendingCheckout,
   renewSubscriberFromInvoice,
   handleInvoicePaid,
+  checkoutScope,
+  newSubscriberIdFor,
+  resolvePendingCheckout,
+  createCheckoutSessionOnce,
+  CHECKOUT_KEY_WINDOW_MS,
 } from '../../stripe-routes';
 import { isValidCpf, formatCpf } from '../lib/cpf';
 
@@ -99,31 +104,193 @@ describe('buildCheckoutSessionParams', () => {
   });
 });
 
-describe('buildCheckoutIdempotencyKey', () => {
-  const params = { mode: 'payment' } as any;
+describe('buildCheckoutIdempotencyKey — chave estável por escopo, plano, método e janela', () => {
+  const params = { mode: 'payment', metadata: { subscriberId: 'stripe_x' } } as any;
+  const base = { scope: 'sub:sub_1', planId: 'cs-basic-4', paymentMethod: 'PIX' as const, params, now: 1_000_000 };
 
-  it('mesma tentativa + mesmos parâmetros → mesma chave (duplo clique não cria 2 sessões)', () => {
-    const a = buildCheckoutIdempotencyKey({ callerUid: 'u', attemptId: 'attempt-1234', params });
-    const b = buildCheckoutIdempotencyKey({ callerUid: 'u', attemptId: 'attempt-1234', params });
-    expect(a).toBe(b);
+  it('mesmos dados na mesma janela → mesma chave (duplo clique)', () => {
+    expect(buildCheckoutIdempotencyKey(base)).toBe(buildCheckoutIdempotencyKey({ ...base, now: 1_000_000 + 5_000 }));
   });
 
-  it('trocar o método/parâmetros gera chave nova (Stripe recusa chave reaproveitada com outros params)', () => {
-    const a = buildCheckoutIdempotencyKey({ callerUid: 'u', attemptId: 'attempt-1234', params });
-    const b = buildCheckoutIdempotencyKey({ callerUid: 'u', attemptId: 'attempt-1234', params: { mode: 'subscription' } as any });
-    expect(a).not.toBe(b);
+  it('escopo, plano, método ou parâmetros diferentes → chave nova', () => {
+    const k = buildCheckoutIdempotencyKey(base);
+    expect(buildCheckoutIdempotencyKey({ ...base, scope: 'sub:sub_2' })).not.toBe(k);
+    expect(buildCheckoutIdempotencyKey({ ...base, planId: 'cs-basic-3' })).not.toBe(k);
+    expect(buildCheckoutIdempotencyKey({ ...base, paymentMethod: 'CREDIT_CARD' })).not.toBe(k);
+    expect(buildCheckoutIdempotencyKey({ ...base, params: { ...params, metadata: { subscriberId: 'stripe_x', replacesCheckoutSessionId: 'cs_1' } } })).not.toBe(k);
   });
 
-  it('sem attemptId válido, usa balde de 1 minuto', () => {
-    const a = buildCheckoutIdempotencyKey({ callerUid: 'u', attemptId: '<script>', params, now: 60_000 });
-    const b = buildCheckoutIdempotencyKey({ callerUid: 'u', params, now: 119_999 });
-    const c = buildCheckoutIdempotencyKey({ callerUid: 'u', params, now: 120_000 });
-    expect(a).toBe(b);
-    expect(a).not.toBe(c);
+  it('outra janela de tempo → chave nova', () => {
+    expect(buildCheckoutIdempotencyKey({ ...base, now: 1_000_000 + CHECKOUT_KEY_WINDOW_MS })).not.toBe(buildCheckoutIdempotencyKey(base));
+  });
+
+  it('cabe no limite de 255 caracteres do Stripe, mesmo com o sufixo de recriação', () => {
+    expect(`${buildCheckoutIdempotencyKey(base)}:after:cs_test_${'a'.repeat(58)}`.length).toBeLessThan(255);
   });
 });
 
-// ─── Autorização da renovação ──────────────────────────────────────────────────
+describe('cadastro novo — sem valor volátil nos parâmetros', () => {
+  const args = { callerUid: 'uid_1', cpfDigits: '52998224725', planId: 'cs-basic-4', now: 1_000_000 };
+
+  it('newSubscriberIdFor: mesmo id no duplo clique; muda com quem chama, CPF, plano ou janela', () => {
+    const id = newSubscriberIdFor(args);
+    expect(newSubscriberIdFor({ ...args, now: 1_000_000 + 3_000 })).toBe(id);
+    expect(newSubscriberIdFor({ ...args, callerUid: 'uid_2' })).not.toBe(id);
+    expect(newSubscriberIdFor({ ...args, cpfDigits: '11144477735' })).not.toBe(id);
+    expect(newSubscriberIdFor({ ...args, planId: 'cs-basic-3' })).not.toBe(id);
+    expect(newSubscriberIdFor({ ...args, now: 1_000_000 + CHECKOUT_KEY_WINDOW_MS })).not.toBe(id);
+    expect(id).toMatch(/^stripe_[0-9a-f]{24}$/);
+    expect(id).not.toContain('52998224725');
+  });
+
+  it('checkoutScope: assinante na renovação; quem chama + CPF no cadastro novo', () => {
+    expect(checkoutScope({ subscriberId: 'sub_1', callerUid: 'u', cpfDigits: '1' })).toBe('sub:sub_1');
+    expect(checkoutScope({ subscriberId: '', callerUid: 'u', cpfDigits: '1' })).toBe('new:u:1');
+  });
+
+  it('resolveCheckoutTarget não gera mais id com Date.now() no cadastro novo', async () => {
+    const { db } = createFakeDb();
+    const r = await resolveCheckoutTarget({ db, subscriberId: undefined, callerUid: 'uid_x', isAdmin: async () => false });
+    expect(r).toMatchObject({ ok: true, isRenewal: false, subscriberId: '' });
+  });
+});
+
+/**
+ * Stripe falso com a regra real de idempotência: mesma chave + mesmos parâmetros devolve a
+ * resposta original (com Idempotent-Replayed); mesma chave + parâmetros diferentes dá erro.
+ */
+function idempotentStripe() {
+  const byKey = new Map<string, { body: string; session: any }>();
+  const sessions = new Map<string, any>();
+  let n = 0;
+  const withHeaders = (session: any, replayed: boolean) =>
+    Object.defineProperty({ ...session }, 'lastResponse', { value: { headers: replayed ? { 'idempotent-replayed': 'true' } : {} } });
+  const create = vi.fn(async (params: any, opts: { idempotencyKey: string }) => {
+    const body = JSON.stringify(params);
+    const hit = byKey.get(opts.idempotencyKey);
+    if (hit) {
+      if (hit.body !== body) throw Object.assign(new Error('Keys for idempotent requests can only be used with the same parameters'), { type: 'StripeIdempotencyError' });
+      return withHeaders(hit.session, true);
+    }
+    const session = { id: `cs_test_${++n}`, url: `https://checkout.stripe.test/${n}`, status: 'open', created: Math.floor(Date.now() / 1000), metadata: params.metadata };
+    sessions.set(session.id, session);
+    byKey.set(opts.idempotencyKey, { body, session: { ...session } });
+    return withHeaders(session, false);
+  });
+  const stripe = {
+    checkout: {
+      sessions: {
+        create,
+        retrieve: vi.fn(async (id: string) => ({ ...sessions.get(id), payment_intent: null })),
+        expire: vi.fn(async (id: string) => { sessions.get(id).status = 'expired'; }),
+      },
+    },
+    paymentIntents: { cancel: vi.fn(), retrieve: vi.fn() },
+  } as any;
+  return { stripe, sessions, create };
+}
+
+describe('createCheckoutSessionOnce — duplo clique devolve a mesma sessão, sem 500', () => {
+  const build = (subscriberId: string) => buildCheckoutSessionParams({
+    paymentMethod: 'PIX',
+    plan: { id: 'cs-basic-4', tierLabel: 'BASIC 4 (4 ATD)', serviceName: 'Corte Simples', totalPrice: 64 } as any,
+    metadata: baseMetadata({ subscriberId }),
+    origin: 'https://x.test',
+  });
+  const keyOf = (params: any) => buildCheckoutIdempotencyKey({ scope: 'new:uid_1:52998224725', planId: 'cs-basic-4', paymentMethod: 'PIX', params });
+
+  it('reprodução do bug antigo: mesma chave com subscriberId `stripe_${Date.now()}` diferente → erro do Stripe', async () => {
+    const { stripe } = idempotentStripe();
+    const p1 = build('stripe_1700000000001');
+    const p2 = build('stripe_1700000000002');
+    const sameKey = keyOf({ ...p1, metadata: { ...p1.metadata, subscriberId: '' } });
+    await stripe.checkout.sessions.create(p1, { idempotencyKey: sameKey });
+    await expect(stripe.checkout.sessions.create(p2, { idempotencyKey: sameKey })).rejects.toThrow(/same parameters/);
+  });
+
+  it('agora: dois cliques do cadastro novo geram os mesmos parâmetros e a mesma sessão', async () => {
+    const { stripe, create } = idempotentStripe();
+    const idA = newSubscriberIdFor({ callerUid: 'uid_1', cpfDigits: '52998224725', planId: 'cs-basic-4' });
+    const idB = newSubscriberIdFor({ callerUid: 'uid_1', cpfDigits: '52998224725', planId: 'cs-basic-4' });
+    const [a, b] = await Promise.all([
+      createCheckoutSessionOnce(stripe, build(idA), keyOf(build(idA))),
+      createCheckoutSessionOnce(stripe, build(idB), keyOf(build(idB))),
+    ]);
+    expect('session' in a && 'session' in b).toBe(true);
+    expect((a as any).session.id).toBe((b as any).session.id);
+    expect(create).toHaveBeenCalledTimes(2); // o segundo é replay, não sessão nova
+  });
+
+  it('replay de uma sessão que já expirou: cria outra (o cliente não cai numa sessão morta)', async () => {
+    const { stripe, sessions } = idempotentStripe();
+    const params = build('stripe_fixo');
+    const first = await createCheckoutSessionOnce(stripe, params, keyOf(params));
+    sessions.get((first as any).session.id).status = 'expired';
+
+    const again = await createCheckoutSessionOnce(stripe, params, keyOf(params));
+    expect((again as any).session.id).not.toBe((first as any).session.id);
+    expect((again as any).session.status).toBe('open');
+  });
+
+  it('replay de uma sessão já paga: paid (409), sem criar outra cobrança', async () => {
+    const { stripe, sessions, create } = idempotentStripe();
+    const params = build('stripe_fixo');
+    const first = await createCheckoutSessionOnce(stripe, params, keyOf(params));
+    Object.assign(sessions.get((first as any).session.id), { status: 'complete', payment_status: 'paid' });
+
+    expect(await createCheckoutSessionOnce(stripe, params, keyOf(params))).toEqual({ paid: true });
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('resolvePendingCheckout — renovação: reaproveita o mesmo pedido, libera o resto (A4)', () => {
+  const stripeWith = (session: any) => ({
+    checkout: { sessions: { retrieve: vi.fn().mockResolvedValue(session), expire: vi.fn().mockResolvedValue({}) } },
+    paymentIntents: { cancel: vi.fn().mockResolvedValue({}), retrieve: vi.fn() },
+  }) as any;
+
+  it('sem pendente, ou pendente já gravado pelo webhook: cria sem substituir nada', async () => {
+    const stripe = stripeWith({});
+    expect(await resolvePendingCheckout(stripe, {}, 'k')).toEqual({ action: 'new', replacesSessionId: '' });
+    expect(await resolvePendingCheckout(stripe, { pendingCheckoutSessionId: 'cs_1', checkoutSessionId: 'cs_1' }, 'k'))
+      .toEqual({ action: 'new', replacesSessionId: '' });
+    expect(stripe.checkout.sessions.retrieve).not.toHaveBeenCalled();
+  });
+
+  it('mesmo pedido (mesma chave) e a sessão ainda aberta: devolve a MESMA, sem expirar', async () => {
+    const stripe = stripeWith({ id: 'cs_1', status: 'open', url: 'https://checkout.stripe.test/1' });
+    expect(await resolvePendingCheckout(stripe, { pendingCheckoutSessionId: 'cs_1', pendingCheckoutKey: 'k' }, 'k'))
+      .toEqual({ action: 'reuse', sessionId: 'cs_1', url: 'https://checkout.stripe.test/1' });
+    expect(stripe.checkout.sessions.expire).not.toHaveBeenCalled();
+  });
+
+  it('pedido diferente (ex.: trocou Pix → cartão) com a anterior aberta: expira e substitui (A4 prevalece)', async () => {
+    const stripe = stripeWith({ id: 'cs_1', status: 'open', url: 'u' });
+    expect(await resolvePendingCheckout(stripe, { pendingCheckoutSessionId: 'cs_1', pendingCheckoutKey: 'k_pix' }, 'k_card'))
+      .toEqual({ action: 'new', replacesSessionId: 'cs_1' });
+    expect(stripe.checkout.sessions.expire).toHaveBeenCalledWith('cs_1');
+  });
+
+  it('mesmo pedido, mas o QR code já foi exibido: cancela o Pix e cria outro (não reaproveita sessão completa)', async () => {
+    const stripe = stripeWith({ id: 'cs_1', status: 'complete', payment_status: 'unpaid', payment_intent: { id: 'pi_1', status: 'requires_action' } });
+    expect(await resolvePendingCheckout(stripe, { pendingCheckoutSessionId: 'cs_1', pendingCheckoutKey: 'k' }, 'k'))
+      .toEqual({ action: 'new', replacesSessionId: 'cs_1' });
+    expect(stripe.paymentIntents.cancel).toHaveBeenCalledWith('pi_1');
+  });
+
+  it('mesmo pedido, sessão expirada (Pix vencido): cria outra com chave nova', async () => {
+    const stripe = stripeWith({ id: 'cs_1', status: 'expired' });
+    expect(await resolvePendingCheckout(stripe, { pendingCheckoutSessionId: 'cs_1', pendingCheckoutKey: 'k' }, 'k'))
+      .toEqual({ action: 'new', replacesSessionId: 'cs_1' });
+  });
+
+  it('anterior já paga e o webhook ainda não chegou: paid', async () => {
+    const stripe = stripeWith({ id: 'cs_1', status: 'complete', payment_status: 'paid' });
+    expect(await resolvePendingCheckout(stripe, { pendingCheckoutSessionId: 'cs_1', pendingCheckoutKey: 'k' }, 'k'))
+      .toEqual({ action: 'paid' });
+  });
+});
+
 describe('resolveCheckoutTarget — quem pode abrir checkout para um assinante', () => {
   const { db } = createFakeDb({ sub_victim: { userUid: 'uid_victim' } });
 
