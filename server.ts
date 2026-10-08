@@ -10,6 +10,7 @@ import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
 import Stripe from 'stripe';
 import { PLANS_LIST } from './src/data/barberData.js';
 import { registerStripeRoutes } from './stripe-routes.js';
+import { cleanCpf as cleanCpfDigits, isValidCpf } from './src/lib/cpf.js';
 
 dotenv.config();
 
@@ -63,12 +64,6 @@ const adminApp = getAdminApps().length > 0
 const adminAuth = getAdminAuth(adminApp);
 const adminDb = getAdminFirestore(adminApp);
 
-// ─── Stripe Routes ────────────────────────────────────────────────────────────
-registerStripeRoutes(app, adminDb);
-
-// ─── Body Parsers ─────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '1mb' }));
-
 // ─── Rate Limiter in-memory com limpeza periódica ────────────────────────────
 interface RateLimitRecord {
   count: number;
@@ -85,31 +80,45 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
-const rateLimiterMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const ip = (req.headers['x-forwarded-for'] as string || req.ip || 'unknown').split(',')[0].trim();
-  const now = Date.now();
-  const windowMs = 60 * 1000;
-  const maxRequests = 15;
+/**
+ * Cada limitador tem seu próprio prefixo de chave, para que o polling da tela de retorno
+ * do pagamento não consuma a cota do chat (e vice-versa). Store em memória: numa função
+ * serverless vale por instância, então é uma contenção de abuso, não uma garantia global.
+ */
+function createRateLimiter(keyPrefix: string, maxRequests: number, windowMs = 60 * 1000) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const ip = (req.headers['x-forwarded-for'] as string || req.ip || 'unknown').split(',')[0].trim();
+    const key = `${keyPrefix}:${ip}`;
+    const now = Date.now();
 
-  const record = rateLimitStore.get(ip);
+    const record = rateLimitStore.get(key);
 
-  if (!record || now > record.resetTime) {
-    rateLimitStore.set(ip, { count: 1, resetTime: now + windowMs });
-    return next();
-  }
+    if (!record || now > record.resetTime) {
+      rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+      return next();
+    }
 
-  if (record.count >= maxRequests) {
-    const retryAfter = Math.ceil((record.resetTime - now) / 1000);
-    res.setHeader('Retry-After', retryAfter);
-    return res.status(429).json({
-      error: 'Limite de requisições excedido. Por favor, aguarde alguns instantes antes de enviar nova mensagem.',
-      retryAfterSeconds: retryAfter,
-    });
-  }
+    if (record.count >= maxRequests) {
+      const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+      res.setHeader('Retry-After', retryAfter);
+      return res.status(429).json({
+        error: 'Limite de requisições excedido. Por favor, aguarde alguns instantes e tente novamente.',
+        retryAfterSeconds: retryAfter,
+      });
+    }
 
-  record.count += 1;
-  next();
-};
+    record.count += 1;
+    next();
+  };
+}
+
+const rateLimiterMiddleware = createRateLimiter('chat', 15);
+// Abrir checkout: poucas tentativas legítimas por minuto (duplo clique, trocar Cartão/Pix).
+const checkoutRateLimiter = createRateLimiter('checkout', 10);
+// Polling de /pagamento-sucesso: 1 consulta a cada 3s = 20/min, com folga para recarregar a página.
+const checkoutStatusRateLimiter = createRateLimiter('checkout-status', 40);
+// Rota legada /api/payment/create-intent.
+const paymentRateLimiter = createRateLimiter('payment', 10);
 
 // ─── Auth Middlewares ─────────────────────────────────────────────────────────
 const authCheckMiddleware = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -128,6 +137,21 @@ const authCheckMiddleware = async (req: express.Request, res: express.Response, 
   }
 };
 
+/**
+ * Autorização vem do custom claim assinado pelo Firebase (npm run set-admin -- <email>).
+ * Nenhum e-mail hardcoded: e-mail é identidade, não autorização. Extraído de
+ * requireAdminRole para que rotas que aceitam cliente OU admin (create-checkout-session)
+ * possam perguntar "é admin?" sem responder 403.
+ */
+async function resolveAdminRole(decoded: { uid: string; admin?: unknown }): Promise<{ isAdmin: boolean; databaseRole: string }> {
+  if (decoded.admin === true) return { isAdmin: true, databaseRole: 'admin' };
+
+  // Fallback pelo Admin SDK (ignora as regras do Firestore, ao contrário do SDK cliente)
+  const userSnap = await adminDb.collection('users').doc(decoded.uid).get();
+  const databaseRole = (userSnap.exists && userSnap.data()?.role) || 'client';
+  return { isAdmin: databaseRole === 'admin', databaseRole };
+}
+
 const requireAdminRole = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
@@ -138,19 +162,7 @@ const requireAdminRole = async (req: express.Request, res: express.Response, nex
     const decoded = (req as any).firebaseUser || await adminAuth.verifyIdToken(authHeader.slice('Bearer '.length).trim());
     const userId = decoded.uid;
 
-    // Autorização vem do custom claim assinado pelo Firebase (npm run set-admin -- <email>).
-    // Nenhum e-mail hardcoded: e-mail é identidade, não autorização.
-    let isAdmin = decoded.admin === true;
-    let databaseRole = isAdmin ? 'admin' : 'client';
-
-    if (!isAdmin) {
-      // Fallback pelo Admin SDK (ignora as regras do Firestore, ao contrário do SDK cliente)
-      const userSnap = await adminDb.collection('users').doc(userId).get();
-      if (userSnap.exists) {
-        databaseRole = userSnap.data()?.role || 'client';
-        isAdmin = databaseRole === 'admin';
-      }
-    }
+    const { isAdmin, databaseRole } = await resolveAdminRole(decoded);
 
     if (!isAdmin) {
       return res.status(403).json({
@@ -168,6 +180,22 @@ const requireAdminRole = async (req: express.Request, res: express.Response, nex
   }
 };
 
+// ─── Stripe Routes ────────────────────────────────────────────────────────────
+// Registradas ANTES do express.json global de propósito: o webhook precisa do corpo cru
+// (express.raw) para validar a assinatura do Stripe, e um JSON já parseado quebraria isso.
+// Os middlewares de auth/rate limit são passados como parâmetro (em vez de importados de
+// server.ts) para evitar import circular. Antes eles nem existiam neste ponto do arquivo,
+// e create-checkout-session rodava em produção sem autenticação e sem rate limit.
+registerStripeRoutes(app, adminDb, {
+  authCheckMiddleware,
+  resolveIsAdmin: async (decoded) => (await resolveAdminRole(decoded)).isAdmin,
+  checkoutRateLimiter,
+  checkoutStatusRateLimiter,
+});
+
+// ─── Body Parsers ─────────────────────────────────────────────────────────────
+app.use(express.json({ limit: '1mb' }));
+
 function sanitizeServerInput(str: string): string {
   if (typeof str !== 'string') return '';
   return str
@@ -178,16 +206,16 @@ function sanitizeServerInput(str: string): string {
 }
 
 // ─── Payment Intent (Stripe direto) ──────────────────────────────────────────
-app.post('/api/payment/create-intent', authCheckMiddleware, async (req, res) => {
+app.post('/api/payment/create-intent', paymentRateLimiter, authCheckMiddleware, async (req, res) => {
   try {
     const { planName, planAmount, clientName, clientCpf, paymentMethod } = req.body || {};
     const amount = Number(planAmount);
-    const cleanCpf = typeof clientCpf === 'string' ? clientCpf.replace(/\D/g, '') : '';
+    const cleanCpf = cleanCpfDigits(clientCpf);
 
     if (!clientName || typeof clientName !== 'string' || clientName.trim().length < 3) {
       return res.status(400).json({ error: 'Nome do cliente inválido.' });
     }
-    if (!/^\d{11}$/.test(cleanCpf)) {
+    if (!isValidCpf(cleanCpf)) {
       return res.status(400).json({ error: 'CPF inválido.' });
     }
     if (!Number.isFinite(amount) || amount <= 0) {

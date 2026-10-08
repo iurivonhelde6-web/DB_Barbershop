@@ -4,10 +4,16 @@ import {
   Lock,
   ShieldCheck,
   X,
-  Building
+  Building,
+  CreditCard,
+  QrCode
 } from 'lucide-react';
 import { SubscriberCard } from '../types';
-import { auth } from '../lib/firebase';
+import { auth, getAuthHeaders } from '../lib/firebase';
+import { formatCpf, isValidCpf } from '../lib/cpf';
+import { RENEWAL_WINDOW_DAYS, formatDateBr, isCycleAlreadyPaid, renewalOpensOn } from '../lib/billingCycle';
+
+type CheckoutPaymentMethod = 'CREDIT_CARD' | 'PIX';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -33,6 +39,12 @@ interface PaymentModalProps {
  * pelo próprio Stripe é quem captura o cartão. A confirmação real do pagamento
  * (e a ativação da assinatura no Firestore) só acontece depois, via webhook,
  * quando o cliente retorna em /pagamento-sucesso.
+ *
+ * Pix é cobrança ÚNICA de um ciclo de 30 dias (não há débito automático — veja
+ * buildCheckoutSessionParams em stripe-routes.ts). A renovação é gerar um novo Pix por
+ * este mesmo modal, tanto no cadastro (PlansCatalog) quanto no admin (ControlCardValidation).
+ * A renovação manual (Pix ou cartão) só é liberada nos RENEWAL_WINDOW_DAYS antes do
+ * vencimento — o servidor recusa antes disso (409 CYCLE_ALREADY_PAID).
  */
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
@@ -47,35 +59,97 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  // Default cartão: quem já usa o fluxo hoje não percebe mudança nenhuma.
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('CREDIT_CARD');
+  // Editável aqui porque cadastros antigos podem ter CPF vazio ou o placeholder 000.000.000-00.
+  const [cpfInput, setCpfInput] = useState(formatCpf(clientCpf || ''));
+  // O backend recusou porque o assinante já tem débito automático ativo no cartão.
+  const [hasActiveCardSubscription, setHasActiveCardSubscription] = useState(false);
+  const [isCancelingAutoRenewal, setIsCancelingAutoRenewal] = useState(false);
+  const [infoMessage, setInfoMessage] = useState('');
 
   useEffect(() => {
     if (!isOpen) {
       setIsRedirecting(false);
       setErrorMessage('');
+      setInfoMessage('');
+      setHasActiveCardSubscription(false);
+      setPaymentMethod('CREDIT_CARD');
+    } else {
+      setCpfInput(formatCpf(clientCpf || ''));
     }
+    // Só reinicia ao abrir/fechar — um re-render do pai com o modal aberto não deve
+    // apagar o CPF digitado no meio da tentativa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const isPix = paymentMethod === 'PIX';
+  const cpfIsValid = isValidCpf(cpfInput);
+  const showCpfError = cpfInput.replace(/\D/g, '').length === 11 && !cpfIsValid;
+  // Só informativo: quem decide é o servidor (o relógio do aparelho pode estar errado).
+  const paidUntil = subscriberCard && isCycleAlreadyPaid(subscriberCard) ? subscriberCard.expirationDate : '';
 
   const formattedPlanAmount = planAmount.toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   });
 
+  // Trocar cartão → Pix: sem cancelar o débito automático, o cartão continuaria cobrando
+  // todo mês junto com o Pix. O acesso já pago não muda.
+  const handleCancelAutoRenewal = async () => {
+    if (!subscriberCard?.id) return;
+    const ok = window.confirm(
+      `Cancelar o débito automático no cartão de ${clientName}? O cartão não será mais cobrado; o período já pago continua valendo e as próximas renovações serão por Pix.`
+    );
+    if (!ok) return;
+
+    setErrorMessage('');
+    setIsCancelingAutoRenewal(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/stripe/cancel-auto-renewal', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ subscriberId: subscriberCard.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrorMessage(data.error || 'Não foi possível cancelar o débito automático. Tente novamente.');
+        return;
+      }
+      setHasActiveCardSubscription(false);
+      setInfoMessage('Débito automático no cartão cancelado. Agora você pode gerar o Pix.');
+    } catch {
+      setErrorMessage('Não foi possível cancelar o débito automático. Tente novamente.');
+    } finally {
+      setIsCancelingAutoRenewal(false);
+    }
+  };
+
   const handleGoToStripeCheckout = async () => {
     setErrorMessage('');
+    setInfoMessage('');
+    if (!cpfIsValid) {
+      setErrorMessage('Informe um CPF válido para continuar.');
+      return;
+    }
     setIsRedirecting(true);
 
     try {
+      // A rota exige o Firebase ID token (Authorization: Bearer ...).
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           planName,
           serviceName,
           planAmount,
           clientName,
-          clientCpf,
+          clientCpf: cpfInput.replace(/\D/g, ''),
+          paymentMethod,
           clientPhone: clientPhone || subscriberCard?.phone || '',
           subscriberId: subscriberCard?.id,
           cardCode: subscriberCard?.cardCode,
@@ -88,6 +162,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         data = await res.json();
       } catch {
         throw new Error('Falha na resposta do servidor ao iniciar o pagamento.');
+      }
+
+      if (res.status === 409 && data.code === 'ACTIVE_CARD_SUBSCRIPTION') {
+        setHasActiveCardSubscription(true);
       }
 
       if (!res.ok || !data.url) {
@@ -152,27 +230,135 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
           )}
 
-          {/* Box de Segurança */}
-          <div className="p-3.5 bg-[#181818] rounded-xl border border-white/5 space-y-1.5 text-xs">
-            <div className="flex items-center gap-2 text-stone-300 font-bold">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Assinatura Recorrente Mensal Automática</span>
+          {hasActiveCardSubscription && isPix && subscriberCard?.id && (
+            <button
+              type="button"
+              onClick={handleCancelAutoRenewal}
+              disabled={isCancelingAutoRenewal}
+              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-[#202020] hover:bg-[#282828] border border-red-500/40 text-red-200 uppercase tracking-wider transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              {isCancelingAutoRenewal ? 'Cancelando débito automático...' : 'Cancelar débito automático no cartão'}
+            </button>
+          )}
+
+          {paidUntil && (
+            <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-100 text-xs flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                Este ciclo já está pago até <strong>{formatDateBr(paidUntil)}</strong>. A renovação fica liberada a partir
+                de <strong>{formatDateBr(renewalOpensOn(paidUntil))}</strong> ({RENEWAL_WINDOW_DAYS} dias antes do vencimento),
+                e os dias que faltam são somados ao novo ciclo.
+              </span>
             </div>
-            <p className="text-[11px] text-stone-400 leading-relaxed">
-              Você será redirecionado para a página segura do <strong className="text-stone-200">Stripe</strong>, onde informa
-              os dados do cartão diretamente ao gateway de pagamento. Este site nunca recebe ou armazena número de
-              cartão, validade ou CVV.
-            </p>
-            <p className="text-[11px] text-stone-400 leading-relaxed">
-              Cobrança no valor de <strong className="text-stone-200 font-mono">R$ {planAmount.toFixed(2)}</strong> renovada a cada 30 dias.
-            </p>
+          )}
+
+          {infoMessage && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>{infoMessage}</span>
+            </div>
+          )}
+
+          {/* Forma de Pagamento */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider block">
+              Forma de Pagamento
+            </span>
+            <div role="radiogroup" aria-label="Forma de pagamento" className="grid grid-cols-2 gap-2">
+              {([
+                { value: 'CREDIT_CARD', label: 'Cartão', Icon: CreditCard },
+                { value: 'PIX', label: 'Pix', Icon: QrCode },
+              ] as const).map(({ value, label, Icon }) => {
+                const selected = paymentMethod === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    disabled={isRedirecting}
+                    onClick={() => { setPaymentMethod(value); setErrorMessage(''); setInfoMessage(''); }}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 ${
+                      selected
+                        ? 'bg-amber-500/15 border-amber-500/60 text-amber-300'
+                        : 'bg-[#181818] border-white/10 text-stone-400 hover:text-stone-200 hover:border-white/20'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          {/* CPF — obrigatório e validado para os dois métodos */}
+          <div>
+            <label htmlFor="payment-cpf" className="text-[11px] font-bold uppercase tracking-wider text-stone-300 block mb-1">
+              CPF do Titular *
+            </label>
+            <input
+              id="payment-cpf"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="000.000.000-00"
+              value={cpfInput}
+              onChange={(e) => setCpfInput(formatCpf(e.target.value))}
+              disabled={isRedirecting}
+              aria-invalid={showCpfError}
+              className={`w-full bg-[#0a0a0a] text-stone-100 text-xs rounded px-3.5 py-2.5 border focus:outline-none ${
+                showCpfError ? 'border-red-500/70 focus:border-red-400' : 'border-[#94a288]/30 focus:border-[#94a288]'
+              }`}
+            />
+            {showCpfError && <p className="text-[11px] text-red-300 mt-1">CPF inválido — confira os dígitos.</p>}
+            {!cpfIsValid && !showCpfError && (
+              <p className="text-[11px] text-stone-500 mt-1">
+                {isPix ? 'O Pix exige o CPF real do pagador.' : 'Informe o CPF real do titular da assinatura.'}
+              </p>
+            )}
+          </div>
+
+          {/* Box de Segurança */}
+          {isPix ? (
+            <div className="p-3.5 bg-[#181818] rounded-xl border border-white/5 space-y-1.5 text-xs">
+              <div className="flex items-center gap-2 text-stone-300 font-bold">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Pagamento via Pix — cobrança única deste ciclo de 30 dias</span>
+              </div>
+              <p className="text-[11px] text-stone-400 leading-relaxed">
+                Você será redirecionado para a página segura do <strong className="text-stone-200">Stripe</strong>, que
+                mostra o QR code / código Pix copia e cola. O código vale por 1 hora; se você gerar
+                outro, o anterior é cancelado.
+              </p>
+              <p className="text-[11px] text-stone-400 leading-relaxed">
+                Pagamento único de <strong className="text-stone-200 font-mono">R$ {planAmount.toFixed(2)}</strong>.
+                Para renovar, gere um novo Pix a partir de {RENEWAL_WINDOW_DAYS} dias antes do vencimento — os dias que
+                faltam são somados ao novo ciclo. <strong className="text-stone-200">Não há débito automático</strong>.
+              </p>
+            </div>
+          ) : (
+            <div className="p-3.5 bg-[#181818] rounded-xl border border-white/5 space-y-1.5 text-xs">
+              <div className="flex items-center gap-2 text-stone-300 font-bold">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Assinatura Recorrente Mensal Automática</span>
+              </div>
+              <p className="text-[11px] text-stone-400 leading-relaxed">
+                Você será redirecionado para a página segura do <strong className="text-stone-200">Stripe</strong>, onde informa
+                os dados do cartão diretamente ao gateway de pagamento. Este site nunca recebe ou armazena número de
+                cartão, validade ou CVV.
+              </p>
+              <p className="text-[11px] text-stone-400 leading-relaxed">
+                Cobrança no valor de <strong className="text-stone-200 font-mono">R$ {planAmount.toFixed(2)}</strong> renovada a cada 30 dias.
+              </p>
+            </div>
+          )}
 
           {/* Botão Pagar */}
           <button
             type="button"
             onClick={handleGoToStripeCheckout}
-            disabled={isRedirecting}
+            disabled={isRedirecting || !cpfIsValid}
             className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-linear-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-stone-950 uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {isRedirecting ? (
@@ -182,8 +368,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </>
             ) : (
               <>
-                <Lock className="w-4 h-4" />
-                <span>Ir para Pagamento Stripe (R$ {planAmount.toFixed(2)})</span>
+                {isPix ? <QrCode className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                <span>
+                  {isPix
+                    ? `Pagar com Pix (R$ ${planAmount.toFixed(2)})`
+                    : `Ir para Pagamento Stripe (R$ ${planAmount.toFixed(2)})`}
+                </span>
               </>
             )}
           </button>

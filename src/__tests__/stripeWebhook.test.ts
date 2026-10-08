@@ -5,8 +5,8 @@
  * A migração para o Stripe Checkout removeu toda ativação de assinatura feita
  * a partir do frontend ou logo após a criação da checkout session — a única
  * fonte de verdade agora é o webhook, depois que o Stripe confirma o pagamento
- * (checkout.session.completed para a ativação inicial, invoice.paid para
- * renovações). Este teste garante que esse contrato não regrida silenciosamente.
+ * (checkout.session.completed para a ativação inicial, async_payment_succeeded
+ * para o Pix confirmado depois, invoice.paid para renovações). Este teste garante que esse contrato não regrida silenciosamente.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -15,6 +15,14 @@ import { isPaymentConfirmationEvent } from '../../stripe-routes';
 describe('isPaymentConfirmationEvent — portão de ativação de assinatura', () => {
   it('permite checkout.session.completed (ativação inicial via Stripe Checkout)', () => {
     expect(isPaymentConfirmationEvent('checkout.session.completed')).toBe(true);
+  });
+
+  it('permite checkout.session.async_payment_succeeded (Pix pago depois do QR code)', () => {
+    expect(isPaymentConfirmationEvent('checkout.session.async_payment_succeeded')).toBe(true);
+  });
+
+  it('rejeita checkout.session.async_payment_failed (Pix expirado/falhou)', () => {
+    expect(isPaymentConfirmationEvent('checkout.session.async_payment_failed')).toBe(false);
   });
 
   it('permite invoice.paid (renovação recorrente)', () => {
