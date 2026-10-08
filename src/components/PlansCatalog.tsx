@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SERVICES_LIST, PLANS_LIST } from '../data/barberData';
 import { PlanOption, SubscriberCard } from '../types';
 import { PaymentModal } from './PaymentModal';
+import { formatCpf, isValidCpf } from '../lib/cpf';
 import { playPaymentAlert } from '../utils/soundAlert';
 import {
   CheckCircle2,
@@ -166,6 +167,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
   const [selectedPlanForSub, setSelectedPlanForSub] = useState<PlanOption | null>(null);
   const [clientNameInput, setClientNameInput] = useState<string>('');
   const [clientCpfInput, setClientCpfInput] = useState<string>('');
+  const [clientCpfError, setClientCpfError] = useState<string>('');
   const [clientPhoneInput, setClientPhoneInput] = useState<string>('');
   const [createdSubSuccess, setCreatedSubSuccess] = useState<SubscriberCard | null>(null);
 
@@ -203,6 +205,7 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
     setCreatedSubSuccess(null);
     setClientNameInput('');
     setClientCpfInput('');
+    setClientCpfError('');
     setClientPhoneInput('');
     setIsSubscribeModalOpen(true);
   };
@@ -210,6 +213,11 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
   const handleStartPaymentStep = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlanForSub || !clientNameInput.trim()) return;
+    if (!isValidCpf(clientCpfInput)) {
+      setClientCpfError('Informe um CPF válido — ele é obrigatório para o pagamento (cartão ou Pix).');
+      return;
+    }
+    setClientCpfError('');
     setIsPaymentModalOpen(true);
   };
 
@@ -783,15 +791,19 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[11px] font-bold uppercase tracking-wider text-stone-300 block mb-1">
-                        CPF do Cliente
+                        CPF do Cliente *
                       </label>
                       <input
                         type="text"
+                        required
+                        inputMode="numeric"
                         placeholder="000.000.000-00"
                         value={clientCpfInput}
-                        onChange={(e) => setClientCpfInput(e.target.value)}
+                        onChange={(e) => { setClientCpfInput(formatCpf(e.target.value)); setClientCpfError(''); }}
+                        aria-invalid={!!clientCpfError}
                         className="w-full bg-[#0a0a0a] text-stone-100 text-xs rounded px-3.5 py-2.5 border border-[#94a288]/30 focus:outline-none focus:border-[#94a288]"
                       />
+                      {clientCpfError && <p className="text-[11px] text-red-300 mt-1">{clientCpfError}</p>}
                     </div>
 
                     <div>
@@ -886,7 +898,8 @@ export const PlansCatalog: React.FC<PlansCatalogProps> = ({ onAddSubscriber, onO
           serviceName={selectedPlanForSub.serviceName}
           planAmount={selectedPlanForSub.totalPrice}
           clientName={clientNameInput.trim() || 'Cliente'}
-          clientCpf={clientCpfInput.trim() || '000.000.000-00'}
+          // Sem placeholder: o PaymentModal exige e valida um CPF real antes de abrir o checkout.
+          clientCpf={clientCpfInput.trim()}
           clientPhone={clientPhoneInput.trim()}
           onPaymentSuccess={(data) => {
             setIsPaymentModalOpen(false);

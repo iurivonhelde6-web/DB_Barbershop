@@ -3,6 +3,8 @@ import { CheckCircle2, Loader2, AlertTriangle, ArrowRight } from 'lucide-react';
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLLS = 20; // ~1 minuto de tentativas
+// Depois de ~15s sem confirmação, avisa que Pix pode demorar mais que cartão.
+const SLOW_CONFIRMATION_HINT_AFTER = 5;
 
 type CheckStatus = 'checking' | 'confirmed' | 'timeout' | 'error';
 
@@ -86,6 +88,12 @@ export const PaymentSuccessPage: React.FC = () => {
               Estamos confirmando com o Stripe que o pagamento foi aprovado. Isso costuma levar poucos segundos.
               (tentativa {attempt + 1})
             </p>
+            {attempt >= SLOW_CONFIRMATION_HINT_AFTER && (
+              <p className="text-xs text-stone-500 leading-relaxed">
+                Pagou com Pix? A confirmação depende do seu banco e pode levar alguns minutos depois de escanear o QR
+                code. Pode deixar esta página aberta.
+              </p>
+            )}
           </>
         )}
 
