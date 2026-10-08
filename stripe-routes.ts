@@ -3,6 +3,9 @@ import { createHash } from 'crypto';
 import Stripe from 'stripe';
 import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
 import { cleanCpf, isValidCpf } from './src/lib/cpf.js';
+import {
+  RENEWAL_WINDOW_DAYS, formatDateBr, isCycleAlreadyPaid, newCycleFields, renewalOpensOn, todayInSaoPaulo,
+} from './src/lib/billingCycle.js';
 
 /**
  * Firestore do Admin SDK. Estas rotas rodam no servidor, sem sessão de usuário —
@@ -892,13 +895,17 @@ export async function resolveCheckoutTarget(args: {
   callerUid: string;
   isAdmin: () => Promise<boolean>;
 }): Promise<
-  | { ok: true; subscriberId: string; isRenewal: boolean; isAdmin: boolean; existingUserUid: string; existingSubscriptionId: string }
+  | {
+    ok: true; subscriberId: string; isRenewal: boolean; isAdmin: boolean; existingUserUid: string; existingSubscriptionId: string;
+    /** Documento atual do assinante ({} no cadastro novo): vencimento, checkout pendente etc. */
+    existingData: Record<string, any>;
+  }
   | { ok: false; status: number; error: string }
 > {
   const { db, subscriberId, callerUid } = args;
 
   if (subscriberId == null || subscriberId === '') {
-    return { ok: true, subscriberId: `stripe_${Date.now()}`, isRenewal: false, isAdmin: await args.isAdmin(), existingUserUid: '', existingSubscriptionId: '' };
+    return { ok: true, subscriberId: `stripe_${Date.now()}`, isRenewal: false, isAdmin: await args.isAdmin(), existingUserUid: '', existingSubscriptionId: '', existingData: {} };
   }
   if (typeof subscriberId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(subscriberId)) {
     return { ok: false, status: 400, error: 'Assinante inválido.' };
@@ -921,6 +928,7 @@ export async function resolveCheckoutTarget(args: {
   return {
     ok: true, subscriberId, isRenewal: true, isAdmin, existingUserUid,
     existingSubscriptionId: String(existingData?.stripeSubscriptionId || ''),
+    existingData,
   };
 }
 
@@ -962,6 +970,197 @@ export async function decideExistingSubscription(
   if (CHARGING_SUBSCRIPTION_STATUSES.has(status)) return { action: 'block', status };
   if (REPLACEABLE_SUBSCRIPTION_STATUSES.has(status)) return { action: 'replace', status };
   return { action: 'none' };
+}
+
+// ─── Checkout anterior ainda pagável (evita pagar o mesmo ciclo duas vezes) ──────
+// O assinante guarda em pendingCheckoutSessionId o último checkout de renovação aberto.
+// Antes de abrir outro, o anterior é liberado — nunca ficam dois pagáveis ao mesmo tempo.
+
+export type PendingCheckoutOutcome = 'none' | 'released' | 'paid';
+
+/**
+ * Libera o checkout gerado antes para este assinante:
+ * - sessão ainda 'open' (cliente não pagou nem gerou o QR code): expira a sessão;
+ * - Pix com QR code exibido e não pago: o Stripe já marca a sessão como 'complete' quando
+ *   o QR aparece, e sessão completa não pode ser expirada — cancela o PaymentIntent, o que
+ *   invalida o QR code (o cliente não fica preso esperando ele vencer);
+ * - já pago e o webhook ainda não processou: 'paid' — quem chama responde 409;
+ * - expirada, cancelada ou inexistente: nada a fazer.
+ * Se o expire/cancel falhar porque o cliente pagou no meio, relê e devolve 'paid'.
+ * Qualquer outro erro do Stripe propaga: na dúvida, não abre checkout.
+ */
+export async function releasePendingCheckout(
+  stripe: Pick<Stripe, 'checkout' | 'paymentIntents'>,
+  sessionId: string,
+): Promise<PendingCheckoutOutcome> {
+  if (!sessionId) return 'none';
+
+  const load = async () => {
+    try {
+      return await stripe.checkout.sessions.retrieve(sessionId, { expand: ['payment_intent'] });
+    } catch (err: any) {
+      if (err?.code === 'resource_missing') return null;
+      throw err;
+    }
+  };
+
+  let session = await load();
+  if (!session) return 'none';
+
+  if (session.status === 'open') {
+    try {
+      await stripe.checkout.sessions.expire(sessionId);
+      return 'released';
+    } catch (err) {
+      // O cliente pode ter concluído o checkout entre a leitura e o expire.
+      session = await load();
+      if (!session || session.status === 'open') throw err;
+    }
+  }
+  if (session.status !== 'complete') return 'none';
+  if (session.payment_status === 'paid') return 'paid';
+
+  // Completa e não paga: Pix com QR code exibido (no cartão a sessão completa já vem paga).
+  // payment_intent pode vir null (sessão sem cobrança — nada pagável a cancelar) ou só como
+  // id, se o expand não vier aplicado: nesse caso busca o PaymentIntent em vez de supor que
+  // não há nada a cancelar, o que deixaria um QR code válido junto com o novo checkout.
+  const rawPi = session.payment_intent;
+  if (rawPi == null) return 'none';
+  const pi = typeof rawPi === 'string' ? await stripe.paymentIntents.retrieve(rawPi) : rawPi;
+  if (!pi?.id) return 'none';
+  if (pi.status === 'succeeded' || pi.status === 'processing') return 'paid';
+  if (pi.status === 'canceled') return 'none';
+
+  try {
+    await stripe.paymentIntents.cancel(pi.id);
+    return 'released';
+  } catch (err) {
+    // Pix é instantâneo: o pagamento pode ter caído entre a leitura e o cancelamento.
+    const fresh = await stripe.paymentIntents.retrieve(pi.id);
+    if (fresh.status === 'succeeded' || fresh.status === 'processing') return 'paid';
+    if (fresh.status === 'canceled') return 'released';
+    throw err;
+  }
+}
+
+/** Esta sessão já foi gravada pelo webhook no assinante (marcador antigo, não um pagamento novo). */
+export function isSessionRecorded(data: Record<string, any>, sessionId: string): boolean {
+  if (!sessionId) return false;
+  const history: any[] = Array.isArray(data?.paymentHistory) ? data.paymentHistory : [];
+  return data?.checkoutSessionId === sessionId || history.some((inv) => inv?.checkoutSessionId === sessionId);
+}
+
+/**
+ * Limpa o marcador de checkout pendente se ele ainda apontar para esta sessão
+ * (Pix vencido/falhou, checkout expirado). Em transação: se um checkout novo já
+ * substituiu o marcador, ele não é apagado.
+ */
+export async function clearPendingCheckout(db: AdminFirestore, subscriberId: string, sessionId: string): Promise<boolean> {
+  if (!subscriberId || !sessionId) return false;
+  const ref = db.collection('subscribers').doc(subscriberId);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || (snap.data() as Record<string, any>)?.pendingCheckoutSessionId !== sessionId) return false;
+    tx.set(ref, { pendingCheckoutSessionId: '', updatedAt: new Date().toISOString() }, { merge: true });
+    return true;
+  });
+}
+
+/**
+ * Renovação mensal do cartão (invoice.paid). Leitura e gravação na mesma transação, para
+ * não sobrescrever um check-in feito no meio; a mesma fatura nunca é aplicada duas vezes —
+ * com o vencimento somando ao atual, uma reentrega do Stripe daria 30 dias grátis e
+ * zeraria os atendimentos no meio do ciclo.
+ */
+export async function renewSubscriberFromInvoice(
+  db: AdminFirestore,
+  subscriberId: string,
+  invoice: Stripe.Invoice,
+  now: Date = new Date(),
+): Promise<'renewed' | 'already_processed'> {
+  const ref = db.collection('subscribers').doc(subscriberId);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const existing = (snap.exists ? snap.data() : {}) as Record<string, any>;
+    const history: any[] = Array.isArray(existing.paymentHistory) ? existing.paymentHistory : [];
+    if (invoice.id && history.some((inv) => inv?.transactionId === invoice.id)) return 'already_processed' as const;
+
+    const today = todayInSaoPaulo(now);
+    const paidInvoice = {
+      id: `INV-STRIPE-RENEW-${Date.now()}`, invoiceCode: `STRIPE-RNW-${invoice.id?.slice(-8).toUpperCase() || Date.now()}`,
+      planName: existing.planName || 'Assinatura Recorrente', amount: (invoice.amount_paid || 0) / 100,
+      paymentMethod: 'CREDIT_CARD' as const, paymentDate: now.toLocaleString('pt-BR'),
+      dueDate: today, period: 'Renovação Recorrente',
+      status: 'PAID' as const, validationStatus: 'VALIDATED' as const,
+      transactionId: invoice.id || `stripe-${Date.now()}`,
+      notes: 'Fatura paga via Stripe (invoice.paid)',
+    };
+    tx.set(ref, {
+      status: 'ACTIVE', paymentStatus: 'PAID', paymentDate: today,
+      // Ciclo novo: zera os atendimentos e soma 30 dias ao vencimento atual.
+      ...newCycleFields(existing.expirationDate, now),
+      paymentHistory: [paidInvoice, ...history], updatedAt: now.toISOString(),
+    }, { merge: true });
+    return 'renewed' as const;
+  });
+}
+
+/** Assinante encontrado pelo webhook (stale = assinatura substituída/cancelada por nós). */
+export type SubscriberMatch = { id: string; data: Record<string, any>; stale?: boolean } | null;
+
+export type InvoicePaidOutcome = 'skipped_initial' | 'stale' | 'renewed' | 'already_processed' | 'fallback_created';
+
+/**
+ * invoice.paid. A PRIMEIRA fatura de uma assinatura de cartão (billing_reason
+ * 'subscription_create') chega junto com o checkout.session.completed, em qualquer ordem, e
+ * já foi aplicada por activateSubscriberFromSession: é ignorada aqui ANTES de qualquer
+ * leitura ou gravação. Como o vencimento agora soma ao atual, processá-la de novo daria
+ * +30 dias e zeraria os atendimentos uma segunda vez. Só renovações reais seguem adiante.
+ */
+export async function handleInvoicePaid(
+  invoice: Stripe.Invoice,
+  db: AdminFirestore,
+  findSubscriber: (subscriptionId?: string, customerId?: string) => Promise<SubscriberMatch>,
+  now: Date = new Date(),
+): Promise<{ outcome: InvoicePaidOutcome; subscriberId?: string; subscriptionId?: string }> {
+  if (invoice.billing_reason === 'subscription_create') return { outcome: 'skipped_initial' };
+
+  const subscription = (invoice as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }).subscription;
+  const subId = typeof subscription === 'string' ? subscription : subscription?.id;
+  const custId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
+  const match = await findSubscriber(subId || undefined, custId || undefined);
+  if (match?.stale) return { outcome: 'stale', subscriberId: match.id, subscriptionId: subId };
+
+  if (match) {
+    const result = await renewSubscriberFromInvoice(db, match.id, invoice, now);
+    return { outcome: result, subscriberId: match.id };
+  }
+
+  // Documento não encontrado — cria registro mínimo para não perder o pagamento.
+  // Fallback mantido como estava (será revisto na Fase C).
+  const expDate = new Date(now); expDate.setDate(expDate.getDate() + 30);
+  const paidInvoice = {
+    id: `INV-STRIPE-RENEW-${Date.now()}`, invoiceCode: `STRIPE-RNW-${invoice.id?.slice(-8).toUpperCase() || Date.now()}`,
+    planName: 'Assinatura Recorrente', amount: (invoice.amount_paid || 0) / 100,
+    paymentMethod: 'CREDIT_CARD' as const, paymentDate: now.toLocaleString('pt-BR'),
+    dueDate: now.toISOString().split('T')[0], period: 'Renovação Recorrente',
+    status: 'PAID' as const, validationStatus: 'VALIDATED' as const,
+    transactionId: invoice.id || `stripe-${Date.now()}`,
+    notes: 'Fatura paga via Stripe (invoice.paid)',
+  };
+  const fallbackId = `stripe_${(subId || custId || Date.now()).toString().replace(/\W/g, '_')}`;
+  await db.collection('subscribers').doc(fallbackId).set({
+    id: fallbackId, stripeSubscriptionId: subId || '', stripeCustomerId: custId || '',
+    planName: 'Assinatura Recorrente', serviceName: 'Assinatura Recorrente',
+    status: 'ACTIVE', paymentStatus: 'PAID',
+    paymentMethod: 'CREDIT_CARD', paymentDate: now.toISOString().split('T')[0],
+    startDate: now.toISOString().split('T')[0], expirationDate: expDate.toISOString().split('T')[0],
+    paidAmount: (invoice.amount_paid || 0) / 100, expectedAmount: (invoice.amount_paid || 0) / 100,
+    totalSessions: 0, usedSessions: 0, userUid: '', cardCode: '',
+    clientName: '', cpf: '', phone: '', cardLast4: '', cardBrand: '',
+    paymentHistory: [paidInvoice], updatedAt: now.toISOString(),
+  });
+  return { outcome: 'fallback_created', subscriberId: fallbackId };
 }
 
 /** Cancela a assinatura substituída. Idempotente: já cancelada ou inexistente não é erro. */
@@ -1088,9 +1287,7 @@ export async function activateSubscriberFromSession(
   }
 
   const now = new Date();
-  const expDate = new Date(); expDate.setDate(expDate.getDate() + 30);
-  const startDateStr = now.toISOString().split('T')[0];
-  const expDateStr = expDate.toISOString().split('T')[0];
+  const startDateStr = todayInSaoPaulo(now);
   const paidAmount = (session.amount_total ?? Math.round((plan?.totalPrice || 0) * 100)) / 100;
 
   const newInvoice = {
@@ -1133,8 +1330,9 @@ export async function activateSubscriberFromSession(
       planName: plan?.tierLabel || metadata.planName || existing.planName || '',
       serviceName: plan?.serviceName || metadata.serviceName || existing.serviceName || '',
       totalSessions: plan?.numAtendimentos || existing.totalSessions || 4,
-      usedSessions: existing.usedSessions || 0,
-      startDate: existing.startDate || startDateStr, expirationDate: expDateStr,
+      // Ciclo novo: zera os atendimentos e soma 30 dias ao vencimento atual (Pix e cartão).
+      ...newCycleFields(existing.expirationDate, now),
+      startDate: existing.startDate || startDateStr,
       userUid: metadata.userUid || existing.userUid || '',
       status: 'ACTIVE', paymentStatus: 'PAID',
       paymentMethod, paymentDate: startDateStr,
@@ -1145,6 +1343,8 @@ export async function activateSubscriberFromSession(
       // Depois do spread acima: troca stripeSubscriptionId e registra a antiga como substituída.
       ...(replacesSubscriptionId ? replacedSubscriptionFields(existing, replacesSubscriptionId, subscriptionId || '') : {}),
       checkoutSessionId: session.id,
+      // O checkout pendente era este: pago, deixa de ser liberado no próximo checkout.
+      ...(existing.pendingCheckoutSessionId === session.id ? { pendingCheckoutSessionId: '' } : {}),
       cardLast4, cardBrand,
       paymentHistory: [newInvoice, ...history], updatedAt: now.toISOString(),
     }, { merge: true });
@@ -1315,6 +1515,28 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
         });
       }
 
+      // Ciclo atual já pago e longe de vencer: mesma janela para Pix e cartão.
+      if (target.isRenewal && isCycleAlreadyPaid(target.existingData)) {
+        const exp = String(target.existingData.expirationDate);
+        return res.status(409).json({
+          code: 'CYCLE_ALREADY_PAID',
+          error: `Este ciclo já está pago até ${formatDateBr(exp)}. A renovação fica liberada a partir de ${formatDateBr(renewalOpensOn(exp))} (${RENEWAL_WINDOW_DAYS} dias antes do vencimento), e os dias que faltam são somados ao novo ciclo.`,
+        });
+      }
+
+      // Checkout anterior deste assinante (Pix ou cartão) ainda pagável: libera antes de
+      // abrir outro. Um marcador de sessão que o webhook já gravou não conta como pendente.
+      const pendingSessionId = target.isRenewal ? String(target.existingData.pendingCheckoutSessionId || '') : '';
+      const pending = pendingSessionId && !isSessionRecorded(target.existingData, pendingSessionId)
+        ? await releasePendingCheckout(stripe, pendingSessionId)
+        : 'none';
+      if (pending === 'paid') {
+        return res.status(409).json({
+          code: 'PAYMENT_PROCESSING',
+          error: 'O pagamento anterior deste ciclo já foi feito e está sendo confirmado. Aguarde alguns minutos — não é preciso pagar de novo.',
+        });
+      }
+
       // Origem tomada do próprio request (nunca de um campo enviado pelo cliente),
       // evitando que success_url/cancel_url virem um open redirect controlado por quem chama a rota.
       const origin = `${req.protocol}://${req.get('host')}`;
@@ -1340,6 +1562,9 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
         paymentMethod,
         // Assinatura inadimplente que o webhook cancela quando este pagamento confirmar.
         replacesSubscriptionId: existingSub.action === 'replace' ? target.existingSubscriptionId : '',
+        // Checkout anterior liberado acima. Também muda a chave de idempotência: sem isso,
+        // repetir o pedido devolveria do Stripe a sessão anterior, que acabou de ser liberada.
+        replacesCheckoutSessionId: pending === 'released' ? pendingSessionId : '',
       };
 
       const params = buildCheckoutSessionParams({ paymentMethod, plan: validPlan, metadata: sharedMetadata, origin });
@@ -1354,6 +1579,15 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
 
       if (!session.url) {
         return res.status(502).json({ error: 'Stripe não retornou a URL da sessão de checkout.' });
+      }
+
+      // Marca este checkout como o pendente do assinante, para o próximo liberá-lo.
+      // Cadastro novo ainda não tem documento nem ciclo pago para duplicar.
+      if (target.isRenewal) {
+        await db.collection('subscribers').doc(target.subscriberId).set(
+          { pendingCheckoutSessionId: session.id, updatedAt: new Date().toISOString() },
+          { merge: true },
+        );
       }
 
       return res.json({ url: session.url, sessionId: session.id });
@@ -1533,6 +1767,19 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
           case 'checkout.session.async_payment_failed': {
             const session = event.data.object as Stripe.Checkout.Session;
             console.warn(`[Stripe Webhook] checkout.session.async_payment_failed — pagamento da sessão ${session.id} (assinante ${session.metadata?.subscriberId || '(novo)'}, método=${session.metadata?.paymentMethod || 'desconhecido'}) não foi concluído. Nenhuma ativação feita.`);
+            if (await clearPendingCheckout(db, session.metadata?.subscriberId || '', session.id)) {
+              console.log(`[Stripe Webhook] Marcador de checkout pendente limpo (sessão ${session.id}).`);
+            }
+            break;
+          }
+
+          // Checkout abandonado (ou expirado por nós ao abrir um novo). Nada a ativar; só
+          // limpa o marcador se ele ainda apontar para esta sessão.
+          case 'checkout.session.expired': {
+            const session = event.data.object as Stripe.Checkout.Session;
+            if (await clearPendingCheckout(db, session.metadata?.subscriberId || '', session.id)) {
+              console.log(`[Stripe Webhook] checkout.session.expired — marcador de checkout pendente limpo (sessão ${session.id}).`);
+            }
             break;
           }
 
@@ -1541,52 +1788,18 @@ export function registerStripeRoutes(app: express.Application, db: AdminFirestor
           // continua correto.
           case 'invoice.paid': {
             const invoice = event.data.object as Stripe.Invoice;
-
-            // A primeira fatura de uma assinatura nova já foi tratada por
-            // checkout.session.completed — só entra aqui em renovações reais, evitando
-            // duplicar o registro de pagamento no histórico do assinante.
-            if (invoice.billing_reason === 'subscription_create') {
+            // A primeira fatura (subscription_create) é ignorada dentro de handleInvoicePaid.
+            const { outcome, subscriberId, subscriptionId } = await handleInvoicePaid(invoice, db, findSubscriber);
+            if (outcome === 'skipped_initial') {
               console.log('[Stripe Webhook] invoice.paid da fatura inicial — já ativado via checkout.session.completed, ignorando.');
-              break;
-            }
-
-            const subscription = (invoice as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }).subscription;
-            const subId = typeof subscription === 'string' ? subscription : subscription?.id;
-            const custId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
-            const match = await findSubscriber(subId || undefined, custId || undefined);
-            if (skipStale(match, subId)) break;
-
-            const now = new Date();
-            const expDate = new Date(); expDate.setDate(expDate.getDate() + 30);
-            const paidInvoice = {
-              id: `INV-STRIPE-RENEW-${Date.now()}`, invoiceCode: `STRIPE-RNW-${invoice.id?.slice(-8).toUpperCase() || Date.now()}`,
-              planName: match?.data.planName || 'Assinatura Recorrente', amount: (invoice.amount_paid || 0) / 100,
-              paymentMethod: 'CREDIT_CARD' as const, paymentDate: now.toLocaleString('pt-BR'),
-              dueDate: now.toISOString().split('T')[0], period: 'Renovação Recorrente',
-              status: 'PAID' as const, validationStatus: 'VALIDATED' as const,
-              transactionId: invoice.id || `stripe-${Date.now()}`,
-              notes: 'Fatura paga via Stripe (invoice.paid)',
-            };
-
-            if (match) {
-              const history = Array.isArray(match.data.paymentHistory) ? match.data.paymentHistory : [];
-              await db.collection('subscribers').doc(match.id).set({ ...match.data, status: 'ACTIVE', paymentStatus: 'PAID', paymentDate: now.toISOString().split('T')[0], expirationDate: expDate.toISOString().split('T')[0], paymentHistory: [paidInvoice, ...history], updatedAt: now.toISOString() }, { merge: true });
-              console.log(`[Stripe Webhook] invoice.paid — assinante ${match.id} ativado.`);
+            } else if (outcome === 'stale') {
+              skipStale({ id: subscriberId!, stale: true }, subscriptionId);
+            } else if (outcome === 'already_processed') {
+              console.log(`[Stripe Webhook] invoice.paid — fatura ${invoice.id} já registrada para ${subscriberId}; reentrega ignorada.`);
+            } else if (outcome === 'renewed') {
+              console.log(`[Stripe Webhook] invoice.paid — assinante ${subscriberId} renovado.`);
             } else {
-              // Documento não encontrado — cria registro mínimo para não perder o pagamento
-              const fallbackId = `stripe_${(subId || custId || Date.now()).toString().replace(/\W/g, '_')}`;
-              await db.collection('subscribers').doc(fallbackId).set({
-                id: fallbackId, stripeSubscriptionId: subId || '', stripeCustomerId: custId || '',
-                planName: 'Assinatura Recorrente', serviceName: 'Assinatura Recorrente',
-                status: 'ACTIVE', paymentStatus: 'PAID',
-                paymentMethod: 'CREDIT_CARD', paymentDate: now.toISOString().split('T')[0],
-                startDate: now.toISOString().split('T')[0], expirationDate: expDate.toISOString().split('T')[0],
-                paidAmount: (invoice.amount_paid || 0) / 100, expectedAmount: (invoice.amount_paid || 0) / 100,
-                totalSessions: 0, usedSessions: 0, userUid: '', cardCode: '',
-                clientName: '', cpf: '', phone: '', cardLast4: '', cardBrand: '',
-                paymentHistory: [paidInvoice], updatedAt: now.toISOString(),
-              });
-              console.warn(`[Stripe Webhook] invoice.paid — assinante não encontrado, fallback criado: ${fallbackId}`);
+              console.warn(`[Stripe Webhook] invoice.paid — assinante não encontrado, fallback criado: ${subscriberId}`);
             }
             break;
           }

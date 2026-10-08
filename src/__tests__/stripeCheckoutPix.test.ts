@@ -7,7 +7,7 @@
  * - renovar quem já tem assinatura de cartão não gera uma segunda cobrança mensal.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import type Stripe from 'stripe';
 import {
   activateSubscriberFromSession,
@@ -18,6 +18,11 @@ import {
   buildCheckoutIdempotencyKey,
   buildCheckoutSessionParams,
   resolveCheckoutTarget,
+  releasePendingCheckout,
+  isSessionRecorded,
+  clearPendingCheckout,
+  renewSubscriberFromInvoice,
+  handleInvoicePaid,
 } from '../../stripe-routes';
 import { isValidCpf, formatCpf } from '../lib/cpf';
 
@@ -385,5 +390,255 @@ describe('cancelAutoRenewal — trocar cartão por Pix', () => {
   it('sem assinatura de cartão: nada a cancelar', async () => {
     const { db } = createFakeDb({ sub_1: { stripeSubscriptionId: '' } });
     expect(await cancelAutoRenewal(fakeStripeSubs({}), db, 'sub_1')).toBe('nothing_to_cancel');
+  });
+});
+
+// ─── Ciclo novo: atendimentos zerados e vencimento somado ──────────────────────
+describe('activateSubscriberFromSession — ciclo novo (Pix e cartão)', () => {
+  afterEach(() => { vi.useRealTimers(); });
+  const freezeAt = (iso: string) => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(iso)); };
+
+  it('Pix de renovação: 4 de 4 usados → 0, e vencimento daqui a 3 dias → antigo + 30', async () => {
+    freezeAt('2026-10-08T15:00:00Z');
+    const { db, store } = createFakeDb({
+      sub_1: { userUid: 'uid_1', usedSessions: 4, totalSessions: 4, startDate: '2026-09-11', expirationDate: '2026-10-11', paymentHistory: [] },
+    });
+    expect(await activateSubscriberFromSession(session(), noSubscriptions, db)).toBe('activated');
+    expect(store.get('sub_1')).toMatchObject({ usedSessions: 0, expirationDate: '2026-11-10', startDate: '2026-09-11' });
+  });
+
+  it('cartão: também zera os atendimentos e soma ao vencimento', async () => {
+    freezeAt('2026-10-08T15:00:00Z');
+    const { db, store } = createFakeDb({ sub_1: { userUid: 'uid_1', usedSessions: 3, expirationDate: '2026-10-01', paymentHistory: [] } });
+    const stripe = { subscriptions: { retrieve: vi.fn().mockResolvedValue({ default_payment_method: null }) } } as any;
+    await activateSubscriberFromSession(
+      session({ subscription: 'sub_stripe_1', payment_intent: null, metadata: baseMetadata({ paymentMethod: 'CREDIT_CARD' }) }),
+      stripe, db,
+    );
+    expect(store.get('sub_1')).toMatchObject({ usedSessions: 0, expirationDate: '2026-11-07', paymentMethod: 'CREDIT_CARD' });
+  });
+
+  it('limpa o checkout pendente quando é esta a sessão paga; mantém se for outra', async () => {
+    const a = createFakeDb({ sub_1: { userUid: 'uid_1', pendingCheckoutSessionId: 'cs_test_123' } });
+    await activateSubscriberFromSession(session(), noSubscriptions, a.db);
+    expect(a.store.get('sub_1')!.pendingCheckoutSessionId).toBe('');
+
+    const b = createFakeDb({ sub_1: { userUid: 'uid_1', pendingCheckoutSessionId: 'cs_outro' } });
+    await activateSubscriberFromSession(session(), noSubscriptions, b.db);
+    expect(b.store.get('sub_1')!.pendingCheckoutSessionId).toBe('cs_outro');
+  });
+});
+
+describe('renewSubscriberFromInvoice — renovação mensal do cartão (invoice.paid)', () => {
+  const invoice = (id = 'in_test_renew_1') => ({ id, amount_paid: 6400 }) as unknown as Stripe.Invoice;
+  const NOW = new Date('2026-10-08T15:00:00Z');
+
+  it('zera atendimentos, soma 30 dias ao vencimento e registra a fatura, sem apagar o resto do cadastro', async () => {
+    const { db, store } = createFakeDb({
+      sub_1: { userUid: 'uid_1', cardCode: 'DB-1234', planName: 'BASIC 4 (4 ATD)', usedSessions: 4, totalSessions: 4, expirationDate: '2026-10-09', status: 'ACTIVE', paymentHistory: [] },
+    });
+    expect(await renewSubscriberFromInvoice(db, 'sub_1', invoice(), NOW)).toBe('renewed');
+    const sub = store.get('sub_1')!;
+    expect(sub).toMatchObject({
+      usedSessions: 0, expirationDate: '2026-11-08', status: 'ACTIVE', paymentStatus: 'PAID', paymentDate: '2026-10-08',
+      cardCode: 'DB-1234', totalSessions: 4, userUid: 'uid_1',
+    });
+    expect(sub.paymentHistory).toHaveLength(1);
+    expect(sub.paymentHistory[0]).toMatchObject({ transactionId: 'in_test_renew_1', paymentMethod: 'CREDIT_CARD', amount: 64 });
+  });
+
+  it('reentrega da mesma fatura: already_processed e o cadastro fica idêntico', async () => {
+    const { db, store } = createFakeDb({ sub_1: { userUid: 'uid_1', usedSessions: 0, expirationDate: '2026-10-09', paymentHistory: [] } });
+    await renewSubscriberFromInvoice(db, 'sub_1', invoice(), NOW);
+    store.get('sub_1')!.usedSessions = 2; // check-ins feitos depois da renovação
+    const before = structuredClone(store.get('sub_1'));
+
+    expect(await renewSubscriberFromInvoice(db, 'sub_1', invoice(), NOW)).toBe('already_processed');
+    expect(store.get('sub_1')).toEqual(before);
+  });
+
+  it('fatura nova do mês seguinte renova de novo', async () => {
+    const { db, store } = createFakeDb({ sub_1: { userUid: 'uid_1', expirationDate: '2026-10-09', paymentHistory: [] } });
+    await renewSubscriberFromInvoice(db, 'sub_1', invoice('in_1'), NOW);
+    expect(await renewSubscriberFromInvoice(db, 'sub_1', invoice('in_2'), new Date('2026-11-08T15:00:00Z'))).toBe('renewed');
+    expect(store.get('sub_1')).toMatchObject({ expirationDate: '2026-12-08' });
+    expect(store.get('sub_1')!.paymentHistory).toHaveLength(2);
+  });
+});
+
+// ─── Checkout anterior ainda pagável ───────────────────────────────────────────
+describe('releasePendingCheckout — libera o checkout anterior antes de abrir outro', () => {
+  function fakeStripe(session: any, opts: { expire?: any; cancel?: any; piAfter?: any; sessionAfter?: any } = {}) {
+    const retrieve = vi.fn().mockResolvedValueOnce(session).mockResolvedValue(opts.sessionAfter ?? session);
+    return {
+      checkout: { sessions: { retrieve, expire: opts.expire ?? vi.fn().mockResolvedValue({}) } },
+      paymentIntents: {
+        cancel: opts.cancel ?? vi.fn().mockResolvedValue({}),
+        retrieve: vi.fn().mockResolvedValue(opts.piAfter ?? {}),
+      },
+    } as any;
+  }
+  const qrShown = (piStatus = 'requires_action') => ({ status: 'complete', payment_status: 'unpaid', payment_intent: { id: 'pi_1', status: piStatus } });
+
+  it('sem checkout pendente: nada a fazer, sem chamar o Stripe', async () => {
+    const stripe = fakeStripe({});
+    expect(await releasePendingCheckout(stripe, '')).toBe('none');
+    expect(stripe.checkout.sessions.retrieve).not.toHaveBeenCalled();
+  });
+
+  it('sessão aberta (QR code ainda não gerado): expira', async () => {
+    const stripe = fakeStripe({ status: 'open' });
+    expect(await releasePendingCheckout(stripe, 'cs_1')).toBe('released');
+    expect(stripe.checkout.sessions.expire).toHaveBeenCalledWith('cs_1');
+  });
+
+  it('Pix com QR code exibido e não pago: cancela o PaymentIntent (não prende o cliente)', async () => {
+    const stripe = fakeStripe(qrShown());
+    expect(await releasePendingCheckout(stripe, 'cs_1')).toBe('released');
+    expect(stripe.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(stripe.paymentIntents.cancel).toHaveBeenCalledWith('pi_1');
+  });
+
+  it('já pago (webhook ainda não chegou): paid, nada é cancelado', async () => {
+    const paidSession = fakeStripe({ status: 'complete', payment_status: 'paid', payment_intent: null });
+    expect(await releasePendingCheckout(paidSession, 'cs_1')).toBe('paid');
+    const piSucceeded = fakeStripe(qrShown('succeeded'));
+    expect(await releasePendingCheckout(piSucceeded, 'cs_1')).toBe('paid');
+    expect(piSucceeded.paymentIntents.cancel).not.toHaveBeenCalled();
+  });
+
+  it('cliente pagou entre a leitura e o cancelamento: paid', async () => {
+    const stripe = fakeStripe(qrShown(), {
+      cancel: vi.fn().mockRejectedValue(new Error('cannot cancel')),
+      piAfter: { id: 'pi_1', status: 'succeeded' },
+    });
+    expect(await releasePendingCheckout(stripe, 'cs_1')).toBe('paid');
+  });
+
+  it('cliente concluiu o checkout entre a leitura e o expire: trata como sessão completa', async () => {
+    const paidNow = fakeStripe({ status: 'open' }, {
+      expire: vi.fn().mockRejectedValue(new Error('not open')),
+      sessionAfter: { status: 'complete', payment_status: 'paid' },
+    });
+    expect(await releasePendingCheckout(paidNow, 'cs_1')).toBe('paid');
+
+    const qrNow = fakeStripe({ status: 'open' }, { expire: vi.fn().mockRejectedValue(new Error('not open')), sessionAfter: qrShown() });
+    expect(await releasePendingCheckout(qrNow, 'cs_1')).toBe('released');
+    expect(qrNow.paymentIntents.cancel).toHaveBeenCalledWith('pi_1');
+  });
+
+  it('payment_intent nulo: nada pagável a cancelar, sem chamar cancel/retrieve', async () => {
+    const stripe = fakeStripe({ status: 'complete', payment_status: 'unpaid', payment_intent: null });
+    expect(await releasePendingCheckout(stripe, 'cs_1')).toBe('none');
+    expect(stripe.paymentIntents.cancel).not.toHaveBeenCalled();
+    expect(stripe.paymentIntents.retrieve).not.toHaveBeenCalled();
+  });
+
+  it('payment_intent só como id (sem expand): busca o PaymentIntent antes de decidir', async () => {
+    const pending = fakeStripe({ status: 'complete', payment_status: 'unpaid', payment_intent: 'pi_1' }, {
+      piAfter: { id: 'pi_1', status: 'requires_action' },
+    });
+    expect(await releasePendingCheckout(pending, 'cs_1')).toBe('released');
+    expect(pending.paymentIntents.retrieve).toHaveBeenCalledWith('pi_1');
+    expect(pending.paymentIntents.cancel).toHaveBeenCalledWith('pi_1');
+
+    const paid = fakeStripe({ status: 'complete', payment_status: 'unpaid', payment_intent: 'pi_1' }, {
+      piAfter: { id: 'pi_1', status: 'succeeded' },
+    });
+    expect(await releasePendingCheckout(paid, 'cs_1')).toBe('paid');
+    expect(paid.paymentIntents.cancel).not.toHaveBeenCalled();
+  });
+
+  it('expirada, Pix vencido/cancelado ou inexistente: nada a fazer', async () => {
+    expect(await releasePendingCheckout(fakeStripe({ status: 'expired' }), 'cs_1')).toBe('none');
+    expect(await releasePendingCheckout(fakeStripe(qrShown('canceled')), 'cs_1')).toBe('none');
+    const missing = { checkout: { sessions: { retrieve: vi.fn().mockRejectedValue({ code: 'resource_missing' }) } } } as any;
+    expect(await releasePendingCheckout(missing, 'cs_1')).toBe('none');
+  });
+
+  it('outros erros do Stripe propagam — na dúvida não abre checkout', async () => {
+    const down = { checkout: { sessions: { retrieve: vi.fn().mockRejectedValue(new Error('api down')) } } } as any;
+    await expect(releasePendingCheckout(down, 'cs_1')).rejects.toThrow('api down');
+    const stillOpen = fakeStripe({ status: 'open' }, { expire: vi.fn().mockRejectedValue(new Error('expire failed')) });
+    await expect(releasePendingCheckout(stillOpen, 'cs_1')).rejects.toThrow('expire failed');
+  });
+});
+
+describe('isSessionRecorded / clearPendingCheckout', () => {
+  it('isSessionRecorded: sessão já gravada pelo webhook não conta como pendente', () => {
+    expect(isSessionRecorded({ checkoutSessionId: 'cs_1' }, 'cs_1')).toBe(true);
+    expect(isSessionRecorded({ paymentHistory: [{ checkoutSessionId: 'cs_1' }] }, 'cs_1')).toBe(true);
+    expect(isSessionRecorded({ checkoutSessionId: 'cs_2' }, 'cs_1')).toBe(false);
+    expect(isSessionRecorded({}, '')).toBe(false);
+  });
+
+  it('limpa só se o marcador ainda apontar para a sessão (Pix vencido / checkout expirado)', async () => {
+    const { db, store } = createFakeDb({ sub_1: { pendingCheckoutSessionId: 'cs_1' }, sub_2: { pendingCheckoutSessionId: 'cs_novo' } });
+    expect(await clearPendingCheckout(db, 'sub_1', 'cs_1')).toBe(true);
+    expect(store.get('sub_1')!.pendingCheckoutSessionId).toBe('');
+    // Um checkout novo já substituiu o marcador: o expired da sessão antiga não apaga.
+    expect(await clearPendingCheckout(db, 'sub_2', 'cs_1')).toBe(false);
+    expect(store.get('sub_2')!.pendingCheckoutSessionId).toBe('cs_novo');
+    expect(await clearPendingCheckout(db, 'nao_existe', 'cs_1')).toBe(false);
+    expect(await clearPendingCheckout(db, '', 'cs_1')).toBe(false);
+  });
+});
+
+// ─── Cartão: checkout.session.completed + invoice.paid da primeira fatura ──────
+describe('cartão novo — completed e invoice.paid (subscription_create) não somam duas vezes', () => {
+  afterEach(() => { vi.useRealTimers(); });
+  const freeze = () => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-08T15:00:00Z')); };
+
+  const cardStripe = () => ({
+    subscriptions: { retrieve: vi.fn().mockResolvedValue({ default_payment_method: { card: { brand: 'visa', last4: '4242' } } }) },
+  }) as any;
+  const cardSession = () => session({
+    id: 'cs_card_1', subscription: 'sub_card_1', customer: 'cus_card_1', payment_intent: null,
+    metadata: baseMetadata({ subscriberId: 'stripe_novo', paymentMethod: 'CREDIT_CARD' }),
+  });
+  const firstInvoice = (billing_reason = 'subscription_create') => ({
+    id: 'in_first_1', billing_reason, amount_paid: 6400, subscription: 'sub_card_1', customer: 'cus_card_1',
+  }) as unknown as Stripe.Invoice;
+  /** Mesmo papel do findSubscriber do webhook: acha pelo stripeSubscriptionId gravado. */
+  const finder = (store: Map<string, Record<string, any>>) => vi.fn(async (subId?: string) => {
+    for (const [id, data] of store) if (subId && data.stripeSubscriptionId === subId) return { id, data };
+    return null;
+  });
+
+  it('completed → invoice.paid: vencimento hoje + 30, usedSessions 0, uma única fatura', async () => {
+    freeze();
+    const { db, store } = createFakeDb();
+    expect(await activateSubscriberFromSession(cardSession(), cardStripe(), db)).toBe('activated');
+    store.get('stripe_novo')!.usedSessions = 1; // check-in feito antes de o invoice.paid chegar
+
+    const find = finder(store);
+    expect((await handleInvoicePaid(firstInvoice(), db, find)).outcome).toBe('skipped_initial');
+    expect(find).not.toHaveBeenCalled(); // ignorada antes de qualquer leitura
+
+    const sub = store.get('stripe_novo')!;
+    expect(sub).toMatchObject({
+      expirationDate: '2026-11-07', usedSessions: 1, status: 'ACTIVE', paymentMethod: 'CREDIT_CARD',
+      cardBrand: 'VISA', cardLast4: '4242', stripeSubscriptionId: 'sub_card_1',
+    });
+    expect(sub.paymentHistory).toHaveLength(1);
+  });
+
+  it('invoice.paid chega ANTES do completed: mesmo resultado', async () => {
+    freeze();
+    const { db, store } = createFakeDb();
+    expect((await handleInvoicePaid(firstInvoice(), db, finder(store))).outcome).toBe('skipped_initial');
+    expect(store.size).toBe(0);
+
+    await activateSubscriberFromSession(cardSession(), cardStripe(), db);
+    expect(store.get('stripe_novo')).toMatchObject({ expirationDate: '2026-11-07', usedSessions: 0 });
+    expect(store.get('stripe_novo')!.paymentHistory).toHaveLength(1);
+  });
+
+  it('contraprova: sem o subscription_create, a mesma fatura somaria +30 (é o guarda que impede)', async () => {
+    freeze();
+    const { db, store } = createFakeDb();
+    await activateSubscriberFromSession(cardSession(), cardStripe(), db);
+    expect((await handleInvoicePaid(firstInvoice('subscription_cycle'), db, finder(store))).outcome).toBe('renewed');
+    expect(store.get('stripe_novo')!.expirationDate).toBe('2026-12-07');
   });
 });

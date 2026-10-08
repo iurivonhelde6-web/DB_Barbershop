@@ -11,6 +11,7 @@ import {
 import { SubscriberCard } from '../types';
 import { auth, getAuthHeaders } from '../lib/firebase';
 import { formatCpf, isValidCpf } from '../lib/cpf';
+import { RENEWAL_WINDOW_DAYS, formatDateBr, isCycleAlreadyPaid, renewalOpensOn } from '../lib/billingCycle';
 
 type CheckoutPaymentMethod = 'CREDIT_CARD' | 'PIX';
 
@@ -48,6 +49,8 @@ interface PaymentModalProps {
  * Pix é cobrança ÚNICA de um ciclo de 30 dias (não há débito automático — veja
  * buildCheckoutSessionParams em stripe-routes.ts). A renovação é gerar um novo Pix por
  * este mesmo modal, tanto no cadastro (PlansCatalog) quanto no admin (ControlCardValidation).
+ * A renovação manual (Pix ou cartão) só é liberada nos RENEWAL_WINDOW_DAYS antes do
+ * vencimento — o servidor recusa antes disso (409 CYCLE_ALREADY_PAID).
  */
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
@@ -93,6 +96,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const isPix = paymentMethod === 'PIX';
   const cpfIsValid = isValidCpf(cpfInput);
   const showCpfError = cpfInput.replace(/\D/g, '').length === 11 && !cpfIsValid;
+  // Só informativo: quem decide é o servidor (o relógio do aparelho pode estar errado).
+  const paidUntil = subscriberCard && isCycleAlreadyPaid(subscriberCard) ? subscriberCard.expirationDate : '';
 
   const formattedPlanAmount = planAmount.toLocaleString('pt-BR', {
     style: 'currency',
@@ -245,6 +250,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </button>
           )}
 
+          {paidUntil && (
+            <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-100 text-xs flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                Este ciclo já está pago até <strong>{formatDateBr(paidUntil)}</strong>. A renovação fica liberada a partir
+                de <strong>{formatDateBr(renewalOpensOn(paidUntil))}</strong> ({RENEWAL_WINDOW_DAYS} dias antes do vencimento),
+                e os dias que faltam são somados ao novo ciclo.
+              </span>
+            </div>
+          )}
+
           {infoMessage && (
             <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs flex items-start gap-2.5">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -321,12 +337,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
               <p className="text-[11px] text-stone-400 leading-relaxed">
                 Você será redirecionado para a página segura do <strong className="text-stone-200">Stripe</strong>, que
-                mostra o QR code / código Pix copia e cola. O código vale por 1 hora.
+                mostra o QR code / código Pix copia e cola. O código vale por 1 hora; se você gerar
+                outro, o anterior é cancelado.
               </p>
               <p className="text-[11px] text-stone-400 leading-relaxed">
                 Pagamento único de <strong className="text-stone-200 font-mono">R$ {planAmount.toFixed(2)}</strong>.
-                Perto do vencimento você (ou o admin) vai gerar um novo Pix para renovar —{' '}
-                <strong className="text-stone-200">não há débito automático</strong>.
+                Para renovar, gere um novo Pix a partir de {RENEWAL_WINDOW_DAYS} dias antes do vencimento — os dias que
+                faltam são somados ao novo ciclo. <strong className="text-stone-200">Não há débito automático</strong>.
               </p>
             </div>
           ) : (
